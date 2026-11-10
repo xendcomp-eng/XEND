@@ -82,6 +82,9 @@ textarea:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .xban{background:var(--acc);color:#111;border:2px solid #111;border-radius:12px;padding:10px 14px;font-weight:700;text-align:center;margin-bottom:14px}
 .xhero{text-align:center;padding:26px 8px 18px}
 .xhero h1{font-size:2rem;line-height:1.15;margin:8px 0}
+.xherologo{display:block;margin:0 auto 6px;max-width:80%;object-fit:contain}
+.xbimg{display:block;width:100%;aspect-ratio:16/6;object-fit:cover;border:2px solid var(--edge);border-radius:16px;margin-bottom:14px}
+.xbimg.whole{aspect-ratio:auto;height:auto;object-fit:contain}
 .xlogo{height:32px;max-width:120px;object-fit:contain;vertical-align:middle;margin-right:8px;border-radius:6px}
 .xgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
 .xgrid .card{margin:0}
@@ -950,12 +953,12 @@ function buyCsv(){if(!buyOut)return;var q=function(v){v=String(v==null?'':v);ret
 /* ================= XEND storefront + CMS: public site, pre-orders, admin editor ================= */
 var xcms=null,xerr=false,xbusy=false,xclk=0,xclt=null,ordP=null,ordLink='',
   vLandingOld=vLanding,vStaff0=vStaff,setTab0=setTab,render0=render,
-  XPAGES=['site','shop','secs','orders','btns','theme'],
-  XCFG=[['site_name','Site name (public store)','XEND'],['cash_app_name','App / wallet name','XEND-CASH'],['site_logo_url','Logo URL','https://...'],
+  XPAGES=['site','shop','secs','orders','btns','theme','brand'],
+  XCFG=[['site_name','Site name (public store)','XEND'],['cash_app_name','App / wallet name','XEND-CASH'],
     ['hero_title','Hero title',''],['hero_subtitle','Hero subtitle','',1],['banner_text','Promo banner (empty = hidden)',''],
     ['about_title','About heading',''],['about_text','About text','',1],['shop_title','Shop heading',''],['wallet_title','Wallet button label','My wallet'],
     ['momo_link','MoMo payment link','https://...'],['card_link','Card payment link','https://...'],['bank_link','Bank payment link','https://...'],['low_stock_at','Low-stock threshold (units)','3']],
-  XALL=[['home','Home'],['top','Top-up'],['till','Charge'],['cards','Cards'],['events','Events'],['vendors','Owed'],['buys','Purchases'],['team','Team'],['groups','Groups'],['import','Import'],['set','Settings'],['site','Site'],['shop','Shop'],['secs','Sections'],['btns','Buttons'],['orders','Orders'],['theme','Colors'],['ledger','Ledger']];
+  XALL=[['home','Home'],['top','Top-up'],['till','Charge'],['cards','Cards'],['events','Events'],['vendors','Owed'],['buys','Purchases'],['team','Team'],['groups','Groups'],['import','Import'],['set','Settings'],['site','Site'],['brand','Logo & Banner'],['shop','Shop'],['secs','Sections'],['btns','Buttons'],['orders','Orders'],['theme','Colors'],['ledger','Ledger']];
 function xv(k,d){var c=xcms&&xcms.config,v=c&&c[k];return (v!=null&&String(v).trim()!=='')?String(v):(d==null?'':d)}
 function xurl(u){u=String(u||'').trim();return /^(https?:\/\/|data:image\/(png|jpe?g|webp|gif);base64,)/i.test(u)?u:''}
 function xhtml(s){return esc(s).replace(/\n/g,'<br>')}
@@ -965,7 +968,7 @@ async function loadCms(){try{xcms=await rpc('cms_get');xerr=!xcms;xmsg=''}catch(
 /* context-aware branding: XEND on the public store, XEND-CASH (or the configured name) inside the app */
 function xStore(){return !me&&!wallet&&!card&&!claimTok&&actStep!=='code'&&wmode!=='pin'}
 function xBrand(){var n=xStore()?xv('site_name','XEND'):xv('cash_app_name','XEND-CASH'),b=document.querySelector('header b');
-  if(b){b.textContent='';var lg=xurl(xv('site_logo_url'));if(lg){var im=document.createElement('img');im.className='xlogo';im.alt='';im.src=lg;b.appendChild(im)}b.appendChild(document.createTextNode(n))}
+  if(b){b.textContent='';var lg=brandLogo(),lp=(FX.brand&&FX.brand.lp)||'header';if(lg&&lp!=='hero'){var im=document.createElement('img');im.className='xlogo';im.alt='';im.src=lg;im.style.height=logoPx(false)+'px';im.style.maxWidth='200px';b.appendChild(im)}if(!(lg&&lp==='header_only'))b.appendChild(document.createTextNode(n))}
   document.title=n}
 render=function(){render0();xBrand();themeApply((me&&me.role==='admin'&&tab==='theme'&&themeDraft)?themeDraft:FX.theme)};
 /* public storefront */
@@ -980,10 +983,10 @@ vLanding=function(){
   if(!xcms&&!xerr)return '<div class="card" style="text-align:center"><p class="mut">Loading\u2026</p></div>';
   var bn=xv('banner_text'),pr=(xcms&&xcms.products)||[],sec=(xcms&&xcms.sections)||[],about=xv('about_text'),
     note=xcms?'':'<div class="msg err" role="alert">Store content could not load'+(xmsg?': '+esc(xmsg):'')+'. Run xend-storefront.sql in Supabase, then reload.</div>';
-  return note+(bn?'<div class="xban anim-fade-in">'+esc(bn)+'</div>':'')+
-  '<section class="xhero anim-slide-up"><h1>'+esc(xv('hero_title','XEND Smart Bracelet'))+'</h1><p class="mut" style="font-size:1.05rem">'+xhtml(xv('hero_subtitle','NFC-enabled leather bracelets for instant contact sharing and safety.'))+'</p>'+xBtnRow('landing','top',14)+'</section>'+
-  sec.map(xSec).join('')+
-  '<h2 id="xshop" style="text-align:center;margin:18px 0 12px">'+esc(xv('shop_title','Pre-order yours'))+'</h2>'+(pr.length?'<div class="xgrid">'+pr.map(xProd).join('')+'</div>':'<p class="mut" style="text-align:center">No products yet. Check back soon.</p>')+
+  return note+xImg('top')+(bn?'<div class="xban anim-fade-in">'+esc(bn)+'</div>':'')+
+  '<section class="xhero anim-slide-up">'+xHeroLogo()+'<h1>'+esc(xv('hero_title','XEND Smart Bracelet'))+'</h1><p class="mut" style="font-size:1.05rem">'+xhtml(xv('hero_subtitle','NFC-enabled leather bracelets for instant contact sharing and safety.'))+'</p>'+xBtnRow('landing','top',14)+'</section>'+
+  xImg('hero')+sec.map(xSec).join('')+
+  xImg('shop')+'<h2 id="xshop" style="text-align:center;margin:18px 0 12px">'+esc(xv('shop_title','Pre-order yours'))+'</h2>'+(pr.length?'<div class="xgrid">'+pr.map(xProd).join('')+'</div>':'<p class="mut" style="text-align:center">No products yet. Check back soon.</p>')+
   (about?'<div class="card" style="margin-top:14px;text-align:center"><h2>'+esc(xv('about_title','About'))+'</h2><div>'+xhtml(about)+'</div></div>':'')+
   '<p id="xfoot" class="mut" style="text-align:center;margin:24px 0 4px;user-select:none" onclick="xFoot()">\u2022 Xend Ecosystem \u2022</p>'+xBtnRow('landing','bottom',0)};
 function xShop(){var e=$('xshop');if(e)e.scrollIntoView({behavior:'smooth'})}
@@ -1069,10 +1072,10 @@ function xvOrders(){var o=adm.orders;if(o===null)return xNeed();if(!o)o=[];var S
   return '<div class="card"><h2>Pre-orders</h2>'+(o.length?'<div style="overflow-x:auto"><table>'+o.map(function(x){return '<tr><td>'+when(x.created_at)+'</td><td><b>'+esc(x.name)+'</b><br><a href="tel:'+esc(String(x.phone).replace(/[^\d+]/g,''))+'">'+esc(x.phone)+'</a><br>'+esc(x.email)+'</td><td>'+esc(x.product_title||'-')+(x.price!=null?'<br>'+esc(xMoney(x.price)):'')+'<br><span class="mut">'+esc(x.payment_method)+'</span></td><td><select aria-label="Order status" onchange="xOrdSt(\''+esc(x.id)+'\',this.value)">'+ST.map(function(s){return '<option'+(s===x.status?' selected':'')+'>'+s+'</option>'}).join('')+'</select></td></tr>'}).join('')+'</table></div>':'<p class="mut">No pre-orders yet.</p>')+'</div>'}
 async function xOrdSt(id,s){try{await rpc('preorder_status',{oid:id,st:s});toast('Order marked '+s+'.',true)}catch(e){toast(e.message,false)}await xLoadAdm()}
 /* tab bar: admins get the new tabs; every tab name can be overridden from the Site tab */
-setTab=function(t){if(tab==='theme'&&t!=='theme'&&themeDraft){themeDraft=null;themeApply(FX.theme)}if(XPAGES.indexOf(t)>-1){tab=t;render();xLoadAdm()}else setTab0(t)};
+setTab=function(t){if(tab==='brand'&&t!=='brand')brandDraft=null;if(tab==='theme'&&t!=='theme'&&themeDraft){themeDraft=null;themeApply(FX.theme)}if(XPAGES.indexOf(t)>-1){tab=t;render();xLoadAdm()}else setTab0(t)};
 vStaff=function(){
   if(!me||me.role!=='admin'){var h=vStaff0();if(me&&me.role!=='vendor')XALL.forEach(function(t){var l=xv('label_'+t[0]);if(l)h=h.replace(new RegExp('(onclick="setTab\\(\''+t[0]+'\'\\)">)[^<]*(</button>)'),function(m,a,b){return a+esc(l)+b})});return h}
-  var T=XALL,map={home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,vendors:vVendors,buys:vBuys,team:vTeam,groups:vGroups,import:vImport,set:vSet,site:xvSite,shop:xvShop,secs:xvSecs,btns:xvBtns,orders:xvOrders,theme:xvTheme,ledger:vLedger};
+  var T=XALL,map={home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,vendors:vVendors,buys:vBuys,team:vTeam,groups:vGroups,import:vImport,set:vSet,site:xvSite,brand:xvBrand,shop:xvShop,secs:xvSecs,btns:xvBtns,orders:xvOrders,theme:xvTheme,ledger:vLedger};
   return '<div class="row tabs" style="margin-bottom:14px">'+T.map(function(t){return '<button class="'+(tab===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+esc(xv('label_'+t[0],t[1]))+'</button>'}).join('')+'</div>'+(map[tab]||vHome)()};
 /* ================= admin-editable buttons, colours, points counters, guest edit toggles ================= */
 var gEdit=null,themeDraft=null,themeLast='';
@@ -1215,6 +1218,70 @@ function cardEditBlock(w){
 function pinEditBlock(){
   if(gEdit==='pin')return '<div class="card"><h2>Change PIN</h2><p class="mut">4 to 6 digits. Avoid easy ones like 1234.</p><div class="row"><input id="op" type="password" inputmode="numeric" placeholder="Current PIN" style="width:130px"><input id="np" type="password" inputmode="numeric" placeholder="New PIN" style="width:110px"><button class="go" onclick="changePin()">Change</button><button onclick="gEditClose()">Cancel</button></div></div>';
   return '<div class="card"><h2>PIN</h2><button style="width:100%" onclick="gEditOpen(\'pin\')">Change my PIN</button></div>'}
+/* ================= logo + banner image: uploaded files, resized in the browser ================= */
+var brandDraft=null;
+var LPOS=[['header','Top bar, left of the name'],['header_only','Top bar, logo instead of the name'],['hero','Above the page title only'],['both','Top bar and above the page title']];
+var LSZ=[['s','Small'],['m','Medium'],['l','Large']];
+var BNPOS=[['top','Very top of the landing page'],['hero','Under the title and buttons'],['shop','Just above the shop']];
+var BNSHAPE=[['wide','Wide strip (crops to fit)'],['whole','Show the whole image']];
+function okData(v){v=String(v||'');return /^https:\/\/[^\s"'<>]+$/i.test(v)||/^data:image\/(png|jpe?g|webp|gif);base64,[A-Za-z0-9+\/=]+$/.test(v)}
+function brandLogo(){var b=FX.brand;if(b&&okData(b.logo))return b.logo;return xurl(xv('site_logo_url'))}
+function logoPx(hero){var s=(FX.brand&&FX.brand.ls)||'m';return (hero?{s:56,m:84,l:120}:{s:24,m:32,l:44})[s]||(hero?84:32)}
+function xHeroLogo(){var lg=brandLogo(),p=(FX.brand&&FX.brand.lp)||'header';return lg&&(p==='hero'||p==='both')?'<img class="xherologo" alt="" src="'+esc(lg)+'" style="height:'+logoPx(true)+'px">':''}
+function xImg(pl){var b=FX.brand;if(!b||b.bon===0||!okData(b.bn)||(b.bp||'top')!==pl)return '';
+  var im='<img class="xbimg'+(b.bs==='whole'?' whole':'')+'" src="'+esc(b.bn)+'" alt="'+esc(b.ba||'')+'">',u=xlink(b.bl);
+  return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener" style="display:block">'+im+'</a>':im}
+function kb(s){s=String(s||'');return /^data:/.test(s)?Math.round(s.length*0.75/1024)+' KB \u00B7 uploads when you press Save':s?'Stored in Supabase':''}
+function brandSync(){if(!brandDraft)return;var g=function(i){return $(i)};
+  if(g('bd_lp'))brandDraft.lp=g('bd_lp').value;if(g('bd_ls'))brandDraft.ls=g('bd_ls').value;
+  if(g('bd_ba'))brandDraft.ba=g('bd_ba').value.trim();if(g('bd_bl'))brandDraft.bl=g('bd_bl').value.trim();
+  if(g('bd_bp'))brandDraft.bp=g('bd_bp').value;if(g('bd_bs'))brandDraft.bs=g('bd_bs').value;if(g('bd_on'))brandDraft.bon=g('bd_on').checked?1:0}
+function brandPick(kind,inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  if(!/^image\//.test(f.type)){toast('Choose an image file.',false);return}
+  var img=new Image(),u=URL.createObjectURL(f),logo=kind==='logo';
+  img.onload=function(){var w=img.naturalWidth||512,h=img.naturalHeight||512,mx=logo?512:1600,sc=Math.min(1,mx/w,mx/h),out='',lim=logo?300000:800000,q=.86;
+    for(var i=0;i<8;i++){var c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*sc));c.height=Math.max(1,Math.round(h*sc));var x=c.getContext('2d');
+      if(logo){x.drawImage(img,0,0,c.width,c.height);out=c.toDataURL('image/webp',.9);if(out.indexOf('data:image/webp')!==0)out=c.toDataURL('image/png')}
+      else{x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);out=c.toDataURL('image/jpeg',q)}
+      if(out.length<=lim)break;sc*=.8;q=Math.max(.5,q-.08)}
+    URL.revokeObjectURL(u);brandSync();brandDraft[logo?'logo':'bn']=out;if(!logo&&brandDraft.bon===undefined)brandDraft.bon=1;render()};
+  img.onerror=function(){URL.revokeObjectURL(u);toast('Could not read that image.',false)};img.src=u}
+function brandClear(kind){brandSync();brandDraft[kind==='logo'?'logo':'bn']='';render()}
+function xvBrand(){brandDraft=brandDraft||JSON.parse(JSON.stringify(FX.brand||{}));var d=brandDraft,lg=okData(d.logo)?d.logo:'',bn=okData(d.bn)?d.bn:'';
+  var pv='background:repeating-conic-gradient(#ccc 0 25%,#fff 0 50%) 50%/16px 16px;border:2px solid var(--edge);border-radius:12px;padding:10px;text-align:center';
+  return '<div class="card"><h2>Logo</h2><p class="mut">Upload a PNG, JPG or WebP. It is resized automatically so the site stays fast. Transparent PNGs keep their transparency.</p>'+
+  '<div style="'+pv+'">'+(lg?'<img src="'+esc(lg)+'" alt="" style="max-height:90px;max-width:100%;object-fit:contain">':'<span class="mut" style="background:var(--card);padding:2px 8px;border-radius:8px">No logo uploaded'+(xurl(xv('site_logo_url'))?' (old logo link is used)':'')+'</span>')+'</div>'+
+  (lg?'<p class="mut" style="margin:6px 0 0">'+kb(lg)+'</p>':'')+
+  '<div class="row" style="margin-top:10px"><button class="go" onclick="$(\'bf_logo\').click()">Upload logo</button><button class="bad" onclick="brandClear(\'logo\')">Remove</button><input type="file" id="bf_logo" accept="image/*" hidden onchange="brandPick(\'logo\',this)"></div>'+
+  '<div class="xf" style="margin-top:10px"><div><label for="bd_lp">Position</label>'+xSel('bd_lp',LPOS,d.lp||'header')+'</div><div><label for="bd_ls">Size</label>'+xSel('bd_ls',LSZ,d.ls||'m')+'</div></div></div>'+
+  '<div class="card"><h2>Banner image</h2><p class="mut">A picture strip on the landing page, for example a product photo or an event poster.</p>'+
+  '<div style="'+pv+';padding:0;overflow:hidden">'+(bn?'<img src="'+esc(bn)+'" alt="" style="width:100%;display:block;'+(d.bs==='whole'?'':'aspect-ratio:16/6;object-fit:cover')+'">':'<div class="mut" style="padding:22px"><span style="background:var(--card);padding:2px 8px;border-radius:8px">No banner uploaded</span></div>')+'</div>'+
+  (bn?'<p class="mut" style="margin:6px 0 0">'+kb(bn)+'</p>':'')+
+  '<div class="row" style="margin-top:10px"><button class="go" onclick="$(\'bf_bn\').click()">Upload banner</button><button class="bad" onclick="brandClear(\'bn\')">Remove</button><input type="file" id="bf_bn" accept="image/*" hidden onchange="brandPick(\'bn\',this)"></div>'+
+  '<div class="xf" style="margin-top:10px"><label class="tg" style="justify-content:flex-start"><input type="checkbox" id="bd_on"'+(d.bon===0?'':' checked')+'><span>Show the banner</span></label>'+
+  '<div><label for="bd_bp">Where</label>'+xSel('bd_bp',BNPOS,d.bp||'top')+'</div><div><label for="bd_bs">Shape</label>'+xSel('bd_bs',BNSHAPE,d.bs||'wide')+'</div>'+
+  '<div><label for="bd_ba">Description (for screen readers)</label><input id="bd_ba" value="'+esc(d.ba||'')+'" maxlength="120" style="width:100%"></div>'+
+  '<div><label for="bd_bl">Link when tapped (optional)</label><input id="bd_bl" value="'+esc(d.bl||'')+'" placeholder="https://... or tel:+233..." maxlength="300" autocapitalize="none" style="width:100%"></div></div></div>'+
+  '<button class="go" style="width:100%" onclick="brandSave()">Save logo &amp; banner</button>'}
+var ASSET_BUCKET='site-assets';
+function assetPath(u){var m=String(u||'').match(/\/object\/public\/site-assets\/([^?#]+)$/);return m?decodeURIComponent(m[1]):''}
+async function brandUp(kind,val){if(!/^data:/.test(val))return val;
+  var m=val.match(/^data:(image\/[a-z+]+);/),ext={'image/webp':'webp','image/png':'png','image/jpeg':'jpg','image/gif':'gif'}[m&&m[1]]||'png';
+  var blob=await (await fetch(val)).blob(),path=kind+'-'+Date.now().toString(36)+'.'+ext;
+  var r=await sb.storage.from(ASSET_BUCKET).upload(path,blob,{contentType:m?m[1]:'image/png',cacheControl:'31536000',upsert:false});
+  if(r.error)throw new Error(r.error.message);
+  return sb.storage.from(ASSET_BUCKET).getPublicUrl(path).data.publicUrl}
+async function brandSave(){brandSync();var d=brandDraft,prev=FX.brand||{};
+  if(d.bl&&!xlink(d.bl)){toast('The banner link is not valid.',false);return}
+  var lg='',bn='';
+  try{if(/^data:/.test(d.logo||'')||/^data:/.test(d.bn||''))toast('Uploading\u2026',true);
+    lg=okData(d.logo)?await brandUp('logo',d.logo):'';bn=okData(d.bn)?await brandUp('banner',d.bn):''}
+  catch(e){toast('Upload failed: '+e.message+'. Run site-assets.sql in Supabase first.',false);return}
+  var o={lp:d.lp||'header',ls:d.ls||'m',logo:lg,bn:bn,ba:d.ba||'',bl:d.bl?xlink(d.bl):'',bp:d.bp||'top',bs:d.bs||'wide',bon:d.bon===0?0:1};
+  if(await xCfgSave({brand:o},'brand')){
+    [prev.logo,prev.bn].forEach(function(u){var p=assetPath(u);if(p&&u!==o.logo&&u!==o.bn){try{Promise.resolve(sb.storage.from(ASSET_BUCKET).remove([p])).catch(function(){})}catch(e){}}});
+    brandDraft=null;render()}}
+
 themeApply(FX.theme);
 
 boot();
