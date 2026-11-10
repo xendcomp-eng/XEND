@@ -38,6 +38,7 @@ input,select{background:var(--card);border:2px solid var(--fld);border-radius:12
 .msg{border:2px solid var(--edge);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-weight:700}
 .ok{background:var(--acc);color:#111}.err{background:var(--errbg);color:var(--errfg)}
 .tag{border:2px solid var(--edge);border-radius:99px;padding:2px 10px;font-size:.8rem;font-weight:700;white-space:nowrap}.tag.ok{border-color:#111}
+mark{background:transparent;color:inherit;font-weight:800;text-decoration:underline}
 .big{font-size:1.25rem}
 table{width:100%;border-collapse:collapse;font-size:.88rem}td{padding:8px 4px;border-top:1px solid var(--line);vertical-align:top}
 summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
@@ -120,7 +121,7 @@ td.xr,th.xr{text-align:right;white-space:nowrap}
 <main>
 <div id="msg"></div><div id="view"></div>
 </main>
-<p class="mut" style="text-align:center;font-size:.75rem;margin:0 0 24px">Version: 10 Nov 2026 · buyer codes + write bracelets</p>
+<p class="mut" style="text-align:center;font-size:.75rem;margin:0 0 24px">Version: 10 Nov 2026 · buyers, guest cards + smart search</p>
 <div id="pop"></div><div id="toast" role="status"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -575,7 +576,7 @@ function vTop(){
   return h}
 function vCards(){
   return vEditG()+'<div class="card"><h2>New card</h2><div class="row"><select id="ge" style="width:100%">'+evOpts('')+'</select><input id="gn" placeholder="Guest name"><input id="gr" placeholder="Hotel room"><input id="ga" placeholder="Activities, comma separated" style="flex:1;min-width:200px"><button class="go" onclick="createGuest()">Create &amp; write tag</button></div></div>'+
-  '<div class="card"><h2>Guests</h2>'+(adm.guests.length?adm.guests.map(function(g){return '<div class="item"><div class="row sp"><b>'+esc(g.name)+'</b><span>'+g.balance+' pts</span></div><div class="mut">'+esc(g.room)+' · PIN '+esc(g.pin)+(g.uid?' · tag '+esc(g.uid):'')+'</div><div class="row" style="margin-top:6px"><button onclick="writeTag(\''+g.token+'\')">Write tag</button><button onclick="pairTag(\''+g.id+'\')">Pair tag</button><button onclick="editG=\''+g.id+'\';render();scrollTo(0,0)">Edit card</button><button onclick="copyLink(\''+g.token+'\')">Copy link</button>'+(feat('remote_credit')?'<button class="go" onclick="creditG(\''+g.token+'\')">Credit</button>':'')+'</div><div class="row" style="margin-top:6px"><select onchange="setGE(\''+g.id+'\',this.value,'+g.spend_on+')">'+evOpts(g.event_id)+'</select><button class="'+(g.spend_on?'on':'bad')+'" onclick="setGE(\''+g.id+'\',\''+(g.event_id||'')+'\','+!g.spend_on+')">Spending '+(g.spend_on?'ON':'OFF')+'</button></div></div>'}).join(''):'<p class="mut">No guests yet.</p>')+'</div>'}
+  guestsCard()}
 function vLedger(){var n=(adm.tx||[]).length;return txCounters(adm.tx,'Points by category','<div style="overflow-x:auto"><table>'+(adm.tx||[]).map(function(t){return '<tr><td>'+when(t.ts)+'</td><td>'+esc(t.guest)+'</td><td>'+esc(t.type)+(t.note?': '+esc(t.note):'')+'<br><span class="mut">'+esc(t.who)+(t.event?' \u00B7 '+esc(t.event):'')+'</span></td><td><b>'+(t.amt>0?'+':'')+t.amt+'</b></td></tr>'}).join('')+'</table></div>','Counted from the latest '+n+' transactions the server sends.')}
 /* ---- vendor: live sales + payment pop-up ---- */
 function startSales(){stopSales();vs=null;lastSale=null;pollSales(true);vtimer=setInterval(function(){pollSales()},4000)}
@@ -961,7 +962,7 @@ async function bqWrite(){if(!bq||!HAS)return;var it=bq.list[bq.i];
 /* ---- admin: upload the buyer list (CSV / Excel): user ID, name, room ---- */
 var buyRows=[],buyOut=null,vBlank0=vBlank;
 vBlank=function(){return vBlank0()+vBuyers()};
-var vBlank1=vBlank;vBlank=function(){return vXnd()+vWrite()+vBlank1()};
+var vBlank1=vBlank;vBlank=function(){return vWrite()+vBlank1()};
 function vBuyers(){var s=blankSt;
   return '<div class="card"><h2>Buyer list</h2><p class="mut">Only people on this list can activate a bracelet. Columns: <b>user ID, name, room</b>. Only the name is required; a blank user ID is generated. The buyer enters the user ID on the bracelet, then chooses their own username and PIN.'+(s?' Waiting: <b>'+(s.ids_pending||0)+'</b> · Used: <b>'+(s.ids_used||0)+'</b>':'')+'</p>'+
   '<select id="bie" style="width:100%;margin-bottom:10px">'+evOpts('')+'</select><div class="row"><button onclick="$(\'buyf\').click()">Choose file</button><input type="file" id="buyf" accept=".csv,.xlsx,.xls,.txt" hidden onchange="buyFile(this)"><button class="go" onclick="buyImport()">Import '+(buyRows.length?buyRows.length+' buyers':'')+'</button></div></div>'+
@@ -1473,15 +1474,7 @@ async function brandSave(){brandSync();var d=brandDraft,prev=FX.brand||{};
 var xndLog=null,xndCfg=null;
 async function xndFill(rows){try{var r=await rpc('xnd_fill_ids',{rows:rows});return Array.isArray(r)?r:rows}catch(e){if(/xnd_fill_ids|schema cache|Could not find/i.test(e.message))return rows;throw e}}
 var loadAdm1=loadAdm;
-loadAdm=async function(){try{xndLog=await rpc('claim_log',{lim:30})}catch(e){xndLog=null}try{xndCfg=await rpc('xnd_cfg')}catch(e){xndCfg=null}try{xRes=await rpc('xnd_search',{q:xq,lim:xLim,off:0})}catch(e){xRes=null}return loadAdm1()};
-function vXnd(){var adm_=me&&me.role==='admin',L=xndLog,ex=(xndCfg&&xndCfg.extra)||'';
-  var h='<div class="card"><div class="row sp"><h2 style="margin:0">Activated bracelets</h2><button onclick="loadAdm()">Refresh</button></div>';
-  if(!L)h+='<p class="mut">Not set up yet. Run xend-claim-tracking.sql in Supabase.</p>';
-  else if(!L.length)h+='<p class="mut">No bracelet has been activated yet. You will get a message here when one is.</p>';
-  else h+=L.map(function(x){return '<div class="item"><div class="row sp"><span><b>'+esc(x.name||'')+'</b><br><span class="mut">'+esc(x.code||'')+' \u00b7 '+esc(new Date(x.at).toLocaleString())+'</span></span>'+
-    '<span class="row"><span class="tag ok">Activated</span>'+(adm_?'<button class="bad" onclick="xndReset(\''+esc(x.token)+'\')">Reset</button>':'')+'</span></div></div>'}).join('');
-  h+='</div>';
-  return h}
+loadAdm=async function(){try{xndLog=await rpc('claim_log',{lim:30})}catch(e){xndLog=null}try{xndCfg=await rpc('xnd_cfg')}catch(e){xndCfg=null}try{xRes=await rpc('buyer_search',{q:xq,f:xf,lim:xLim,off:0})}catch(e){xRes=null}return loadAdm1()};
 async function xndReset(t){if(!confirm('Reset this bracelet? The buyer\u2019s login for it is removed and it goes back to unactivated. This cannot be undone.'))return;
   try{var r=await rpc('blank_reset',{k:t,force:false});
     if(!r.ok&&r.needs_force){if(!confirm(r.text+' Reset anyway?'))return;r=await rpc('blank_reset',{k:t,force:true})}
@@ -1490,17 +1483,11 @@ async function xndReset(t){if(!confirm('Reset this bracelet? The buyer\u2019s lo
 async function xndSaveExtra(){try{xndCfg=await rpc('xnd_set_extra',{x:($('xnd_x').value||'').trim()});say('Saved. New codes will use it.',true)}catch(e){say(e.message,false)}render()}
 async function xndPoll(){try{var L=await rpc('claim_log',{lim:30});if(!L)return;var top=L.length?L[0].id:0,seen=ld('xnd-seen');
   if(seen==null)sv('xnd-seen',top);else if(top>seen){var n=L.filter(function(x){return x.id>seen}).length;toast(n+' bracelet'+(n>1?'s':'')+' activated: '+L[0].name,true);sv('xnd-seen',top)}
-  var ch=JSON.stringify(L)!==JSON.stringify(xndLog);xndLog=L;var ae=document.activeElement;if(ch&&!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)))render()}catch(e){}}
+  var ch=JSON.stringify(L)!==JSON.stringify(xndLog);xndLog=L;var ae=document.activeElement;if(ch&&!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)))loadAdm()}catch(e){}}
 setInterval(function(){if(me&&me.role!=='vendor'&&tab==='cards'&&!document.hidden)xndPoll()},20000);
 
 /* ---- buyers & user codes: add one / import a list, codes shown on screen, instant search ---- */
-var xRes=null,xq='',xLim=50,xT=null;
-function xndTable(){var R=xRes;if(!R)return '<p class="mut">Not set up yet. Run xend-buyer-codes.sql in Supabase.</p>';
-  if(!R.rows.length)return '<p class="mut">'+(xq?'No one matches \u201c'+esc(xq)+'\u201d.':'No buyers yet. Add one or import a list.')+'</p>';
-  return '<p class="mut" style="margin:0 0 6px">'+R.total+(xq?(R.total===1?' match':' matches'):(R.total===1?' buyer':' buyers'))+'</p><div style="overflow-x:auto"><table>'+
-    R.rows.map(function(x){return '<tr><td><b>'+esc(x.name||'')+'</b><br><span class="mut">'+esc(x.room||'')+'</span></td><td style="white-space:nowrap"><b>'+esc(x.code)+'</b></td><td style="text-align:right"><button onclick="xndCopy(\''+esc(x.code)+'\')">Copy</button></td></tr>'}).join('')+'</table></div>'+
-    (R.rows.length<R.total?'<button style="width:100%;margin-top:8px" onclick="xLim+=50;xndSearch()">Show more</button>':'')}
-async function xndSearch(){try{xRes=await rpc('xnd_search',{q:xq,lim:xLim,off:0})}catch(e){xRes=null}var e=$('xres');if(e)e.innerHTML=xndTable();else render()}
+var xRes=null,xq='',xf='all',xLim=50,xT=null,gq='',gf='all',gLim=60,gT=null;
 function xndType(v){xq=v.trim();xLim=50;clearTimeout(xT);xT=setTimeout(xndSearch,250)}
 function xndCopy(c){try{navigator.clipboard.writeText(c).then(function(){toast('Copied '+c,true)},function(){toast(c,true)})}catch(e){toast(c,true)}}
 async function xndAddOne(){var n=(($('xa_n')||{}).value||'').trim(),r=(($('xa_r')||{}).value||'').trim();if(!n){toast('Enter the buyer\u2019s name.',false);return}await xndRun([{id:'',name:n,room:r}])}
@@ -1509,18 +1496,79 @@ async function xndRun(rows){var ev=$('bie')?$('bie').value:'',out=[];
   try{for(var i=0;i<rows.length;i+=500){var part=await xndFill(rows.slice(i,i+500));out=out.concat(await rpc('claim_ids_import',{rows:part,p_event:ev||null}))}
     var ok=out.filter(function(x){return x.ok}),bad=out.filter(function(x){return !x.ok});
     if(ok.length){try{await rpc('xnd_record',{rows:ok.map(function(x){return {id:x.id,name:x.name,room:x.room}})})}catch(e){}}
-    buyOut=bad.length?out:null;buyRows=[];xq=(rows.length===1&&ok.length===1)?(ok[0].name||''):'';xLim=50;
+    buyOut=bad.length?out:null;buyRows=[];xq=(rows.length===1&&ok.length===1)?(ok[0].name||''):'';xf='all';xLim=50;
     say(ok.length+' of '+out.length+' buyers added.'+(bad.length?' See below for the ones that failed.':''),ok.length>0)}
   catch(e){buyOut=out.length?out:null;say(e.message,false)}
   await loadAdm()}
 vBuyers=function(){var adm_=me&&me.role==='admin',ex=(xndCfg&&xndCfg.extra)||'',s=blankSt,bad=buyOut?buyOut.filter(function(x){return !x.ok}):[];
-  return '<div class="card"><h2>Buyers &amp; user codes</h2><p class="mut">Add a buyer and a unique code is made for them automatically, like <b>XND'+(ex?'-'+esc(ex):'')+'-K7M4-Q92X</b>. Send that code to the buyer so they can activate their bracelet.'+(s?' Waiting: <b>'+(s.ids_pending||0)+'</b> \u00b7 Used: <b>'+(s.ids_used||0)+'</b>':'')+'</p>'+
+  return '<div class="card"><h2>Buyers &amp; user codes</h2><p class="mut">Add a buyer and a unique code is made for them automatically, like <b>XND'+(ex?'-'+esc(ex):'')+'-K7M4-Q92X</b>. Send that code to the buyer so they can activate their bracelet. Once they do, they show as Guest already and the ID moves onto their guest card.'+(s?' Waiting: <b>'+(s.ids_pending||0)+'</b> \u00b7 Used: <b>'+(s.ids_used||0)+'</b>':'')+'</p>'+
   '<select id="bie" style="width:100%;margin-bottom:10px">'+evOpts('')+'</select>'+
   '<div class="row"><input id="xa_n" placeholder="Buyer name" autocomplete="off" style="flex:2;min-width:160px"><input id="xa_r" placeholder="Room (optional)" autocomplete="off" style="flex:1;min-width:100px"><button class="go" onclick="xndAddOne()">Add buyer</button></div>'+
   '<div class="row" style="margin-top:10px"><button onclick="$(\'buyf\').click()">Import a list (Excel or CSV)</button><input type="file" id="buyf" accept=".csv,.xlsx,.xls,.txt" hidden onchange="buyFile(this)">'+(buyRows.length?'<button class="go" onclick="buyImport()">Add '+buyRows.length+' buyers</button>':'')+'</div>'+
   (adm_?'<div class="row" style="margin-top:10px"><input id="xnd_x" maxlength="6" placeholder="Extra characters in codes (optional)" autocapitalize="characters" value="'+esc(ex)+'" style="flex:1;min-width:180px"><button onclick="xndSaveExtra()">Save</button></div>':'')+
   (bad.length?'<div style="overflow-x:auto;margin-top:10px"><p class="mut" style="margin:0 0 4px"><b>'+bad.length+' not added</b></p><table>'+bad.map(function(x){return '<tr><td><b>'+esc(x.name||'-')+'</b></td><td>'+esc(x.text)+'</td></tr>'}).join('')+'</table></div>':'')+'</div>'+
-  '<div class="card"><h2>Find a buyer</h2><input id="xs" type="search" placeholder="Type a name, room or code" autocomplete="off" oninput="xndType(this.value)" value="'+esc(xq)+'" style="width:100%"><div id="xres" style="margin-top:10px">'+xndTable()+'</div></div>'};
+  buyerFindCard()};
+
+/* ---- smart search (shared): every word must match, accents / case / dashes in codes are ignored, is:keyword filters ---- */
+function sNorm(s){s=String(s==null?'':s).toLowerCase();try{s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}catch(e){}return s}
+function sParse(q){var toks=[],is=[];sNorm(q).split(/[\s,;]+/).forEach(function(t){if(!t)return;if(t.indexOf('is:')===0){if(t.length>3)is.push(t.slice(3))}else toks.push(t)});return {toks:toks,is:is}}
+function sHay(parts){var h=sNorm(parts.filter(function(x){return x!=null&&x!==''}).join(' '));return h+' '+h.replace(/[-_.]/g,'')}
+function sHit(hay,toks){return toks.every(function(t){return hay.indexOf(t)>-1||hay.indexOf(t.replace(/[-_.]/g,''))>-1})}
+function sMark(text,toks){var s=String(text==null?'':text);if(!toks||!toks.length||!s)return esc(s);var n=sNorm(s);if(n.length!==s.length)return esc(s);
+  var r=[];toks.forEach(function(t){if(!t)return;var i=n.indexOf(t);while(i>-1){r.push([i,i+t.length]);i=n.indexOf(t,i+t.length)}});
+  if(!r.length)return esc(s);r.sort(function(a,b){return a[0]-b[0]});var m=[r[0]];
+  for(var k=1;k<r.length;k++){var l=m[m.length-1];if(r[k][0]<=l[1])l[1]=Math.max(l[1],r[k][1]);else m.push(r[k])}
+  var o='',p=0;m.forEach(function(x){o+=esc(s.slice(p,x[0]))+'<mark>'+esc(s.slice(x[0],x[1]))+'</mark>';p=x[1]});return o+esc(s.slice(p))}
+function sBar(id,val,ph,fn){return '<input id="'+id+'" type="search" placeholder="'+esc(ph)+'" autocomplete="off" autocapitalize="none" spellcheck="false" oninput="'+fn+'(this.value)" value="'+esc(val)+'" style="width:100%">'}
+function sChips(items,cur,fn){return items.map(function(c){return '<button class="'+(cur===c[0]?'on':'')+'" onclick="'+fn+'(\''+c[0]+'\')">'+esc(c[1])+' ('+c[2]+')</button>'}).join('')}
+
+/* ---- guests: smart search, and each card shows the ID the guest claimed their bracelet with ---- */
+function gHay(g){var c=g.claim||{},ev=(adm.events||[]).filter(function(e){return e.id===g.event_id})[0];
+  return sHay([g.name,g.room,g.pin,g.uid,c.code,c.username,c.bracelet,ev&&ev.name,g.frozen?'frozen':'',c.code?'claimed':'by staff'])}
+function gList(){var P=sParse(gq),fl=P.is.slice();if(gf!=='all')fl.push(gf);
+  return (adm.guests||[]).filter(function(g){
+    for(var i=0;i<fl.length;i++){var k=fl[i];
+      if(k==='claimed'&&!g.claim)return false;if(k==='manual'&&g.claim)return false;
+      if(k==='frozen'&&!g.frozen)return false;if(k==='off'&&g.spend_on)return false;if(k==='paired'&&!g.uid)return false}
+    return sHit(gHay(g),P.toks)})}
+function gCard(g,toks){var c=g.claim,isA=me&&me.role==='admin';
+  return '<div class="item"><div class="row sp"><b>'+sMark(g.name,toks)+'</b><span>'+g.balance+' pts</span></div>'+
+  '<div class="mut">'+sMark(g.room||'',toks)+' · PIN '+esc(g.pin)+(g.uid?' · tag '+sMark(g.uid,toks):'')+(g.frozen?' · <span class="tag">Frozen</span>':'')+'</div>'+
+  (c?'<div class="row sp" style="margin-top:6px"><span class="mut">ID <b>'+sMark(c.code||'',toks)+'</b> · @'+sMark(c.username||'',toks)+(c.bracelet?' · bracelet '+sMark(c.bracelet,toks):'')+(c.at?'<br>Activated '+esc(new Date(c.at).toLocaleString()):'')+'</span><span class="row"><span class="tag ok">Claimed</span>'+(isA?'<button class="bad" onclick="xndReset(\''+esc(g.token)+'\')">Reset</button>':'')+'</span></div>':'')+
+  '<div class="row" style="margin-top:6px"><button onclick="writeTag(\''+g.token+'\')">Write tag</button><button onclick="pairTag(\''+g.id+'\')">Pair tag</button><button onclick="editG=\''+g.id+'\';render();scrollTo(0,0)">Edit card</button><button onclick="copyLink(\''+g.token+'\')">Copy link</button>'+(feat('remote_credit')?'<button class="go" onclick="creditG(\''+g.token+'\')">Credit</button>':'')+'</div>'+
+  '<div class="row" style="margin-top:6px"><select onchange="setGE(\''+g.id+'\',this.value,'+g.spend_on+')">'+evOpts(g.event_id)+'</select><button class="'+(g.spend_on?'on':'bad')+'" onclick="setGE(\''+g.id+'\',\''+(g.event_id||'')+'\','+!g.spend_on+')">Spending '+(g.spend_on?'ON':'OFF')+'</button></div></div>'}
+function gResults(){var G=adm.guests||[],L=gList(),P=sParse(gq);
+  if(!G.length)return '<p class="mut">No guests yet.</p>';
+  if(!L.length)return '<p class="mut">No guest matches \u201c'+esc(gq)+'\u201d.</p>';
+  return '<p class="mut" style="margin:0">'+L.length+(L.length===1?' guest':' guests')+((gq||gf!=='all')?' shown of '+G.length:'')+'</p>'+L.slice(0,gLim).map(function(g){return gCard(g,P.toks)}).join('')+
+    (L.length>gLim?'<button style="width:100%;margin-top:8px" onclick="gLim+=60;var e=$(\'gres\');if(e)e.innerHTML=gResults()">Show more</button>':'')}
+function guestsCard(){var G=adm.guests||[],n=G.length,cl=G.filter(function(g){return g.claim}).length,fr=G.filter(function(g){return g.frozen}).length;
+  return '<div class="card" id="gcard"><h2>Guests</h2>'+sBar('gs',gq,'Search name, room, PIN, ID code, username, bracelet\u2026','gType')+
+    '<div class="row" style="margin-top:8px">'+sChips([['all','All',n],['claimed','Claimed',cl],['manual','By staff',n-cl],['frozen','Frozen',fr]],gf,'gChip')+'</div>'+
+    '<p class="mut" style="margin:8px 0 0;font-size:.8rem">Words are combined. Dashes in codes are ignored. Try is:frozen, is:off or is:paired.</p>'+
+    '<div id="gres" style="margin-top:6px">'+gResults()+'</div></div>'}
+function gType(v){gq=v;gLim=60;clearTimeout(gT);gT=setTimeout(function(){var e=$('gres');if(e)e.innerHTML=gResults()},120)}
+function gChip(k){gf=k;gLim=60;render()}
+function gGo(q){gq=q||'';gf='all';gLim=60;render();setTimeout(function(){var e=$('gcard');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})},60)}
+
+/* ---- buyer list: pending buyers (neutral) and guests who already exist, with smart search ---- */
+function xChips(){var R=xRes||{},p=R.pending||0,g=R.guests||0;return sChips([['all','All',p+g],['pending','Pending',p],['guest','Guest already',g]],xf,'xChip')}
+function xChip(k){xf=k;xLim=50;xndSearch()}
+function xndTable(){var R=xRes;if(!R)return '<p class="mut">Not set up yet. Run xend-fix-pack.sql in Supabase.</p>';
+  var P=sParse(xq);
+  if(!R.rows.length)return '<p class="mut">'+((xq||xf!=='all')?'No one matches.':'No buyers yet. Add one or import a list.')+'</p>';
+  return '<p class="mut" style="margin:0 0 6px">'+R.total+(R.total===1?' result':' results')+'</p><div style="overflow-x:auto"><table>'+
+    R.rows.map(function(x){var gs=x.status==='guest';
+      return '<tr><td><b>'+sMark(x.name||'',P.toks)+'</b><br><span class="mut">'+sMark(x.room||'',P.toks)+(x.event_name?(x.room?' · ':'')+esc(x.event_name):'')+'</span></td>'+
+        '<td style="white-space:nowrap">'+(x.code?'<b>'+sMark(x.code,P.toks)+'</b>':'<span class="mut">card made by staff</span>')+'<br>'+(gs?'<span class="tag ok">Guest already</span>':'<span class="tag">Pending</span>')+'</td>'+
+        '<td style="text-align:right">'+(gs?'<button data-q="'+esc(x.code||x.name||'')+'" onclick="gGo(this.dataset.q)">View card</button>':'<button data-c="'+esc(x.code)+'" onclick="xndCopy(this.dataset.c)">Copy</button>')+'</td></tr>'}).join('')+'</table></div>'+
+    (R.rows.length<R.total?'<button style="width:100%;margin-top:8px" onclick="xLim+=50;xndSearch()">Show more</button>':'')}
+async function xndSearch(){try{xRes=await rpc('buyer_search',{q:xq,f:xf,lim:xLim,off:0})}catch(e){xRes=null;if(!/buyer_search|schema cache|Could not find/i.test(e.message))toast(e.message,false)}
+  var e=$('xres');if(e){e.innerHTML=xndTable();var c=$('xchips');if(c)c.innerHTML=xChips()}else render()}
+function buyerFindCard(){return '<div class="card"><h2>Find a buyer</h2>'+sBar('xs',xq,'Search name, room, ID code, username\u2026','xndType')+
+  '<div class="row" id="xchips" style="margin-top:8px">'+xChips()+'</div>'+
+  '<p class="mut" style="margin:8px 0 0;font-size:.8rem">Pending buyers have not activated yet. Guest already means the ID was used, or the card was made by staff. The claimed ID itself is on the guest\u2019s card. Try is:pending or is:guest.</p>'+
+  '<div id="xres" style="margin-top:10px">'+xndTable()+'</div></div>'}
 
 /* ---- write empty bracelets: each tag gets its own random serial link; tags that are not empty are refused unless an admin unlocks overwrite ---- */
 var sw=null;
