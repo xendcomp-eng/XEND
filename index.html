@@ -1044,19 +1044,19 @@ async function xSaveSite(){var v={};XCFG.forEach(function(x){v[x[0]]=$('xc_'+x[0
   XALL.forEach(function(t){v['label_'+t[0]]=$('xl_'+t[0]).value.trim()});
   try{await rpc('cms_save_config',{v:v});await loadCms();toast('Saved.',true);render()}catch(e){toast(e.message,false)}}
 function xProdForm(p){var id=p?p.id:'new',g=function(k){return p&&p[k]!=null?p[k]:''};
-  return '<div class="item"><div class="xf"><input id="pp_'+id+'_t" placeholder="Product title" value="'+esc(g('title'))+'" maxlength="120"><textarea id="pp_'+id+'_d" placeholder="Description" maxlength="500">'+esc(g('description'))+'</textarea><input id="pp_'+id+'_i" placeholder="Image URL (https://...)" value="'+esc(g('image_url'))+'" autocapitalize="none">'+
+  return '<div class="item"><div class="xf"><input id="pp_'+id+'_t" placeholder="Product title" value="'+esc(g('title'))+'" maxlength="120"><textarea id="pp_'+id+'_d" placeholder="Description" maxlength="500">'+esc(g('description'))+'</textarea><div class="row" style="align-items:center"><div id="pp_'+id+'_pv" style="width:72px;height:54px;border:2px solid var(--edge);border-radius:10px;overflow:hidden;flex:none;background:var(--line)">'+(xurl(g('image_url'))?'<img src="'+esc(xurl(g('image_url')))+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block">':'')+'</div><button type="button" onclick="$(\'pp_'+id+'_f\').click()">Upload image</button><button type="button" class="bad" onclick="prodImgSet(\''+id+'\',\'\')">Remove</button><input type="file" id="pp_'+id+'_f" accept="image/*" hidden onchange="prodImgPick(\''+id+'\',this)"><input type="hidden" id="pp_'+id+'_i" value="'+esc(g('image_url'))+'"></div>'+
   '<div class="row"><input id="pp_'+id+'_p" type="number" min="0" step="any" placeholder="Price" aria-label="Price" value="'+esc(g('price'))+'" style="width:120px"><input id="pp_'+id+'_s" type="number" min="0" step="1" placeholder="Stock" aria-label="Stock" value="'+esc(g('stock_count'))+'" style="width:120px">'+(p?'<span class="tag">'+esc(xStat(p).replace('_',' '))+'</span>':'')+'</div>'+
   '<div class="row"><button class="go" onclick="xProdSave(\''+id+'\')">'+(p?'Save':'Add product')+'</button>'+(p?'<button class="bad" onclick="xProdDel(\''+id+'\')">Delete</button>':'')+'</div></div></div>'}
 function xvShop(){if(!xcms)return xNeed();var L=xcms.products||[];
   return '<div class="card"><h2>New product</h2>'+xProdForm(null)+'</div><div class="card"><h2>Inventory</h2><p class="mut">Each pre-order lowers stock by 1. At 0 the item shows Sold Out and ordering is blocked until you restock here.</p>'+(L.length?L.map(xProdForm).join(''):'<p class="mut">No products yet.</p>')+'</div>'}
-async function xProdSave(id){var q=function(s){return $('pp_'+id+'_'+s).value.trim()},price=parseFloat(q('p')),stock=parseInt(q('s'),10);
+async function xProdSave(id){var old=((((xcms&&xcms.products)||[]).filter(function(x){return x.id===id})[0])||{}).image_url;var q=function(s){return $('pp_'+id+'_'+s).value.trim()},price=parseFloat(q('p')),stock=parseInt(q('s'),10);
   if(!q('t')){toast('Enter a product title.',false);return}
   if(!(price>=0)){toast('Enter a valid price.',false);return}
   if(!(stock>=0)){toast('Enter the stock quantity (0 or more).',false);return}
   if(q('i')&&!xurl(q('i'))){toast('Image URL must start with https://',false);return}
-  try{await rpc('product_save',{p:{id:id==='new'?null:id,title:q('t'),description:q('d'),image_url:q('i'),price:price,stock_count:stock}});await loadCms();toast(id==='new'?'Product added.':'Product saved.',true);render()}catch(e){toast(e.message,false)}}
+  try{await rpc('product_save',{p:{id:id==='new'?null:id,title:q('t'),description:q('d'),image_url:q('i'),price:price,stock_count:stock}});assetDrop(old,q('i'));await loadCms();toast(id==='new'?'Product added.':'Product saved.',true);render()}catch(e){toast(e.message,false)}}
 async function xProdDel(id){if(!confirm('Delete this product?'))return;
-  try{await rpc('product_delete',{pid:id});await loadCms();toast('Product deleted.',true);render()}catch(e){toast(e.message,false)}}
+  try{var op=((((xcms&&xcms.products)||[]).filter(function(x){return x.id===id})[0])||{}).image_url;await rpc('product_delete',{pid:id});assetDrop(op,'');await loadCms();toast('Product deleted.',true);render()}catch(e){toast(e.message,false)}}
 function xSecForm(s){var id=s?s.id:'new',g=function(k,d){return s&&s[k]!=null?s[k]:d};
   return '<div class="item"><div class="xf"><input id="ss_'+id+'_t" placeholder="Section title" maxlength="120" value="'+esc(g('title',''))+'"><textarea id="ss_'+id+'_c" placeholder="Content" maxlength="2000">'+esc(g('content',''))+'</textarea><div class="row">'+
   xSel('ss_'+id+'_a',[['left','Align left'],['center','Align center'],['right','Align right']],g('alignment','center'))+xSel('ss_'+id+'_n',[['fade-in','Fade in'],['slide-up','Slide up'],['pulse','Pulse'],['none','No animation']],g('animation','fade-in'))+
@@ -1264,6 +1264,22 @@ function xvBrand(){brandDraft=brandDraft||JSON.parse(JSON.stringify(FX.brand||{}
   '<div><label for="bd_bl">Link when tapped (optional)</label><input id="bd_bl" value="'+esc(d.bl||'')+'" placeholder="https://... or tel:+233..." maxlength="300" autocapitalize="none" style="width:100%"></div></div></div>'+
   '<button class="go" style="width:100%" onclick="brandSave()">Save logo &amp; banner</button>'}
 var ASSET_BUCKET='site-assets';
+function assetDrop(old,keep){var p=assetPath(old);if(p&&old!==keep){try{Promise.resolve(sb.storage.from(ASSET_BUCKET).remove([p])).catch(function(){})}catch(e){}}}
+function imgResize(f,mx,lim){return new Promise(function(ok,no){var img=new Image(),u=URL.createObjectURL(f);
+  img.onload=function(){var w=img.naturalWidth||mx,h=img.naturalHeight||mx,sc=Math.min(1,mx/w,mx/h),q=.86,out='';
+    for(var i=0;i<8;i++){var c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*sc));c.height=Math.max(1,Math.round(h*sc));var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);out=c.toDataURL('image/jpeg',q);if(out.length<=lim)break;sc*=.8;q=Math.max(.5,q-.08)}
+    URL.revokeObjectURL(u);ok(out)};
+  img.onerror=function(){URL.revokeObjectURL(u);no(new Error('Could not read that image.'))};img.src=u})}
+function prodImgSet(id,url){var h=$('pp_'+id+'_i'),pv=$('pp_'+id+'_pv');if(h)h.value=url;if(pv)pv.innerHTML=url?'<img src="'+esc(url)+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block">':''}
+async function prodImgPick(id,inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  if(!/^image\//.test(f.type)){toast('Choose an image file.',false);return}
+  try{toast('Uploading image\u2026',true);var d=await imgResize(f,1200,500000),url=await brandUp('product',d);prodImgSet(id,url);toast('Image uploaded. Press Save on the product to keep it.',true)}
+  catch(e){toast(upErr(e),false)}}
+function upErr(e){var m=(e&&e.message)||String(e);
+  if(/bucket not found/i.test(m))return 'Upload failed: the storage bucket does not exist yet. Run site-assets.sql in Supabase.';
+  if(/row-level security|policy|unauthori[sz]ed|not allowed|jwt/i.test(m))return 'Upload failed: only a logged-in admin can upload. Log in as admin, and make sure site-assets.sql was run after xend-storefront.sql.';
+  if(/mime|payload too large|exceeded/i.test(m))return 'Upload failed: image type or size not accepted ('+m+').';
+  return 'Upload failed: '+m}
 function assetPath(u){var m=String(u||'').match(/\/object\/public\/site-assets\/([^?#]+)$/);return m?decodeURIComponent(m[1]):''}
 async function brandUp(kind,val){if(!/^data:/.test(val))return val;
   var m=val.match(/^data:(image\/[a-z+]+);/),ext={'image/webp':'webp','image/png':'png','image/jpeg':'jpg','image/gif':'gif'}[m&&m[1]]||'png';
@@ -1276,7 +1292,7 @@ async function brandSave(){brandSync();var d=brandDraft,prev=FX.brand||{};
   var lg='',bn='';
   try{if(/^data:/.test(d.logo||'')||/^data:/.test(d.bn||''))toast('Uploading\u2026',true);
     lg=okData(d.logo)?await brandUp('logo',d.logo):'';bn=okData(d.bn)?await brandUp('banner',d.bn):''}
-  catch(e){toast('Upload failed: '+e.message+'. Run site-assets.sql in Supabase first.',false);return}
+  catch(e){toast(upErr(e),false);return}
   var o={lp:d.lp||'header',ls:d.ls||'m',logo:lg,bn:bn,ba:d.ba||'',bl:d.bl?xlink(d.bl):'',bp:d.bp||'top',bs:d.bs||'wide',bon:d.bon===0?0:1};
   if(await xCfgSave({brand:o},'brand')){
     [prev.logo,prev.bn].forEach(function(u){var p=assetPath(u);if(p&&u!==o.logo&&u!==o.bn){try{Promise.resolve(sb.storage.from(ASSET_BUCKET).remove([p])).catch(function(){})}catch(e){}}});
