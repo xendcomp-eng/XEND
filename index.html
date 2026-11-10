@@ -960,7 +960,7 @@ async function bqWrite(){if(!bq||!HAS)return;var it=bq.list[bq.i];
 /* ---- admin: upload the buyer list (CSV / Excel): user ID, name, room ---- */
 var buyRows=[],buyOut=null,vBlank0=vBlank;
 vBlank=function(){return vBlank0()+vBuyers()};
-var vBlank1=vBlank;vBlank=function(){return vXnd()+vBlank1()};
+var vBlank1=vBlank;vBlank=function(){return vXnd()+vWrite()+vBlank1()};
 function vBuyers(){var s=blankSt;
   return '<div class="card"><h2>Buyer list</h2><p class="mut">Only people on this list can activate a bracelet. Columns: <b>user ID, name, room</b>. Only the name is required; a blank user ID is generated. The buyer enters the user ID on the bracelet, then chooses their own username and PIN.'+(s?' Waiting: <b>'+(s.ids_pending||0)+'</b> · Used: <b>'+(s.ids_used||0)+'</b>':'')+'</p>'+
   '<select id="bie" style="width:100%;margin-bottom:10px">'+evOpts('')+'</select><div class="row"><button onclick="$(\'buyf\').click()">Choose file</button><input type="file" id="buyf" accept=".csv,.xlsx,.xls,.txt" hidden onchange="buyFile(this)"><button class="go" onclick="buyImport()">Import '+(buyRows.length?buyRows.length+' buyers':'')+'</button></div></div>'+
@@ -1472,16 +1472,14 @@ async function brandSave(){brandSync();var d=brandDraft,prev=FX.brand||{};
 var xndLog=null,xndCfg=null;
 async function xndFill(rows){try{var r=await rpc('xnd_fill_ids',{rows:rows});return Array.isArray(r)?r:rows}catch(e){if(/xnd_fill_ids|schema cache|Could not find/i.test(e.message))return rows;throw e}}
 var loadAdm1=loadAdm;
-loadAdm=async function(){try{xndLog=await rpc('claim_log',{lim:30})}catch(e){xndLog=null}try{xndCfg=await rpc('xnd_cfg')}catch(e){xndCfg=null}return loadAdm1()};
+loadAdm=async function(){try{xndLog=await rpc('claim_log',{lim:30})}catch(e){xndLog=null}try{xndCfg=await rpc('xnd_cfg')}catch(e){xndCfg=null}try{xRes=await rpc('xnd_search',{q:xq,lim:xLim,off:0})}catch(e){xRes=null}return loadAdm1()};
 function vXnd(){var adm_=me&&me.role==='admin',L=xndLog,ex=(xndCfg&&xndCfg.extra)||'';
   var h='<div class="card"><div class="row sp"><h2 style="margin:0">Activated bracelets</h2><button onclick="loadAdm()">Refresh</button></div>';
   if(!L)h+='<p class="mut">Not set up yet. Run xend-claim-tracking.sql in Supabase.</p>';
   else if(!L.length)h+='<p class="mut">No bracelet has been activated yet. You will get a message here when one is.</p>';
   else h+=L.map(function(x){return '<div class="item"><div class="row sp"><span><b>'+esc(x.name||'')+'</b><br><span class="mut">'+esc(x.code||'')+' \u00b7 '+esc(new Date(x.at).toLocaleString())+'</span></span>'+
     '<span class="row"><span class="tag ok">Activated</span>'+(adm_?'<button class="bad" onclick="xndReset(\''+esc(x.token)+'\')">Reset</button>':'')+'</span></div></div>'}).join('');
-  h+='</div><div class="card"><h2>User codes</h2><p class="mut">Every new buyer without a user ID gets a code like <b>XND'+(ex?'-'+esc(ex):'')+'-000-001</b>, saved automatically when you import the buyer list.</p>'+
-    (adm_?'<div class="row"><input id="xnd_x" maxlength="6" placeholder="Extra characters (optional)" autocapitalize="characters" value="'+esc(ex)+'" style="flex:1;min-width:180px"><button class="go" onclick="xndSaveExtra()">Save</button></div>':'')+
-    '<div class="row" style="margin-top:10px"><button onclick="xndCsv()">Download all codes (CSV)</button></div></div>';
+  h+='</div>';
   return h}
 async function xndReset(t){if(!confirm('Reset this bracelet? The buyer\u2019s login for it is removed and it goes back to unactivated. This cannot be undone.'))return;
   try{var r=await rpc('blank_reset',{k:t,force:false});
@@ -1489,13 +1487,91 @@ async function xndReset(t){if(!confirm('Reset this bracelet? The buyer\u2019s lo
     say(r.text,r.ok)}catch(e){say(e.message,false)}
   await loadAdm()}
 async function xndSaveExtra(){try{xndCfg=await rpc('xnd_set_extra',{x:($('xnd_x').value||'').trim()});say('Saved. New codes will use it.',true)}catch(e){say(e.message,false)}render()}
-async function xndCsv(){try{var L=await rpc('xnd_codes_list');if(!L||!L.length){say('No codes yet.',false);return render()}
-  var q=function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'},rows=['code,name,room,created'].concat(L.map(function(x){return [x.code,x.name,x.room,x.created_at].map(q).join(',')}));
-  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.join('\r\n')],{type:'text/csv'}));a.download='xnd-codes.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000);say(L.length+' codes exported.',true)}catch(e){say(e.message,false)}render()}
 async function xndPoll(){try{var L=await rpc('claim_log',{lim:30});if(!L)return;var top=L.length?L[0].id:0,seen=ld('xnd-seen');
   if(seen==null)sv('xnd-seen',top);else if(top>seen){var n=L.filter(function(x){return x.id>seen}).length;toast(n+' bracelet'+(n>1?'s':'')+' activated: '+L[0].name,true);sv('xnd-seen',top)}
   var ch=JSON.stringify(L)!==JSON.stringify(xndLog);xndLog=L;var ae=document.activeElement;if(ch&&!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)))render()}catch(e){}}
 setInterval(function(){if(me&&me.role!=='vendor'&&tab==='cards'&&!document.hidden)xndPoll()},20000);
+
+/* ---- buyers & user codes: add one / import a list, codes shown on screen, instant search ---- */
+var xRes=null,xq='',xLim=50,xT=null;
+function xndTable(){var R=xRes;if(!R)return '<p class="mut">Not set up yet. Run xend-buyer-codes.sql in Supabase.</p>';
+  if(!R.rows.length)return '<p class="mut">'+(xq?'No one matches \u201c'+esc(xq)+'\u201d.':'No buyers yet. Add one or import a list.')+'</p>';
+  return '<p class="mut" style="margin:0 0 6px">'+R.total+(xq?(R.total===1?' match':' matches'):(R.total===1?' buyer':' buyers'))+'</p><div style="overflow-x:auto"><table>'+
+    R.rows.map(function(x){return '<tr><td><b>'+esc(x.name||'')+'</b><br><span class="mut">'+esc(x.room||'')+'</span></td><td style="white-space:nowrap"><b>'+esc(x.code)+'</b></td><td style="text-align:right"><button onclick="xndCopy(\''+esc(x.code)+'\')">Copy</button></td></tr>'}).join('')+'</table></div>'+
+    (R.rows.length<R.total?'<button style="width:100%;margin-top:8px" onclick="xLim+=50;xndSearch()">Show more</button>':'')}
+async function xndSearch(){try{xRes=await rpc('xnd_search',{q:xq,lim:xLim,off:0})}catch(e){xRes=null}var e=$('xres');if(e)e.innerHTML=xndTable();else render()}
+function xndType(v){xq=v.trim();xLim=50;clearTimeout(xT);xT=setTimeout(xndSearch,250)}
+function xndCopy(c){try{navigator.clipboard.writeText(c).then(function(){toast('Copied '+c,true)},function(){toast(c,true)})}catch(e){toast(c,true)}}
+async function xndAddOne(){var n=(($('xa_n')||{}).value||'').trim(),r=(($('xa_r')||{}).value||'').trim();if(!n){toast('Enter the buyer\u2019s name.',false);return}await xndRun([{id:'',name:n,room:r}])}
+buyImport=async function(){if(!buyRows.length){say('Choose a file first.',false);return render()}await xndRun(buyRows)};
+async function xndRun(rows){var ev=$('bie')?$('bie').value:'',out=[];
+  try{for(var i=0;i<rows.length;i+=500){var part=await xndFill(rows.slice(i,i+500));out=out.concat(await rpc('claim_ids_import',{rows:part,p_event:ev||null}))}
+    var ok=out.filter(function(x){return x.ok}),bad=out.filter(function(x){return !x.ok});
+    if(ok.length){try{await rpc('xnd_record',{rows:ok.map(function(x){return {id:x.id,name:x.name,room:x.room}})})}catch(e){}}
+    buyOut=bad.length?out:null;buyRows=[];xq=(rows.length===1&&ok.length===1)?(ok[0].name||''):'';xLim=50;
+    say(ok.length+' of '+out.length+' buyers added.'+(bad.length?' See below for the ones that failed.':''),ok.length>0)}
+  catch(e){buyOut=out.length?out:null;say(e.message,false)}
+  await loadAdm()}
+vBuyers=function(){var adm_=me&&me.role==='admin',ex=(xndCfg&&xndCfg.extra)||'',s=blankSt,bad=buyOut?buyOut.filter(function(x){return !x.ok}):[];
+  return '<div class="card"><h2>Buyers &amp; user codes</h2><p class="mut">Add a buyer and a unique code is made for them automatically, like <b>XND'+(ex?'-'+esc(ex):'')+'-K7M4-Q92X</b>. Send that code to the buyer so they can activate their bracelet.'+(s?' Waiting: <b>'+(s.ids_pending||0)+'</b> \u00b7 Used: <b>'+(s.ids_used||0)+'</b>':'')+'</p>'+
+  '<select id="bie" style="width:100%;margin-bottom:10px">'+evOpts('')+'</select>'+
+  '<div class="row"><input id="xa_n" placeholder="Buyer name" autocomplete="off" style="flex:2;min-width:160px"><input id="xa_r" placeholder="Room (optional)" autocomplete="off" style="flex:1;min-width:100px"><button class="go" onclick="xndAddOne()">Add buyer</button></div>'+
+  '<div class="row" style="margin-top:10px"><button onclick="$(\'buyf\').click()">Import a list (Excel or CSV)</button><input type="file" id="buyf" accept=".csv,.xlsx,.xls,.txt" hidden onchange="buyFile(this)">'+(buyRows.length?'<button class="go" onclick="buyImport()">Add '+buyRows.length+' buyers</button>':'')+'</div>'+
+  (adm_?'<div class="row" style="margin-top:10px"><input id="xnd_x" maxlength="6" placeholder="Extra characters in codes (optional)" autocapitalize="characters" value="'+esc(ex)+'" style="flex:1;min-width:180px"><button onclick="xndSaveExtra()">Save</button></div>':'')+
+  (bad.length?'<div style="overflow-x:auto;margin-top:10px"><p class="mut" style="margin:0 0 4px"><b>'+bad.length+' not added</b></p><table>'+bad.map(function(x){return '<tr><td><b>'+esc(x.name||'-')+'</b></td><td>'+esc(x.text)+'</td></tr>'}).join('')+'</table></div>':'')+'</div>'+
+  '<div class="card"><h2>Find a buyer</h2><input id="xs" type="search" placeholder="Type a name, room or code" autocomplete="off" oninput="xndType(this.value)" value="'+esc(xq)+'" style="width:100%"><div id="xres" style="margin-top:10px">'+xndTable()+'</div></div>'};
+
+/* ---- write empty bracelets: each tag gets its own random serial link; tags that are not empty are refused unless an admin unlocks overwrite ---- */
+var sw=null;
+function swSerial(){var al='ABCDEFGHJKMNPQRSTUVWXYZ23456789',b=new Uint8Array(12),o='';(window.crypto||window.msCrypto).getRandomValues(b);for(var i=0;i<12;i++)o+=al.charAt(b[i]%31);return o}
+function swShow(x){return x.slice(0,4)+'-'+x.slice(4,8)+'-'+x.slice(8)}
+function vWrite(){
+  if(!sw)return '<div class="card"><h2>Write bracelets</h2><p class="mut">Hold each empty bracelet to the back of this phone and it is written for you. Write one, or a whole batch. A bracelet that is not empty is never overwritten by accident.</p>'+
+    (HAS?'':'<p class="mut"><b>This browser cannot write tags.</b> Open this page in Chrome on an Android phone, over https.</p>')+
+    '<div class="row"><input id="sw_n" type="number" min="1" max="1000" step="1" value="1" style="width:110px"><button class="go" onclick="swStart()">Start writing</button></div></div>';
+  if(sw.i>=sw.n)return '<div class="card"><h2>All done</h2><p class="mut">'+sw.list.length+' bracelet'+(sw.list.length===1?'':'s')+' written. Each one shows Activate bracelet the first time a buyer taps it.</p><button class="go" style="width:100%" onclick="sw=null;loadAdm()">Finish</button></div>';
+  if(sw.blocked){var k=sw.blocked.claimed,isA=me&&me.role==='admin';
+    return '<div class="card"><h2>This bracelet is not empty</h2><p class="mut">'+(k===true?'It is already <b>activated</b> and belongs to a buyer.':k===false?'It already has a bracelet link but has <b>not been activated</b> yet.':'It already holds data.')+' Nothing was written.</p>'+
+      '<div class="row"><button class="go" onclick="sw.blocked=null;sw.ow=false;sw.unlocked=false;render()">Try another bracelet</button>'+(isA&&!sw.ow?'<button class="bad" onclick="sw.ow=true;render()">Overwrite\u2026</button>':'')+'</div>'+
+      (!isA?'<p class="mut" style="margin-top:10px">Only an admin can overwrite a bracelet.</p>':'')+
+      (isA&&sw.ow&&!sw.unlocked?'<div class="row" style="margin-top:10px"><input id="sw_pw" type="password" placeholder="Admin password" autocomplete="current-password" style="flex:1;min-width:180px"><button class="go" onclick="swUnlock()">Unlock</button></div>':'')+
+      (isA&&sw.unlocked?'<p class="mut" style="margin-top:10px"><b>Overwrite unlocked.</b> This replaces the bracelet\u2019s link with the new serial below'+(k===true?'. The buyer will no longer be able to open their account by tapping it':'')+'. Hold the bracelet to the phone and press Overwrite now.</p><div class="bal" style="font-size:1.4rem">'+swShow(sw.serial)+'</div><div class="row" style="margin-top:10px"><button class="go" onclick="swWrite(true)">Overwrite now</button></div>':'')+'</div>'}
+  return '<div class="card"><h2>Writing bracelet '+(sw.i+1)+' of '+sw.n+'</h2><div class="bal" style="font-size:1.6rem">'+swShow(sw.serial)+'</div>'+
+    (sw.ok?'<p class="mut">Written. Label the bracelet with this serial if you like, then move it away from the phone.</p><div class="row"><button class="go" onclick="swNext()">'+(sw.i+1<sw.n?'Next bracelet':'Finish')+'</button><button class="bad" onclick="swStop()">Stop</button></div>':
+    '<p class="mut">Press Write tag, then hold an empty bracelet to the back of the phone. It is checked first.</p><div class="row"><button class="go" onclick="swWrite()">Write tag</button><button class="bad" onclick="swStop()">Stop</button></div>')+'</div>'}
+function swStart(){var n=parseInt(($('sw_n')||{}).value,10);if(!(n>=1&&n<=1000)){say('Enter a number from 1 to 1000.',false);return render()}sw={n:n,i:0,serial:swSerial(),ok:false,list:[],blocked:null,ow:false,unlocked:false};render()}
+function swNext(){if(!sw)return;sw.i++;sw.ok=false;sw.serial=swSerial();render()}
+function swStop(){if(writeCtl)writeCtl.abort();sw=null;render()}
+/* read what is already on the tag; null = empty (or unreadable), otherwise what it holds */
+function swPeek(sig){return new Promise(function(ok){var r=new NDEFReader(),sc=new AbortController(),done=false;
+  function fin(v){if(done)return;done=true;try{sc.abort()}catch(e){}ok(v)}
+  sig.addEventListener('abort',function(){fin(null)});
+  r.scan({signal:sc.signal}).then(function(){
+    r.onreading=function(e){var recs=(e.message&&e.message.records)||[],t='';
+      recs.forEach(function(x){if(x.recordType==='url'||x.recordType==='text'){try{t+=new TextDecoder(x.encoding||'utf-8').decode(x.data)+' '}catch(z){}}});
+      fin(recs.length?{text:t.trim(),serial:serialFrom(t),token:tokenFrom(t)}:null)};
+    r.onreadingerror=function(){fin(null)}}).catch(function(){fin(null)})})}
+async function swKnow(pk){try{if(pk.serial){var b=await rpc('serial_info',{s:pk.serial});return !!(b&&b.state==='claimed')}
+  if(pk.token){var c=await rpc('blank_info',{k:pk.token});return !!(c&&c.claimed)}}catch(e){}return null}
+async function swUnlock(){var pw=($('sw_pw')||{}).value||'';
+  if(!me||me.role!=='admin'){say('Only an admin can overwrite a bracelet.',false);return render()}
+  if(!pw){say('Enter your admin password.',false);return render()}
+  try{var ss=(await sb.auth.getSession()).data.session,em=ss&&ss.user&&ss.user.email;if(!em)throw new Error('Log in again, then retry.');
+    var r=await sb.auth.signInWithPassword({email:em,password:pw});if(r.error)throw new Error('Wrong password.');
+    sw.unlocked=true;say('Overwrite unlocked.',true)}
+  catch(e){say(e.message,false)}render()}
+async function swWrite(force){if(!sw)return;if(!HAS){say('Writing tags needs Chrome on Android over https.',false);return render()}
+  if(force&&!sw.unlocked){say('Unlock overwrite with the admin password first.',false);return render()}
+  if(writeCtl)writeCtl.abort();if(scanCtl){scanCtl.abort();scanCtl=null;nfcOn=false}
+  var ctl=writeCtl=new AbortController(),sr=sw.serial;
+  try{say('Hold a bracelet to the back of the phone\u2026',true);render();
+    if(!force){var pk=await swPeek(ctl.signal);
+      if(pk){if(writeCtl===ctl)writeCtl=null;pk.claimed=await swKnow(pk);if(!sw)return;sw.blocked=pk;sw.ow=false;sw.unlocked=false;say('This bracelet is not empty. Nothing was written.',false);return render()}}
+    await new NDEFReader().write({records:[{recordType:'url',data:base()+'?s='+sr}]},{overwrite:true,signal:ctl.signal});
+    if(sw){sw.ok=true;sw.list.push(sr);sw.blocked=null;sw.ow=false;sw.unlocked=false}say('Written.',true);
+    rpc('serial_register',{s:sr}).catch(function(){})}
+  catch(e){if(e.name==='AbortError'){if(writeCtl!==ctl)return;say('Write cancelled.',false)}else say('Write failed: '+e.message,false)}
+  if(writeCtl===ctl)writeCtl=null;render()}
 
 themeApply(FX.theme);
 
