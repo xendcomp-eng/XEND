@@ -136,6 +136,7 @@ var HAS=('NDEFReader' in window),scanCtl=null,writeCtl=null;
 function say(t,ok){flash={t:t,ok:ok}}
 async function rpc(n,a){if(/^(chat_send|gift_send|chat_snap_open|chat_snap_put|chat_snap_redeem)$/.test(n))ownAt=Date.now();var r=await sb.rpc(n,a||{});if(r.error)throw new Error(r.error.message);return r.data}
 function tokenFrom(s){var m=String(s||'').match(/[#?&\/]b[=\/]([0-9a-f]{32})/i)||String(s||'').match(/\b([0-9a-f]{32})\b/i);return m?m[1].toLowerCase():null}
+function serialFrom(s){var m=String(s||'').match(/[#?&]s=([A-Za-z0-9][A-Za-z0-9_-]{3,39})(?![A-Za-z0-9_-])/);return m?m[1].toUpperCase():null}
 function base(){return location.href.split('#')[0].split('?')[0]}
 function clearArm(){armed=null;sv('fb-armed',null)}
 
@@ -143,6 +144,7 @@ async function boot(){
   payCapture();
   if(cfg){sb=supabase.createClient(cfg.url,cfg.key);try{FX=await rpc('cfg_get')||FX}catch(e){}var s=(await sb.auth.getSession()).data.session;if(s)await loadMe();
     var fm=String(location.hash||'').match(/[#&]f=([0-9a-f]{6})/i);if(fm){try{history.replaceState(null,'',location.pathname)}catch(e){}await friendLink(fm[1].toUpperCase());return}
+    var sn=serialFrom(location.hash||location.search);if(sn){try{history.replaceState(null,'',location.pathname)}catch(e){}await onSerial(sn);return}
     var t=tokenFrom(location.hash||location.search);if(t){try{history.replaceState(null,'',location.pathname)}catch(e){}await onKey(t);return}
     if(!me){var gs=ld('fb-guest');if(gs){try{key=gs.k;wpin=gs.pin;wallet=await rpc('wallet',{k:gs.k,pin_:gs.pin});if(wallet)wmode='open';else{key=null;sv('fb-guest',null)}}catch(e){key=null}}}}
   render();
@@ -188,7 +190,7 @@ async function listen(){
   if(nfcOn)return;
   try{var r=new NDEFReader();scanCtl=new AbortController();await r.scan({signal:scanCtl.signal});nfcOn=true;
     r.onreading=function(e){var t='';e.message.records.forEach(function(x){if(x.recordType==='url'||x.recordType==='text')t+=new TextDecoder(x.encoding||'utf-8').decode(x.data)+' '});
-      var k=tokenFrom(t)||e.serialNumber;if(pairing){pair(e.serialNumber)}else onKey(k)};
+      var k=tokenFrom(t),sn=k?null:serialFrom(t);if(pairing){pair(e.serialNumber)}else if(sn)onSerial(sn);else onKey(k||e.serialNumber)};
     r.onreadingerror=function(){say('Could not read that tag. Hold it steady and try again.',false);render()};
     render();
   }catch(e){nfcOn=false;scanCtl=null;say('NFC could not start: '+e.message+'. Turn NFC on and allow the permission.',false);render()}
@@ -845,7 +847,7 @@ function vStaff(){
   if(!T.some(function(t){return t[0]===tab}))tab=T[0][0];
   return '<div class="row tabs" style="margin-bottom:14px">'+T.map(function(t){return '<button class="'+(tab===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'</button>'}).join('')+'</div>'+({home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,buys:vBuys,vendors:vVendors,team:vTeam,groups:vGroups,import:vImport,set:vSet,ledger:vLedger})[tab]()}
 /* ================= blank bracelets: guest signs up and claims the bracelet ================= */
-var claimTok=null,claimCode='',actStep=null,clmBusy=false,blankSt=null,lastBatch=null,bq=null;
+var claimTok=null,claimSerial=null,claimCode='',actStep=null,clmBusy=false,blankSt=null,lastBatch=null,bq=null;
 
 /* a tag was tapped: if it is a blank, start activation (guest) or tell staff (admin) */
 var onKey0=onKey;
@@ -859,8 +861,18 @@ onKey=async function(k){
     render()}catch(e){}
 };
 
+/* a tag whose link carries a serial (?s=SERIAL): activated -> open its card, never seen -> start activation */
+async function onSerial(sn){
+  if(busy)return;
+  try{var b=await rpc('serial_info',{s:sn});
+    if(!b||b.state==='bad'){say('That bracelet link is not valid.',false);return render()}
+    if(b.state==='claimed'&&b.token)return onKey(b.token);
+    if(me){say('New bracelet '+sn+'. The buyer must activate it before it can hold points.',false);return render()}
+    claimTok=null;claimSerial=sn;claimCode=sn;actStep=null;clmFor=null;say('New bracelet. Tap Activate bracelet to start.',true)}
+  catch(e){say(e.message,false)}
+  render()}
 var vPublic0=vPublic;
-vPublic=function(){if(!wallet&&claimTok)return vClaim();if(!wallet&&actStep==='code')return vActCode();return vPublic0()};
+vPublic=function(){if(!wallet&&(claimTok||claimSerial))return vClaim();if(!wallet&&actStep==='code')return vActCode();return vPublic0()};
 var vLanding0=vLanding;
 vLanding=function(){var h=vLanding0();return h.replace(/<\/div><\/div>$/,'</div><button class="bad" style="margin-top:12px" onclick="actOpen()">Activate a new bracelet</button></div>')};
 var vLogin0=vLogin;
@@ -868,7 +880,7 @@ vLogin=function(){var h=vLogin0();if(lmode!=='guest')return h;
   h=h.replace('See your points without your bracelet. Use the name on your card and your PIN.','See your points without your bracelet. Use your username and PIN.').replace('placeholder="Your name" autocomplete="name"','placeholder="Username" autocapitalize="none" autocomplete="username"');
   return h+'<div class="card"><h2>New bracelet?</h2><p class="mut">Got a bracelet that is not activated yet? Tap it to the phone, or enter the product ID printed on it.</p><button class="go" onclick="actOpen()">Activate my bracelet</button></div>'};
 
-function actOpen(){claimTok=null;actStep='code';render()}
+function actOpen(){claimTok=null;claimSerial=null;actStep='code';render()}
 function vActCode(){return '<div class="card"><h2>Activate a bracelet</h2><p class="mut">Enter the product ID printed on your bracelet or its packaging. Or just tap the bracelet to the back of your phone.</p><div class="row"><input id="acode" placeholder="Product ID, e.g. K7M4Q-92XWD" autocapitalize="characters" autocomplete="off" style="flex:1;min-width:200px"><button class="go" onclick="lookupCode()">Continue</button><button onclick="actStep=null;render()">Back</button></div></div>'}
 async function lookupCode(){var c=$('acode').value.trim();if(!c){say('Enter the product ID.',false);return render()}
   try{var r=await rpc('blank_by_code',{c:c});
@@ -879,26 +891,27 @@ async function lookupCode(){var c=$('acode').value.trim();if(!c){say('Enter the 
 /* claim = (1) enter the user ID from your purchase, (2) choose a username and PIN. No ID, no account. */
 var clmFor=null,clmStep='id',clmId='',clmName='',clmU='';
 function vClaim(){
-  if(clmFor!==claimTok){clmFor=claimTok;clmStep='id';clmId='';clmName='';clmU=''}
+  var ref=claimTok||claimSerial;if(clmFor!==ref){clmFor=ref;clmStep=claimSerial?'intro':'id';clmId='';clmName='';clmU=''}
+  if(clmStep==='intro')return '<div class="card" style="text-align:center"><h2>New bracelet</h2><p class="mut">Serial <b>'+esc(claimCode)+'</b> has not been activated yet.</p><button class="go" style="width:100%" onclick="clmStep=\'id\';render()">Activate bracelet</button><div class="row" style="margin-top:12px"><button onclick="claimSerial=null;clmFor=null;render()">Cancel</button></div></div>';
   if(clmStep==='choose')return '<div class="card"><h2>Hi '+esc(clmName.split(' ')[0])+'</h2><p class="mut">Choose your username and PIN. They become your login for this bracelet.</p>'+
     '<div style="display:flex;flex-direction:column;gap:10px"><input id="clm_u" placeholder="Choose a username" autocapitalize="none" autocomplete="username" value="'+esc(clmU)+'"><input id="clm_p" type="password" inputmode="numeric" maxlength="6" placeholder="Choose a PIN (4 to 6 digits)" autocomplete="new-password"><input id="clm_p2" type="password" inputmode="numeric" maxlength="6" placeholder="Repeat the PIN" autocomplete="new-password"></div>'+
     '<p class="mut">Username: 3 to 20 letters, numbers, dot or underscore.</p><div class="row"><button class="go" onclick="claimFinish()">Activate bracelet</button><button onclick="clmStep=\'id\';render()">Back</button></div></div>';
-  return '<div class="card"><h2>Activate your bracelet</h2><p class="mut">Product ID <b>'+esc(claimCode)+'</b>. Enter the user ID you were given when you bought it.</p>'+
+  return '<div class="card"><h2>Activate your bracelet</h2><p class="mut">'+(claimSerial?'Serial':'Product ID')+' <b>'+esc(claimCode)+'</b>. Enter the user ID you were given when you bought it.</p>'+
     '<div class="row"><input id="clm_id" placeholder="Your user ID" autocapitalize="characters" autocomplete="off" value="'+esc(clmId)+'" style="flex:1;min-width:180px"><button class="go" onclick="claimCheck()">Continue</button></div>'+
-    '<div class="row" style="margin-top:12px"><button onclick="claimTok=null;clmFor=null;render()">Cancel</button></div></div>'}
+    '<div class="row" style="margin-top:12px"><button onclick="claimTok=null;claimSerial=null;clmFor=null;render()">Cancel</button></div></div>'}
 function clmErr(t){say(t,false);render()}
 async function claimCheck(){if(clmBusy)return;clmId=(($('clm_id')||{}).value||'').trim();if(!clmId)return clmErr('Enter your user ID.');
-  clmBusy=true;try{var r=await rpc('claim_id_check',{k:claimTok,uid:clmId});if(!r.ok){clmBusy=false;return clmErr(r.text)}clmName=r.name;clmStep='choose'}catch(e){say(e.message,false)}clmBusy=false;render()}
+  clmBusy=true;try{var r=await (claimSerial?rpc('serial_claim_id_check',{s:claimSerial,uid:clmId}):rpc('claim_id_check',{k:claimTok,uid:clmId}));if(!r.ok){clmBusy=false;return clmErr(r.text)}clmName=r.name;clmStep='choose'}catch(e){say(e.message,false)}clmBusy=false;render()}
 async function claimFinish(){if(clmBusy)return;var u=(($('clm_u')||{}).value||'').trim().toLowerCase(),p=($('clm_p')||{}).value||'',p2=($('clm_p2')||{}).value||'';clmU=u;
   if(!/^[a-z0-9_.]{3,20}$/.test(u))return clmErr('Username: 3 to 20 letters, numbers, dot or underscore.');
   if(!/^[0-9]{4,6}$/.test(p))return clmErr('PIN must be 4 to 6 digits.');
   if(p!==p2)return clmErr('The two PINs do not match.');
   clmBusy=true;
-  try{var r=await rpc('claim_with_id',{k:claimTok,uid:clmId,u:u,pin_:p});
+  try{var r=await (claimSerial?rpc('serial_claim_with_id',{s:claimSerial,uid:clmId,u:u,pin_:p}):rpc('claim_with_id',{k:claimTok,uid:clmId,u:u,pin_:p}));
     if(!r.ok){clmBusy=false;return clmErr(r.text)}
     key=r.token;wpin=p;wallet=await rpc('wallet',{k:key,pin_:wpin});
-    if(!wallet){claimTok=null;clmFor=null;clmBusy=false;showLogin=true;lmode='guest';return clmErr('Bracelet activated, but the wallet did not open. Log in with username '+u+' and your PIN.')}
-    wmode='open';sv('fb-guest',{k:key,pin:wpin});claimTok=null;clmFor=null;clmId='';
+    if(!wallet){claimTok=null;claimSerial=null;clmFor=null;clmBusy=false;showLogin=true;lmode='guest';return clmErr('Bracelet activated, but the wallet did not open. Log in with username '+u+' and your PIN.')}
+    wmode='open';sv('fb-guest',{k:key,pin:wpin});claimTok=null;claimSerial=null;clmFor=null;clmId='';
     say('Bracelet activated. Welcome, '+r.name.split(' ')[0]+'. Log in later with username '+u+' and your PIN.',true)}
   catch(e){say(e.message,false)}
   clmBusy=false;render()}
@@ -947,6 +960,7 @@ async function bqWrite(){if(!bq||!HAS)return;var it=bq.list[bq.i];
 /* ---- admin: upload the buyer list (CSV / Excel): user ID, name, room ---- */
 var buyRows=[],buyOut=null,vBlank0=vBlank;
 vBlank=function(){return vBlank0()+vBuyers()};
+var vBlank1=vBlank;vBlank=function(){return vXnd()+vBlank1()};
 function vBuyers(){var s=blankSt;
   return '<div class="card"><h2>Buyer list</h2><p class="mut">Only people on this list can activate a bracelet. Columns: <b>user ID, name, room</b>. Only the name is required; a blank user ID is generated. The buyer enters the user ID on the bracelet, then chooses their own username and PIN.'+(s?' Waiting: <b>'+(s.ids_pending||0)+'</b> · Used: <b>'+(s.ids_used||0)+'</b>':'')+'</p>'+
   '<select id="bie" style="width:100%;margin-bottom:10px">'+evOpts('')+'</select><div class="row"><button onclick="$(\'buyf\').click()">Choose file</button><input type="file" id="buyf" accept=".csv,.xlsx,.xls,.txt" hidden onchange="buyFile(this)"><button class="go" onclick="buyImport()">Import '+(buyRows.length?buyRows.length+' buyers':'')+'</button></div></div>'+
@@ -961,7 +975,7 @@ async function buyFile(inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)ret
   catch(e){say(e.message,false)}render()}
 async function buyImport(){if(!buyRows.length){say('Choose a file first.',false);return render()}
   var ev=$('bie')?$('bie').value:'',out=[];
-  try{for(var i=0;i<buyRows.length;i+=500){out=out.concat(await rpc('claim_ids_import',{rows:buyRows.slice(i,i+500),p_event:ev||null}))}
+  try{for(var i=0;i<buyRows.length;i+=500){out=out.concat(await rpc('claim_ids_import',{rows:await xndFill(buyRows.slice(i,i+500)),p_event:ev||null}))}
     buyOut=out;buyRows=[];say('Import finished: '+out.filter(function(x){return x.ok}).length+' of '+out.length+' buyers added.',true)}
   catch(e){buyOut=out.length?out:null;say(e.message,false)}
   await loadAdm()}
@@ -1453,6 +1467,35 @@ async function brandSave(){brandSync();var d=brandDraft,prev=FX.brand||{};
   if(await xCfgSave({brand:o},'brand')){
     [prev.logo,prev.bn].forEach(function(u){var p=assetPath(u);if(p&&u!==o.logo&&u!==o.bn){try{Promise.resolve(sb.storage.from(ASSET_BUCKET).remove([p])).catch(function(){})}catch(e){}}});
     brandDraft=null;render()}}
+
+/* ---- activations log, reset bracelet, XND user codes ---- */
+var xndLog=null,xndCfg=null;
+async function xndFill(rows){try{var r=await rpc('xnd_fill_ids',{rows:rows});return Array.isArray(r)?r:rows}catch(e){if(/xnd_fill_ids|schema cache|Could not find/i.test(e.message))return rows;throw e}}
+var loadAdm1=loadAdm;
+loadAdm=async function(){try{xndLog=await rpc('claim_log',{lim:30})}catch(e){xndLog=null}try{xndCfg=await rpc('xnd_cfg')}catch(e){xndCfg=null}return loadAdm1()};
+function vXnd(){var adm_=me&&me.role==='admin',L=xndLog,ex=(xndCfg&&xndCfg.extra)||'';
+  var h='<div class="card"><div class="row sp"><h2 style="margin:0">Activated bracelets</h2><button onclick="loadAdm()">Refresh</button></div>';
+  if(!L)h+='<p class="mut">Not set up yet. Run xend-claim-tracking.sql in Supabase.</p>';
+  else if(!L.length)h+='<p class="mut">No bracelet has been activated yet. You will get a message here when one is.</p>';
+  else h+=L.map(function(x){return '<div class="item"><div class="row sp"><span><b>'+esc(x.name||'')+'</b><br><span class="mut">'+esc(x.code||'')+' \u00b7 '+esc(new Date(x.at).toLocaleString())+'</span></span>'+
+    '<span class="row"><span class="tag ok">Activated</span>'+(adm_?'<button class="bad" onclick="xndReset(\''+esc(x.token)+'\')">Reset</button>':'')+'</span></div></div>'}).join('');
+  h+='</div><div class="card"><h2>User codes</h2><p class="mut">Every new buyer without a user ID gets a code like <b>XND'+(ex?'-'+esc(ex):'')+'-000-001</b>, saved automatically when you import the buyer list.</p>'+
+    (adm_?'<div class="row"><input id="xnd_x" maxlength="6" placeholder="Extra characters (optional)" autocapitalize="characters" value="'+esc(ex)+'" style="flex:1;min-width:180px"><button class="go" onclick="xndSaveExtra()">Save</button></div>':'')+
+    '<div class="row" style="margin-top:10px"><button onclick="xndCsv()">Download all codes (CSV)</button></div></div>';
+  return h}
+async function xndReset(t){if(!confirm('Reset this bracelet? The buyer\u2019s login for it is removed and it goes back to unactivated. This cannot be undone.'))return;
+  try{var r=await rpc('blank_reset',{k:t,force:false});
+    if(!r.ok&&r.needs_force){if(!confirm(r.text+' Reset anyway?'))return;r=await rpc('blank_reset',{k:t,force:true})}
+    say(r.text,r.ok)}catch(e){say(e.message,false)}
+  await loadAdm()}
+async function xndSaveExtra(){try{xndCfg=await rpc('xnd_set_extra',{x:($('xnd_x').value||'').trim()});say('Saved. New codes will use it.',true)}catch(e){say(e.message,false)}render()}
+async function xndCsv(){try{var L=await rpc('xnd_codes_list');if(!L||!L.length){say('No codes yet.',false);return render()}
+  var q=function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'},rows=['code,name,room,created'].concat(L.map(function(x){return [x.code,x.name,x.room,x.created_at].map(q).join(',')}));
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.join('\r\n')],{type:'text/csv'}));a.download='xnd-codes.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000);say(L.length+' codes exported.',true)}catch(e){say(e.message,false)}render()}
+async function xndPoll(){try{var L=await rpc('claim_log',{lim:30});if(!L)return;var top=L.length?L[0].id:0,seen=ld('xnd-seen');
+  if(seen==null)sv('xnd-seen',top);else if(top>seen){var n=L.filter(function(x){return x.id>seen}).length;toast(n+' bracelet'+(n>1?'s':'')+' activated: '+L[0].name,true);sv('xnd-seen',top)}
+  var ch=JSON.stringify(L)!==JSON.stringify(xndLog);xndLog=L;var ae=document.activeElement;if(ch&&!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)))render()}catch(e){}}
+setInterval(function(){if(me&&me.role!=='vendor'&&tab==='cards'&&!document.hidden)xndPoll()},20000);
 
 themeApply(FX.theme);
 
