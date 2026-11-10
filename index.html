@@ -213,10 +213,10 @@ async function guestLogin(){var n=$('gname').value.trim(),p=$('gpin').value.trim
 async function refreshWallet(){cdirty=false;try{wallet=await rpc('wallet',{k:key,pin_:wpin});if(!wallet){say('Session expired. Log in again.',false);guestOut();return}say('Updated.',true)}catch(e){say(e.message,false)}render()}
 async function changePin(){var o=$('op').value.trim(),n=$('np').value.trim();if(!o||!n){say('Enter your current and new PIN.',false);return render()}
   try{var r=await rpc('change_pin',{k:key,pin_:o,new_:n});if(!r.ok)say(r.text,false);
-    else{wpin=n;sv('fb-guest',{k:key,pin:n});wallet=await rpc('wallet',{k:key,pin_:n});say('PIN changed. Use the new PIN next time you log in.',true)}}
+    else{wpin=n;sv('fb-guest',{k:key,pin:n});wallet=await rpc('wallet',{k:key,pin_:n});gEdit=null;say('PIN changed. Use the new PIN next time you log in.',true)}}
   catch(e){say(e.message,false)}render()}
-function guestOut(){giftOpen=false;giftSince=null;chatOpen=false;stopChat();cdirty=false;wallet=null;wmode=null;key=null;card=null;wpin='';sv('fb-guest',null);render()}
-async function saveCard(){try{await rpc('save_links',{k:key,pin_:wpin,l:readLinks('g')});wallet=await rpc('wallet',{k:key,pin_:wpin});cdirty=false;phdirty.g=false;say('Card saved.',true)}catch(e){say(e.message,false)}render()}
+function guestOut(){gEdit=null;giftOpen=false;giftSince=null;chatOpen=false;stopChat();cdirty=false;wallet=null;wmode=null;key=null;card=null;wpin='';sv('fb-guest',null);render()}
+async function saveCard(){try{await rpc('save_links',{k:key,pin_:wpin,l:readLinks('g')});wallet=await rpc('wallet',{k:key,pin_:wpin});cdirty=false;phdirty.g=false;gEdit=null;say('Card saved.',true)}catch(e){say(e.message,false)}render()}
 async function freeze(){try{await rpc('set_frozen',{k:key,pin_:wpin,f:!wallet.frozen});wallet=await rpc('wallet',{k:key,pin_:wpin});say(wallet.frozen?'Bracelet frozen.':'Bracelet unfrozen.',true)}catch(e){say(e.message,false)}render()}
 
 /* ---- digital card: many socials, each one switched on or off ---- */
@@ -531,12 +531,12 @@ function vPublic(){
     h+=vLogin()}
   return h}
 function vWallet(){var w=wallet;
-  if(w.live===false)return '<div class="card"><h2>Hi '+esc(w.name.split(' ')[0])+'</h2><p class="mut">The event is not active, so points are hidden for now. You can still edit your card below.</p></div>'+chatCard()+'<div class="card"><h2>My card</h2><div oninput="cdirty=true" onchange="cdirty=true">'+linksForm('g',w.links,key)+'</div><button class="go" style="margin-top:12px;width:100%" onclick="saveCard()">Save my card</button></div><button onclick="guestOut()">Log out</button>';
+  if(w.live===false)return '<div class="card"><h2>Hi '+esc(w.name.split(' ')[0])+'</h2><p class="mut">The event is not active, so points are hidden for now. You can still edit your card below.</p></div>'+chatCard()+cardEditBlock(w)+'<button onclick="guestOut()">Log out</button>';
   return '<div class="card"><div class="mut">Hi '+esc(w.name.split(' ')[0])+', your balance</div><div class="bal">'+w.balance+' pts</div><div class="mut">≈ '+money(w.balance)+'</div><p class="mut">Points can only be added by organizers.</p><div class="row"><button onclick="refreshWallet()">Refresh</button><button onclick="freeze()">'+(w.frozen?'Unfreeze':'Freeze')+' bracelet</button></div></div>'+chatCard()+
-  '<div class="card"><h2>My card</h2><p class="mut">Your name is always shown when your bracelet is tapped. Everything else stays hidden until you switch it on.</p><div oninput="cdirty=true" onchange="cdirty=true">'+linksForm('g',w.links,key)+'</div><button class="go" style="margin-top:12px;width:100%" onclick="saveCard()">Save my card</button></div>'+
-  '<div class="card"><h2>Change PIN</h2><p class="mut">4 to 6 digits. Avoid easy ones like 1234.</p><div class="row"><input id="op" type="password" inputmode="numeric" placeholder="Current PIN" style="width:130px"><input id="np" type="password" inputmode="numeric" placeholder="New PIN" style="width:110px"><button class="go" onclick="changePin()">Change</button></div></div>'+
+  cardEditBlock(w)+
+  pinEditBlock()+
   (w.acts.length?'<div class="card"><h2>Activities</h2>'+w.acts.map(function(a){return '<div class="item row sp"><span>'+esc(a.name)+'</span><span class="tag '+(a.done?'ok':'')+'">'+(a.done?'Done':'Not done')+'</span></div>'}).join('')+'</div>':'')+
-  '<div class="card"><h2>Recent activity</h2>'+(w.tx.length?w.tx.map(function(t){return '<div class="item row sp"><span>'+esc(t.type)+' · '+esc(t.who)+'<br><span class="mut">'+when(t.ts)+'</span></span><b>'+(t.amt>0?'+':'')+t.amt+'</b></div>'}).join(''):'<p class="mut">Nothing yet.</p>')+'</div>'+
+  txCounters(w.tx,'Points activity',w.tx.length?'<div>'+w.tx.map(function(t){return '<div class="item row sp"><span>'+esc(t.type)+' \u00B7 '+esc(t.who)+'<br><span class="mut">'+when(t.ts)+'</span></span><b>'+(t.amt>0?'+':'')+t.amt+'</b></div>'}).join('')+'</div>':'','')+
   '<button onclick="guestOut()">Log out</button>'}
 function nfcBtn(){return HAS&&!nfcOn?'<button class="go" onclick="listen()" style="margin-bottom:12px">Start NFC</button>':''}
 function armedCard(){var a=armed;return '<div class="card"><h2>Ready: tap a bracelet</h2><div class="bal">'+(a.type==='topup'?'+':'')+a.amt+' pts</div><p class="mut">'+esc(a.note||'')+' Expires in 2 minutes.</p><button class="bad" onclick="disarm()">Cancel</button></div>'}
@@ -556,7 +556,7 @@ function vTop(){
 function vCards(){
   return vEditG()+'<div class="card"><h2>New card</h2><div class="row"><select id="ge" style="width:100%">'+evOpts('')+'</select><input id="gn" placeholder="Guest name"><input id="gr" placeholder="Hotel room"><input id="ga" placeholder="Activities, comma separated" style="flex:1;min-width:200px"><button class="go" onclick="createGuest()">Create &amp; write tag</button></div></div>'+
   '<div class="card"><h2>Guests</h2>'+(adm.guests.length?adm.guests.map(function(g){return '<div class="item"><div class="row sp"><b>'+esc(g.name)+'</b><span>'+g.balance+' pts</span></div><div class="mut">'+esc(g.room)+' · PIN '+esc(g.pin)+(g.uid?' · tag '+esc(g.uid):'')+'</div><div class="row" style="margin-top:6px"><button onclick="writeTag(\''+g.token+'\')">Write tag</button><button onclick="pairTag(\''+g.id+'\')">Pair tag</button><button onclick="editG=\''+g.id+'\';render();scrollTo(0,0)">Edit card</button><button onclick="copyLink(\''+g.token+'\')">Copy link</button>'+(feat('remote_credit')?'<button class="go" onclick="creditG(\''+g.token+'\')">Credit</button>':'')+'</div><div class="row" style="margin-top:6px"><select onchange="setGE(\''+g.id+'\',this.value,'+g.spend_on+')">'+evOpts(g.event_id)+'</select><button class="'+(g.spend_on?'on':'bad')+'" onclick="setGE(\''+g.id+'\',\''+(g.event_id||'')+'\','+!g.spend_on+')">Spending '+(g.spend_on?'ON':'OFF')+'</button></div></div>'}).join(''):'<p class="mut">No guests yet.</p>')+'</div>'}
-function vLedger(){return '<div class="card"><h2>Latest 40 transactions</h2><div style="overflow-x:auto"><table>'+adm.tx.map(function(t){return '<tr><td>'+when(t.ts)+'</td><td>'+esc(t.guest)+'</td><td>'+esc(t.type)+(t.note?': '+esc(t.note):'')+'<br><span class="mut">'+esc(t.who)+(t.event?' · '+esc(t.event):'')+'</span></td><td><b>'+(t.amt>0?'+':'')+t.amt+'</b></td></tr>'}).join('')+'</table></div></div>'}
+function vLedger(){var n=(adm.tx||[]).length;return txCounters(adm.tx,'Points by category','<div style="overflow-x:auto"><table>'+(adm.tx||[]).map(function(t){return '<tr><td>'+when(t.ts)+'</td><td>'+esc(t.guest)+'</td><td>'+esc(t.type)+(t.note?': '+esc(t.note):'')+'<br><span class="mut">'+esc(t.who)+(t.event?' \u00B7 '+esc(t.event):'')+'</span></td><td><b>'+(t.amt>0?'+':'')+t.amt+'</b></td></tr>'}).join('')+'</table></div>','Counted from the latest '+n+' transactions the server sends.')}
 /* ---- vendor: live sales + payment pop-up ---- */
 function startSales(){stopSales();vs=null;lastSale=null;pollSales(true);vtimer=setInterval(function(){pollSales()},4000)}
 function stopSales(){if(vtimer)clearInterval(vtimer);vtimer=null}
@@ -693,7 +693,7 @@ function vCardView(c){var L=c.links||[],t=L.filter(function(l){return l.t==='tit
   var ic=PL.filter(function(p){var l=by[p[0]];return p[0]!=='title'&&l&&l.on&&String(l.v||'').trim()}).map(function(p){var h=hrefOf(p[0],by[p[0]].v),a='style="width:48px;height:48px;flex:none;text-decoration:none" aria-label="'+esc(p[1])+'" title="'+esc(p[1])+'"';
     return h?'<a class="ic" '+a+' href="'+esc(h)+'" target="_blank" rel="noopener">'+p[3]+'</a>':'<span class="ic" '+a+'>'+p[3]+'</span>'}).join('');
   return '<div class="card" style="text-align:center"><div class="ph" style="width:104px;height:104px;margin:0 auto 12px">'+phHtml(ph)+'</div><h2 style="font-size:1.6rem;margin:0 0 4px">'+esc(c.name)+'</h2>'+(t?'<p class="mut" style="margin:0 0 6px">'+esc(t.v)+'</p>':'')+
-  '<div class="row" style="justify-content:center;gap:12px;margin:16px 0">'+ic+'</div><div class="row" style="justify-content:center"><button class="go" onclick="wmode=\'pin\';render()">My wallet</button><button onclick="showLogin=!showLogin;render()">Log in</button></div><button class="bad" style="margin-top:12px;min-height:38px" onclick="saveVcf()">Save contact</button></div>'}
+  '<div class="row" style="justify-content:center;gap:12px;margin:16px 0">'+ic+'</div>'+xBtnRow('card','top',0)+xBtnRow('card','bottom',12)+'</div>'}
 function vLanding(){return '<div class="card" style="text-align:center"><h2 style="font-size:1.6rem;margin-bottom:4px">XEND-CASH</h2><p class="mut">Hold a bracelet to the back of the phone to see its card, or open your wallet.</p><div class="row" style="justify-content:center"><button class="go" onclick="lmode=\'guest\';showLogin=true;render()">My wallet</button><button onclick="showLogin=!showLogin;render()">Log in</button></div></div>'}
 function vPublic(){var h='';
   if(wmode==='pin')h+='<div class="card"><h2>My wallet</h2><div class="row"><input id="pin" type="password" inputmode="numeric" placeholder="PIN" style="width:120px"><button class="go" onclick="openWallet()">Open</button><button onclick="wmode=null;render()">Back</button></div></div>';
@@ -950,12 +950,12 @@ function buyCsv(){if(!buyOut)return;var q=function(v){v=String(v==null?'':v);ret
 /* ================= XEND storefront + CMS: public site, pre-orders, admin editor ================= */
 var xcms=null,xerr=false,xbusy=false,xclk=0,xclt=null,ordP=null,ordLink='',
   vLandingOld=vLanding,vStaff0=vStaff,setTab0=setTab,render0=render,
-  XPAGES=['site','shop','secs','orders'],
+  XPAGES=['site','shop','secs','orders','btns','theme'],
   XCFG=[['site_name','Site name (public store)','XEND'],['cash_app_name','App / wallet name','XEND-CASH'],['site_logo_url','Logo URL','https://...'],
     ['hero_title','Hero title',''],['hero_subtitle','Hero subtitle','',1],['banner_text','Promo banner (empty = hidden)',''],
     ['about_title','About heading',''],['about_text','About text','',1],['shop_title','Shop heading',''],['wallet_title','Wallet button label','My wallet'],
     ['momo_link','MoMo payment link','https://...'],['card_link','Card payment link','https://...'],['bank_link','Bank payment link','https://...'],['low_stock_at','Low-stock threshold (units)','3']],
-  XALL=[['home','Home'],['top','Top-up'],['till','Charge'],['cards','Cards'],['events','Events'],['vendors','Owed'],['buys','Purchases'],['team','Team'],['groups','Groups'],['import','Import'],['set','Settings'],['site','Site'],['shop','Shop'],['secs','Sections'],['orders','Orders'],['ledger','Ledger']];
+  XALL=[['home','Home'],['top','Top-up'],['till','Charge'],['cards','Cards'],['events','Events'],['vendors','Owed'],['buys','Purchases'],['team','Team'],['groups','Groups'],['import','Import'],['set','Settings'],['site','Site'],['shop','Shop'],['secs','Sections'],['btns','Buttons'],['orders','Orders'],['theme','Colors'],['ledger','Ledger']];
 function xv(k,d){var c=xcms&&xcms.config,v=c&&c[k];return (v!=null&&String(v).trim()!=='')?String(v):(d==null?'':d)}
 function xurl(u){u=String(u||'').trim();return /^(https?:\/\/|data:image\/(png|jpe?g|webp|gif);base64,)/i.test(u)?u:''}
 function xhtml(s){return esc(s).replace(/\n/g,'<br>')}
@@ -967,13 +967,13 @@ function xStore(){return !me&&!wallet&&!card&&!claimTok&&actStep!=='code'&&wmode
 function xBrand(){var n=xStore()?xv('site_name','XEND'):xv('cash_app_name','XEND-CASH'),b=document.querySelector('header b');
   if(b){b.textContent='';var lg=xurl(xv('site_logo_url'));if(lg){var im=document.createElement('img');im.className='xlogo';im.alt='';im.src=lg;b.appendChild(im)}b.appendChild(document.createTextNode(n))}
   document.title=n}
-render=function(){render0();xBrand()};
+render=function(){render0();xBrand();themeApply((me&&me.role==='admin'&&tab==='theme'&&themeDraft)?themeDraft:FX.theme)};
 /* public storefront */
 function xStat(p){var n=Number(p.stock_count)||0;return (n<=0||p.status==='sold_out')?'sold_out':(p.status==='low_stock'?'low_stock':'in_stock')}
 function xProd(p){var st=xStat(p),n=Number(p.stock_count)||0,img=xurl(p.image_url),
   tag=st==='sold_out'?'<span class="tag" style="background:var(--ink);color:var(--bg)">Sold out</span>':st==='low_stock'?'<span class="tag">Only '+n+' left</span>':'<span class="tag ok">In stock</span>';
   return '<div class="card xp">'+(img?'<img src="'+esc(img)+'" alt="'+esc(p.title)+'" loading="lazy">':'')+'<div class="row sp"><h2 style="margin:0">'+esc(p.title)+'</h2>'+tag+'</div>'+(p.description?'<p class="mut">'+xhtml(p.description)+'</p>':'')+
-  '<div class="row sp"><span style="font-size:1.4rem;font-weight:800">'+esc(xMoney(p.price))+'</span>'+(st==='sold_out'?'<button disabled>Sold Out</button>':'<button class="go" onclick="ordOpen(\''+esc(p.id)+'\')">Pre-order</button>')+'</div></div>'}
+  '<div class="row sp"><span style="font-size:1.4rem;font-weight:800">'+esc(xMoney(p.price))+'</span>'+(st==='sold_out'?'<button disabled>'+esc(xBL('p_sold','Sold Out'))+'</button>':'<button class="go" onclick="ordOpen(\''+esc(p.id)+'\')">'+esc(xBL('p_order','Pre-order'))+'</button>')+'</div></div>'}
 function xSec(s){var al=/^(left|center|right)$/.test(s.alignment)?s.alignment:'center',an=/^(fade-in|slide-up|pulse)$/.test(s.animation)?' anim-'+s.animation:'';
   return '<div class="card'+an+'" style="text-align:'+al+'"><h2>'+esc(s.title)+'</h2>'+(s.content?'<div>'+xhtml(s.content)+'</div>':'')+'</div>'}
 vLanding=function(){
@@ -981,11 +981,11 @@ vLanding=function(){
   var bn=xv('banner_text'),pr=(xcms&&xcms.products)||[],sec=(xcms&&xcms.sections)||[],about=xv('about_text'),
     note=xcms?'':'<div class="msg err" role="alert">Store content could not load'+(xmsg?': '+esc(xmsg):'')+'. Run xend-storefront.sql in Supabase, then reload.</div>';
   return note+(bn?'<div class="xban anim-fade-in">'+esc(bn)+'</div>':'')+
-  '<section class="xhero anim-slide-up"><h1>'+esc(xv('hero_title','XEND Smart Bracelet'))+'</h1><p class="mut" style="font-size:1.05rem">'+xhtml(xv('hero_subtitle','NFC-enabled leather bracelets for instant contact sharing and safety.'))+'</p><div class="row" style="justify-content:center;margin-top:14px"><button class="go" onclick="xShop()">Pre-order now</button><button onclick="lmode=\'guest\';showLogin=true;render()">'+esc(xv('wallet_title','My wallet'))+'</button></div></section>'+
+  '<section class="xhero anim-slide-up"><h1>'+esc(xv('hero_title','XEND Smart Bracelet'))+'</h1><p class="mut" style="font-size:1.05rem">'+xhtml(xv('hero_subtitle','NFC-enabled leather bracelets for instant contact sharing and safety.'))+'</p>'+xBtnRow('landing','top',14)+'</section>'+
   sec.map(xSec).join('')+
   '<h2 id="xshop" style="text-align:center;margin:18px 0 12px">'+esc(xv('shop_title','Pre-order yours'))+'</h2>'+(pr.length?'<div class="xgrid">'+pr.map(xProd).join('')+'</div>':'<p class="mut" style="text-align:center">No products yet. Check back soon.</p>')+
   (about?'<div class="card" style="margin-top:14px;text-align:center"><h2>'+esc(xv('about_title','About'))+'</h2><div>'+xhtml(about)+'</div></div>':'')+
-  '<p id="xfoot" class="mut" style="text-align:center;margin:24px 0 4px;user-select:none" onclick="xFoot()">\u2022 Xend Ecosystem \u2022</p><div style="text-align:center"><button class="bad" style="min-height:38px" onclick="actOpen()">Activate a new bracelet</button></div>'};
+  '<p id="xfoot" class="mut" style="text-align:center;margin:24px 0 4px;user-select:none" onclick="xFoot()">\u2022 Xend Ecosystem \u2022</p>'+xBtnRow('landing','bottom',0)};
 function xShop(){var e=$('xshop');if(e)e.scrollIntoView({behavior:'smooth'})}
 /* hidden admin entrance: 5 quick taps on the footer text */
 function xFoot(){xclk++;clearTimeout(xclt);xclt=setTimeout(function(){xclk=0},2500);
@@ -999,7 +999,7 @@ function ordOpen(id){var p=((xcms&&xcms.products)||[]).filter(function(x){return
   '<div><label for="o_p">Phone number (MoMo)</label><input id="o_p" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="024 000 0000"></div>'+
   '<div><label for="o_e">Email address</label><input id="o_e" type="email" autocomplete="email" maxlength="160" autocapitalize="none"></div>'+
   '<div><label for="o_m">Preferred payment method</label><select id="o_m"><option value="momo">Mobile Money (MoMo)</option><option value="card">Card</option><option value="bank">Bank transfer</option></select></div>'+
-  '<div id="o_err" role="alert" style="min-height:1.4em;font-weight:700"></div><button class="go" id="o_go" onclick="ordSubmit()">Place pre-order</button></div><p class="mut" style="margin:10px 0 0">Your details are saved first, then you continue to payment.</p></div>';
+  '<div id="o_err" role="alert" style="min-height:1.4em;font-weight:700"></div><button class="go" id="o_go" onclick="ordSubmit()">'+esc(xBL('p_submit','Place pre-order'))+'</button></div><p class="mut" style="margin:10px 0 0">Your details are saved first, then you continue to payment.</p></div>';
   document.body.style.overflow='hidden';setTimeout(function(){var i=$('o_n');if(i)i.focus()},50)}
 function ordClose(){var d=$('ordm');if(d)d.remove();ordP=null;ordLink='';if(!snapView&&!cam)document.body.style.overflow=''}
 function ordPay(){if(ordLink)location.assign(ordLink)}
@@ -1069,11 +1069,154 @@ function xvOrders(){var o=adm.orders;if(o===null)return xNeed();if(!o)o=[];var S
   return '<div class="card"><h2>Pre-orders</h2>'+(o.length?'<div style="overflow-x:auto"><table>'+o.map(function(x){return '<tr><td>'+when(x.created_at)+'</td><td><b>'+esc(x.name)+'</b><br><a href="tel:'+esc(String(x.phone).replace(/[^\d+]/g,''))+'">'+esc(x.phone)+'</a><br>'+esc(x.email)+'</td><td>'+esc(x.product_title||'-')+(x.price!=null?'<br>'+esc(xMoney(x.price)):'')+'<br><span class="mut">'+esc(x.payment_method)+'</span></td><td><select aria-label="Order status" onchange="xOrdSt(\''+esc(x.id)+'\',this.value)">'+ST.map(function(s){return '<option'+(s===x.status?' selected':'')+'>'+s+'</option>'}).join('')+'</select></td></tr>'}).join('')+'</table></div>':'<p class="mut">No pre-orders yet.</p>')+'</div>'}
 async function xOrdSt(id,s){try{await rpc('preorder_status',{oid:id,st:s});toast('Order marked '+s+'.',true)}catch(e){toast(e.message,false)}await xLoadAdm()}
 /* tab bar: admins get the new tabs; every tab name can be overridden from the Site tab */
-setTab=function(t){if(XPAGES.indexOf(t)>-1){tab=t;render();xLoadAdm()}else setTab0(t)};
+setTab=function(t){if(tab==='theme'&&t!=='theme'&&themeDraft){themeDraft=null;themeApply(FX.theme)}if(XPAGES.indexOf(t)>-1){tab=t;render();xLoadAdm()}else setTab0(t)};
 vStaff=function(){
   if(!me||me.role!=='admin'){var h=vStaff0();if(me&&me.role!=='vendor')XALL.forEach(function(t){var l=xv('label_'+t[0]);if(l)h=h.replace(new RegExp('(onclick="setTab\\(\''+t[0]+'\'\\)">)[^<]*(</button>)'),function(m,a,b){return a+esc(l)+b})});return h}
-  var T=XALL,map={home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,vendors:vVendors,buys:vBuys,team:vTeam,groups:vGroups,import:vImport,set:vSet,site:xvSite,shop:xvShop,secs:xvSecs,orders:xvOrders,ledger:vLedger};
+  var T=XALL,map={home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,vendors:vVendors,buys:vBuys,team:vTeam,groups:vGroups,import:vImport,set:vSet,site:xvSite,shop:xvShop,secs:xvSecs,btns:xvBtns,orders:xvOrders,theme:xvTheme,ledger:vLedger};
   return '<div class="row tabs" style="margin-bottom:14px">'+T.map(function(t){return '<button class="'+(tab===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+esc(xv('label_'+t[0],t[1]))+'</button>'}).join('')+'</div>'+(map[tab]||vHome)()};
+/* ================= admin-editable buttons, colours, points counters, guest edit toggles ================= */
+var gEdit=null,themeDraft=null,themeLast='';
+
+/* ---- buttons: every built-in button can be renamed, hidden or moved; admins can add their own ---- */
+/* id, admin name, default label, page, default place, style, action, shown by default */
+var BTN=[
+['l_pre','Landing page: pre-order button','Pre-order now','landing','top','go','shop',1],
+['l_wallet','Landing page: wallet button','My wallet','landing','top','','wallet',1],
+['l_login','Landing page: log in button (off by default)','Log in','landing','top','','login',0],
+['l_act','Landing page: activate bracelet button','Activate a new bracelet','landing','bottom','bad','act',1],
+['c_pre','Business card (after a scan): pre-order button','Pre-order now','card','top','go','landing',1],
+['c_wallet','Business card: wallet button','My wallet','card','top','','wallet',1],
+['c_login','Business card: log in button','Log in','card','top','','login',1],
+['c_save','Business card: save contact button','Save contact','card','bottom','bad','save',1]];
+var BLBL=[['p_order','Product card button','Pre-order'],['p_submit','Order form submit button','Place pre-order'],['p_sold','Sold-out button','Sold Out']];
+var BACTS=[['link','Open a link, phone number or email'],['shop','Go to the pre-order shop'],['wallet','Open wallet login'],['act','Activate a bracelet'],['landing','Go to the main landing page']];
+var BPG=[['landing','Landing page'],['card','Business card (after scan)'],['both','Both pages']];
+var BPL=[['top','Top'],['bottom','Bottom']];
+var BST=[['go','Highlighted'],['','Plain'],['bad','Dashed']];
+function xBL(id,def){var o=FX.btn&&FX.btn.o&&FX.btn.o[id],l=o&&o.l!=null?String(o.l).trim():'';return l||def}
+function xlink(u){u=String(u||'').trim();if(!u)return '';
+  if(/^(https?:\/\/|mailto:|tel:)/i.test(u))return u;
+  if(/^\+?[\d\s()-]{7,}$/.test(u))return 'tel:'+u.replace(/[^\d+]/g,'');
+  if(/^[^\s@:]+@[^\s@:]+\.[^\s@:]+$/.test(u))return 'mailto:'+u;
+  if(/^[^\s:\/]+\.[^\s:]+(\/\S*)?$/.test(u))return 'https://'+u;
+  return ''}
+function xIn(v,list,d){return list.some(function(x){return x[0]===v})?v:d}
+function xBtnList(){var o=(FX.btn&&FX.btn.o)||{},C=(FX.btn&&FX.btn.c)||[];
+  var r=BTN.map(function(b){var s=o[b[0]]||{},dl=(b[0]==='l_wallet'||b[0]==='c_wallet')?xv('wallet_title',b[2]):b[2],l=s.l!=null&&String(s.l).trim()!==''?String(s.l).trim():dl;
+    return {id:b[0],name:b[1],l:l,dl:dl,pg:b[3],p:xIn(s.p,BPL,b[4]),v:s.v===undefined?b[7]===1:!!s.v,s:b[5],a:b[6],built:true}});
+  C.forEach(function(c){if(!c||!c.id||!String(c.l||'').trim())return;
+    r.push({id:String(c.id),name:c.l,l:String(c.l).trim(),pg:xIn(c.g,BPG,'landing'),p:xIn(c.p,BPL,'top'),v:!(c.v===0||c.v===false),s:xIn(c.s,BST,'go'),a:xIn(c.t,BACTS,'link'),u:c.u||'',built:false})});
+  return r}
+function xBtns(pg,pl){return xBtnList().filter(function(b){return b.v&&(b.pg===pg||b.pg==='both')&&b.p===pl}).map(function(b){return '<button class="'+esc(b.s)+'" onclick="xBtn(\''+esc(b.id)+'\')">'+esc(b.l)+'</button>'}).join('')}
+function xBtnRow(pg,pl,mt){var h=xBtns(pg,pl);return h?'<div class="row" style="justify-content:center;margin-top:'+(mt==null?14:mt)+'px">'+h+'</div>':''}
+function xGoLanding(){card=null;wmode=null;showLogin=false;render();window.scrollTo(0,0)}
+function xGoShop(){if(card||wmode==='pin'){card=null;wmode=null;showLogin=false;render();setTimeout(xShop,60)}else xShop()}
+function xGoWallet(){if(card){wmode='pin';render()}else{lmode='guest';showLogin=true;render()}}
+function xBtn(id){var b=xBtnList().filter(function(x){return x.id===id})[0];if(!b)return;
+  if(b.a==='link'){var u=xlink(b.u);if(!u){toast('This button has no valid link yet.',false);return}
+    if(/^https?:/i.test(u))window.open(u,'_blank','noopener');else location.href=u;return}
+  var f={shop:xGoShop,wallet:xGoWallet,login:function(){showLogin=!showLogin;render()},act:function(){actOpen()},landing:xGoLanding,save:function(){saveVcf()}}[b.a];if(f)f()}
+async function xCfgSave(patch,key){
+  try{await rpc('cfg_set',{v:patch});var r=await rpc('cfg_get');
+    if(r&&r[key]!==undefined){FX=r;toast('Saved for everyone.',true);return true}
+    toast('The server accepted the save but did not keep "'+key+'". Its settings function may only allow known keys.',false)}
+  catch(e){toast(e.message,false)}
+  return false}
+function xvBtns(){
+  var C=(FX.btn&&FX.btn.c)||[],L=xBtnList().filter(function(b){return b.built}),o=(FX.btn&&FX.btn.o)||{};
+  var sel=function(id,opts,v){return xSel(id,opts,v)};
+  var built=L.map(function(b){var raw=o[b.id]&&o[b.id].l!=null?String(o[b.id].l):'';
+    return '<div class="item"><div class="row sp"><b>'+esc(b.name)+'</b><label class="tg" style="gap:6px"><input type="checkbox" id="bb_'+b.id+'_v"'+(b.v?' checked':'')+'><span>Show</span></label></div>'+
+    '<div class="row" style="margin-top:6px"><input id="bb_'+b.id+'_l" value="'+esc(raw)+'" placeholder="'+esc(b.dl)+'" maxlength="40" style="flex:1;min-width:160px">'+sel('bb_'+b.id+'_p',BPL,b.p)+'</div></div>'}).join('');
+  var lab=BLBL.map(function(b){var raw=o[b[0]]&&o[b[0]].l!=null?String(o[b[0]].l):'';
+    return '<div class="item"><b>'+esc(b[1])+'</b><input id="bl_'+b[0]+'" value="'+esc(raw)+'" placeholder="'+esc(b[2])+'" maxlength="40" style="width:100%;margin-top:6px"></div>'}).join('');
+  var form=function(c){var id=c?c.id:'new',g=function(k,d){return c&&c[k]!=null?c[k]:d};
+    return '<div class="item"><div class="xf"><input id="bc_'+id+'_l" placeholder="Button text" maxlength="40" value="'+esc(g('l',''))+'">'+
+    sel('bc_'+id+'_t',BACTS,g('t','link'))+'<input id="bc_'+id+'_u" placeholder="Link: https://...  or  tel:+233...  or  email" maxlength="300" autocapitalize="none" value="'+esc(g('u',''))+'">'+
+    '<div class="row">'+sel('bc_'+id+'_g',BPG,g('g','landing'))+sel('bc_'+id+'_p',BPL,g('p','top'))+sel('bc_'+id+'_s',BST,g('s','go'))+'</div>'+
+    '<label class="tg" style="justify-content:flex-start"><input type="checkbox" id="bc_'+id+'_v"'+(c&&(c.v===0||c.v===false)?'':' checked')+'><span>Show</span></label>'+
+    (c?'<div class="row"><button class="bad" onclick="xBtnDel(\''+esc(id)+'\')">Delete this button</button></div>':'')+'</div></div>'};
+  return '<div class="card"><h2>Buttons</h2><p class="mut">Rename any button, show or hide it, and choose whether it sits at the top or the bottom of its page. Leave a name empty to use the default. The wallet label can also be set in the Site tab; a name typed here wins.</p></div>'+
+  '<div class="card"><h2>Built-in buttons</h2>'+built+'</div>'+
+  '<div class="card"><h2>Other button names</h2>'+lab+'</div>'+
+  '<div class="card"><h2>Your own buttons</h2><p class="mut">For a link button, fill in the link. The other types ignore it.</p>'+(C.length?C.map(form).join(''):'<p class="mut">None yet.</p>')+'</div>'+
+  '<div class="card"><h2>Add a button</h2>'+form(null)+'<p class="mut">It is added when you press Save all buttons.</p></div>'+
+  '<button class="go" style="width:100%" onclick="xBtnsSave()">Save all buttons</button>'}
+function xBtnsRead(){var o={},C=[];
+  BTN.forEach(function(b){o[b[0]]={l:$('bb_'+b[0]+'_l').value.trim(),p:$('bb_'+b[0]+'_p').value,v:$('bb_'+b[0]+'_v').checked?1:0}});
+  BLBL.forEach(function(b){o[b[0]]={l:$('bl_'+b[0]).value.trim()}});
+  var ids=((FX.btn&&FX.btn.c)||[]).map(function(c){return c.id}).concat(['new']);
+  for(var i=0;i<ids.length;i++){var id=ids[i],q=function(k){return $('bc_'+id+'_'+k)};if(!q('l'))continue;
+    var l=q('l').value.trim();if(!l){if(id==='new')continue;return {err:'Every custom button needs a text. Use Delete to remove one.'}}
+    var t=q('t').value,u=q('u').value.trim();
+    if(t==='link'&&!xlink(u))return {err:'"'+l+'" needs a valid link, phone number or email.'};
+    C.push({id:id==='new'?'c'+Date.now().toString(36):id,l:l,t:t,u:t==='link'?u:'',g:q('g').value,p:q('p').value,s:q('s').value,v:q('v').checked?1:0})}
+  if(C.length>12)return {err:'You can have up to 12 custom buttons.'};
+  return {o:o,c:C}}
+async function xBtnsSave(){var r=xBtnsRead();if(r.err){toast(r.err,false);return}
+  if(await xCfgSave({btn:{o:r.o,c:r.c}},'btn'))render()}
+async function xBtnDel(id){if(!confirm('Delete this button?'))return;var r=xBtnsRead();if(r.err){toast(r.err,false);return}
+  r.c=r.c.filter(function(c){return c.id!==id});if(await xCfgSave({btn:{o:r.o,c:r.c}},'btn'))render()}
+
+/* ---- colours ---- */
+var THEME_KEYS=[['bg','Page background'],['card','Cards'],['ink','Text'],['mut','Soft text'],['line','Divider lines'],['edge','Borders'],['acc','Accent (yellow buttons and balance card)'],['onacc','Text on accent'],['hdr','Top bar']];
+var THEME_DEF={light:{bg:'#ffffff',card:'#ffffff',ink:'#111111',mut:'#5c5c5c',line:'#e4e4e4',edge:'#111111',acc:'#ffc400',onacc:'#111111',hdr:'#111111'},
+  dark:{bg:'#0b0b0b',card:'#171717',ink:'#ffffff',mut:'#b8b8b8',line:'#2e2e2e',edge:'#ffc400',acc:'#ffc400',onacc:'#111111',hdr:'#111111'}};
+function okHex(v){return /^#[0-9a-f]{6}$/i.test(String(v||''))}
+function themeVal(t,m,k){var o=t&&t[m];return o&&okHex(o[k])?o[k]:THEME_DEF[m][k]}
+function themeCss(t){var d=function(m){return THEME_KEYS.map(function(k){return '--'+k[0]+':'+themeVal(t,m,k[0])+';'}).join('')};
+  return '@media (prefers-color-scheme:light){:root{'+d('light')+'--onbg:var(--ink);--onfg:var(--acc)}}'+
+  '@media (prefers-color-scheme:dark){:root{'+d('dark')+'--onbg:var(--acc);--onfg:var(--onacc)}}'+
+  'header{background:var(--hdr)}.ic{background:var(--hdr);color:var(--acc)}button.go,.ok,.xban,.popcard,#toast,.card:has(.bal){color:var(--onacc)}'}
+function themeApply(t){var c=themeCss(t);if(c===themeLast)return;themeLast=c;
+  var s=$('xtheme');if(!s){s=document.createElement('style');s.id='xtheme';document.head.appendChild(s)}s.textContent=c;
+  var dk=window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches,mt=document.querySelector('meta[name=theme-color]');if(mt)mt.setAttribute('content',themeVal(t,dk?'dark':'light','hdr'))}
+function lum(h){var c=[1,3,5].map(function(i){var v=parseInt(h.substr(i,2),16)/255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)});return .2126*c[0]+.7152*c[1]+.0722*c[2]}
+function contrast(a,b){var x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
+function themeWarn(){['light','dark'].forEach(function(m){var e=$('thw_'+m);if(!e)return;var t=themeDraft||{},w=[];
+  if(contrast(themeVal(t,m,'ink'),themeVal(t,m,'bg'))<4.5)w.push('text on the page background');
+  if(contrast(themeVal(t,m,'ink'),themeVal(t,m,'card'))<4.5)w.push('text on cards');
+  if(contrast(themeVal(t,m,'onacc'),themeVal(t,m,'acc'))<4.5)w.push('text on the accent colour');
+  e.textContent=w.length?'Hard to read: '+w.join(', ')+'. Pick colours that contrast more.':''})}
+function themeSet(m,k,v){if(!okHex(v))return;themeDraft=themeDraft||{};themeDraft[m]=themeDraft[m]||{};themeDraft[m][k]=v;themeApply(themeDraft);themeWarn()}
+function xvTheme(){themeDraft=themeDraft||JSON.parse(JSON.stringify(FX.theme||{}));var t=themeDraft;
+  var col=function(m){return THEME_KEYS.map(function(k){return '<label class="item row sp" style="cursor:pointer"><span>'+k[1]+'</span><input type="color" value="'+themeVal(t,m,k[0])+'" oninput="themeSet(\''+m+'\',\''+k[0]+'\',this.value)" aria-label="'+esc(k[1])+' ('+m+' mode)" style="width:64px!important;flex:none!important;padding:2px;min-height:40px"></label>'}).join('')};
+  setTimeout(themeWarn,0);
+  return '<div class="card"><h2>Colours</h2><p class="mut">Changes preview instantly on this device only. Press Save to publish them for everyone. A phone shows light or dark depending on its own setting, so set both.</p></div>'+
+  '<div class="card"><h2>Light mode</h2>'+col('light')+'<p id="thw_light" class="mut" style="font-weight:700"></p></div>'+
+  '<div class="card"><h2>Dark mode</h2>'+col('dark')+'<p id="thw_dark" class="mut" style="font-weight:700"></p></div>'+
+  '<div class="row"><button class="go" style="flex:1" onclick="themeSave()">Save colours</button><button class="bad" onclick="themeReset()">Reset to default</button></div>'}
+async function themeSave(){if(await xCfgSave({theme:themeDraft},'theme')){themeDraft=null;render()}}
+function themeReset(){if(!confirm('Put every colour back to the original? Press Save afterwards to publish it.'))return;themeDraft=JSON.parse(JSON.stringify(THEME_DEF));themeApply(themeDraft);render()}
+
+/* ---- points used: one counter per category instead of one line per transaction ---- */
+function txPretty(s){s=String(s||'other').replace(/[_-]+/g,' ').trim();return s.charAt(0).toUpperCase()+s.slice(1)}
+function txCounters(list,title,rawHtml,hint){list=list||[];
+  if(!list.length)return '<div class="card"><h2>'+title+'</h2><p class="mut">Nothing yet.</p></div>';
+  var g={},order=[],tn=0,ti=0,to=0;
+  list.forEach(function(t){var k=String(t.type||'other').toLowerCase(),o=g[k],a=Number(t.amt)||0;
+    if(!o){o=g[k]={type:t.type,n:0,inn:0,out:0,notes:{},nk:[]};order.push(k)}
+    o.n++;tn++;if(a>0){o.inn+=a;ti+=a}else{o.out-=a;to-=a}
+    var nt=String(t.note||'').trim();if(nt){var s=o.notes[nt];if(!s){s=o.notes[nt]={n:0,amt:0};o.nk.push(nt)}s.n++;s.amt+=a}});
+  order.sort(function(a,b){return g[b].n-g[a].n});
+  var amt=function(o){return (o.out?'\u2212'+o.out+' pts':'')+(o.out&&o.inn?' \u00B7 ':'')+(o.inn?'+'+o.inn+' pts':'')};
+  var rows=order.map(function(k){var o=g[k];
+    return '<div class="item"><div class="row sp"><span><b>'+esc(txPretty(o.type))+'</b> <span class="tag">\u00D7'+o.n+'</span></span><b>'+amt(o)+'</b></div>'+
+    (o.nk.length?'<details><summary class="mut" style="min-height:32px;font-weight:600">Breakdown</summary>'+o.nk.map(function(n){var s=o.notes[n];return '<div class="row sp mut" style="padding:3px 0"><span>'+esc(n)+' \u00D7'+s.n+'</span><span>'+(s.amt>0?'+':s.amt<0?'\u2212':'')+Math.abs(s.amt)+' pts</span></div>'}).join('')+'</details>':'')+'</div>'}).join('');
+  return '<div class="card"><h2>'+title+'</h2><div class="row sp"><span><span class="mut">Used</span><br><b class="big">'+to+' pts</b></span><span><span class="mut">Added</span><br><b class="big">'+ti+' pts</b></span><span><span class="mut">Transactions</span><br><b class="big">'+tn+'</b></span></div>'+(hint?'<p class="mut" style="margin:8px 0 0">'+esc(hint)+'</p>':'')+'</div>'+
+  '<div class="card">'+rows+(rawHtml?'<details style="margin-top:8px"><summary>Show every transaction</summary>'+rawHtml+'</details>':'')+'</div>'}
+
+/* ---- guest side: card and PIN are edited only after tapping a button ---- */
+function gEditOpen(m){gEdit=m;cdirty=false;phdirty.g=false;render()}
+function gEditClose(){gEdit=null;cdirty=false;phdirty.g=false;render()}
+function cardEditBlock(w){
+  if(gEdit==='card')return '<div class="card"><h2>Edit my business card</h2><p class="mut">Your name is always shown when your bracelet is tapped. Everything else stays hidden until you switch it on.</p><div oninput="cdirty=true" onchange="cdirty=true">'+linksForm('g',w.links,key)+'</div><div class="row" style="margin-top:12px"><button class="go" onclick="saveCard()">Save my card</button><button onclick="gEditClose()">Cancel</button></div></div>';
+  return '<div class="card"><h2>My business card</h2><p class="mut">This is what people see when they tap your bracelet.</p><button class="go" style="width:100%" onclick="gEditOpen(\'card\')">Edit my business card</button></div>'}
+function pinEditBlock(){
+  if(gEdit==='pin')return '<div class="card"><h2>Change PIN</h2><p class="mut">4 to 6 digits. Avoid easy ones like 1234.</p><div class="row"><input id="op" type="password" inputmode="numeric" placeholder="Current PIN" style="width:130px"><input id="np" type="password" inputmode="numeric" placeholder="New PIN" style="width:110px"><button class="go" onclick="changePin()">Change</button><button onclick="gEditClose()">Cancel</button></div></div>';
+  return '<div class="card"><h2>PIN</h2><button style="width:100%" onclick="gEditOpen(\'pin\')">Change my PIN</button></div>'}
+themeApply(FX.theme);
+
 boot();
 loadCms().then(function(){var ae=document.activeElement;if(!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)))render()});
 </script>
