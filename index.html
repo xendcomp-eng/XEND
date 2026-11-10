@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<title>XEND-CASH</title>
+<style>
+:root{--bg:#fff;--card:#fff;--ink:#111;--mut:#5c5c5c;--line:#e4e4e4;--fld:#9a9a9a;--edge:#111;--acc:#ffc400;--bad:#111;--onbg:#111;--onfg:#ffc400;--errbg:#111;--errfg:#fff;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0b0b0b;--card:#171717;--ink:#fff;--mut:#b8b8b8;--line:#2e2e2e;--fld:#585858;--edge:#ffc400;--bad:#fff;--onbg:#ffc400;--onfg:#111;--errbg:#fff;--errfg:#111;color-scheme:dark}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{position:sticky;top:0;z-index:5;background:#111;color:#fff;border-bottom:4px solid var(--acc);padding:calc(10px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 10px max(14px,env(safe-area-inset-left))}
+.hin{max-width:640px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+header b{color:var(--acc);font-size:1.2rem;letter-spacing:.5px}
+header .mut{color:#c9c9c9}
+#who{display:flex;align-items:center;gap:8px}
+header button{min-height:38px;padding:6px 12px;background:transparent;color:#fff;border-color:#777}
+main{max-width:640px;margin:0 auto;padding:14px max(14px,env(safe-area-inset-right)) calc(60px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+h2{font-size:1.1rem;margin:0 0 10px}
+.ph{width:84px;height:84px;border-radius:50%;overflow:hidden;border:2px solid var(--edge);display:flex;align-items:center;justify-content:center;font-size:2rem;background:var(--card);flex:none}.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.card{background:var(--card);border:2px solid var(--edge);border-radius:16px;padding:16px;margin-bottom:14px}
+.card:has(.bal){background:var(--acc);color:#111;border-color:#111}
+.card:has(.bal) .mut{color:#2b2b2b}
+.bal{font-size:2.8rem;font-weight:800;line-height:1}
+.mut{color:var(--mut);font-size:.9rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.sp{justify-content:space-between}
+button,input,select{font:inherit;color:inherit}
+button{background:var(--card);color:var(--ink);border:2px solid var(--edge);border-radius:12px;padding:10px 14px;min-height:46px;cursor:pointer;font-weight:600;touch-action:manipulation}
+button:active{transform:scale(.98)}
+button.go{background:var(--acc);border-color:#111;color:#111;font-weight:700}
+button.on{background:var(--onbg);color:var(--onfg);border-color:var(--onbg)}
+button.bad{color:var(--bad);border-style:dashed}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+input,select{background:var(--card);border:2px solid var(--fld);border-radius:12px;padding:10px 12px;min-height:46px;min-width:0;max-width:100%}
+.item{padding:12px 0;border-top:1px solid var(--line)}.item:first-child{border-top:0}
+.msg{border:2px solid var(--edge);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-weight:700}
+.ok{background:var(--acc);color:#111}.err{background:var(--errbg);color:var(--errfg)}
+.tag{border:2px solid var(--edge);border-radius:99px;padding:2px 10px;font-size:.8rem;font-weight:700;white-space:nowrap}.tag.ok{border-color:#111}
+.big{font-size:1.25rem}
+table{width:100%;border-collapse:collapse;font-size:.88rem}td{padding:8px 4px;border-top:1px solid var(--line);vertical-align:top}
+summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
+.lnk{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);color:inherit;text-decoration:none;min-height:56px}
+a.lnk:active{opacity:.6}
+.ic{flex:0 0 42px;height:42px;border-radius:50%;background:#111;color:#ffc400;border:2px solid var(--edge);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.85rem}
+.lk{padding:12px 0;border-top:1px solid var(--line)}.lk:first-child{border-top:0}
+.lk input[type=text]{width:100%;margin-top:8px}
+.tg{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tg span{display:flex;align-items:center;gap:8px;font-weight:600}
+input[type=checkbox]{width:26px;height:26px;min-height:0;padding:0;accent-color:#ffc400}
+.seg{display:flex;gap:8px;margin-bottom:14px}.seg button{flex:1;padding:10px 4px}
+.tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px}
+.tabs button{flex:0 0 auto!important;padding:10px 14px}
+#pop:empty{display:none}
+#pop{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.7)}
+.popcard{background:var(--acc);color:#111;border:3px solid #111;border-radius:20px;padding:22px;width:100%;max-width:380px;text-align:center;max-height:90vh;overflow:auto}
+.popcard .bal{font-size:3.4rem;margin:6px 0}
+@media(max-width:560px){
+ .row input,.row select{width:100%!important;flex:1 1 100%!important}
+ .row:not(.sp) button{flex:1 1 auto}
+ .card{padding:14px}
+}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));z-index:30;max-width:92%;padding:12px 16px;border:2px solid #111;border-radius:14px;font-weight:700;background:var(--acc);color:#111;box-shadow:0 4px 18px rgba(0,0,0,.35)}
+#toast.err{background:#111;color:#fff;border-color:#ffc400}#toast:empty{display:none}
+.pulse{width:96px;height:96px;margin:12px auto;border-radius:50%;background:#111;color:#ffc400;display:flex;align-items:center;justify-content:center;font-size:2.4rem;animation:pls 1.2s ease-out infinite}
+@keyframes pls{0%{box-shadow:0 0 0 0 rgba(17,17,17,.55)}100%{box-shadow:0 0 0 38px rgba(17,17,17,0)}}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}}
+.av{flex:0 0 44px;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#111;border:2px solid var(--edge)}
+button.frow{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;text-align:left;font-weight:400}
+.dot{background:#d00;color:#fff;border-radius:99px;min-width:22px;height:22px;padding:0 6px;font-size:.8rem;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+#snapcam,#snapv{position:fixed;inset:0;z-index:40;background:#000;color:#fff;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+#snapv{z-index:50;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.sv-top{display:flex;justify-content:space-between;align-items:center;padding:10px 14px}
+.sv-top button,#snapcam .sv-top button{background:transparent;color:#fff;border-color:#777}
+.sv-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.sv-stage video,.sv-stage canvas{max-width:100%;max-height:100%;pointer-events:none}
+.sv-wm{position:absolute;inset:0;overflow:hidden;pointer-events:none;display:flex;flex-wrap:wrap;align-content:space-around;justify-content:space-around;gap:28px;transform:rotate(-24deg) scale(1.4);font-weight:800;font-size:.9rem;color:rgba(255,255,255,.22)}
+@media print{#snapv,#snapcam{display:none!important}}
+</style>
+</head>
+<body>
+<header><div class="hin"><b>XEND-CASH</b><span class="mut" id="nfc"></span><button id="bell" onclick="bellTap()" aria-label="Alerts"></button><span id="who"></span></div></header>
+<main>
+<div id="msg"></div><div id="view"></div>
+</main>
+<div id="pop"></div><div id="toast" role="status"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function ld(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+/* PUT YOUR SUPABASE DETAILS HERE (between the quotes). Leave empty to use the setup screen instead. */
+var MAILDOM='xendcash.app',cdirty=false,editG=null,lmode=ld('fb-lmode')||'guest',vs=null,vtimer=null,lastSale=null,popItems=[];
+var DEFAULT_CFG={url:'https://lczfcbjnafaknxlkqlbs.supabase.co',key:'sb_publishable_pyjdDTRequIqNNw8L_om0w_mYkvcOL1'};
+var cfg=(DEFAULT_CFG.url&&DEFAULT_CFG.key)?DEFAULT_CFG:ld('fb-cfg'),armed=ld('fb-armed'),sb=null,me=null,key=null,card=null,scanInfo=null,wallet=null,wmode=null,wpin='',tab='till',last=null,flash=null,nfcOn=false,pairing=null,busy=false,adm={guests:[],tx:[],vendors:[],staff:[],events:[],buys:[]},evSel='',closeSum=null;
+var HAS=('NDEFReader' in window),scanCtl=null,writeCtl=null;
+function say(t,ok){flash={t:t,ok:ok}}
+async function rpc(n,a){if(/^(chat_send|gift_send|chat_snap_open|chat_snap_put|chat_snap_redeem)$/.test(n))ownAt=Date.now();var r=await sb.rpc(n,a||{});if(r.error)throw new Error(r.error.message);return r.data}
+function tokenFrom(s){var m=String(s||'').match(/[#?&\/]b[=\/]([0-9a-f]{32})/i)||String(s||'').match(/\b([0-9a-f]{32})\b/i);return m?m[1].toLowerCase():null}
+function base(){return location.href.split('#')[0].split('?')[0]}
+function clearArm(){armed=null;sv('fb-armed',null)}
+
+async function boot(){
+  if(cfg){sb=supabase.createClient(cfg.url,cfg.key);try{FX=await rpc('cfg_get')||FX}catch(e){}var s=(await sb.auth.getSession()).data.session;if(s)await loadMe();
+    var fm=String(location.hash||'').match(/[#&]f=([0-9a-f]{6})/i);if(fm){try{history.replaceState(null,'',location.pathname)}catch(e){}await friendLink(fm[1].toUpperCase());return}
+    var t=tokenFrom(location.hash||location.search);if(t){try{history.replaceState(null,'',location.pathname)}catch(e){}await onKey(t);return}
+    if(!me){var gs=ld('fb-guest');if(gs){try{key=gs.k;wpin=gs.pin;wallet=await rpc('wallet',{k:gs.k,pin_:gs.pin});if(wallet)wmode='open';else{key=null;sv('fb-guest',null)}}catch(e){key=null}}}}
+  render();
+}
+async function loadMe(){try{me=await rpc('me')}catch(e){me=null}try{caps=me&&me.role==='organizer'?await rpc('my_caps'):null}catch(e){caps=null}if(me&&me.role!=='vendor')tab='top';if(me&&me.role==='vendor')startSales()}
+function loginEmail(){var e=$('em').value.trim();return e.indexOf('@')<0?e.toLowerCase()+'@'+MAILDOM:e}
+async function login(kind){try{var r=await sb.auth.signInWithPassword({email:loginEmail(),password:$('pw').value});if(r.error)throw r.error;await loadMe();
+    if(!me)await wrongDoor('This account has no role yet. Ask an admin.');
+    else if(kind==='vendor'&&me.role!=='vendor')await wrongDoor('This is an admin or staff account. Use Admin / Staff login.');
+    else if(kind==='staff'&&me.role==='vendor')await wrongDoor('This is a vendor account. Use Vendor login.');
+    else say('Welcome, '+me.name+'.',true)}
+  catch(e){say(/invalid/i.test(e.message)?'Wrong username or password.':e.message,false)}render()}
+async function wrongDoor(t){stopSales();await sb.auth.signOut();me=null;vs=null;lastSale=null;say(t,false)}
+function setL(m){lmode=m;sv('fb-lmode',m);render()}
+function roleLabel(r){return r==='vendor'?'Vendor':r==='organizer'?'Staff':'Admin'}
+async function logout(){stopSales();vs=null;lastSale=null;closePop();await sb.auth.signOut();me=null;clearArm();last=null;scanInfo=null;say('Logged out.',true);render()}
+
+/* ---- a bracelet was tapped (real NFC or opened link) ---- */
+async function onKey(k){
+  if(busy)return;busy=true;key=k;card=null;scanInfo=null;wallet=null;wmode=null;
+  try{
+    if(me){
+      var a=armed&&Date.now()-armed.at<120000?armed:null;if(armed)clearArm();
+      var isV=me.role==='vendor'||me.role==='admin',isO=me.role==='organizer'||me.role==='admin',r=null;
+      if(a&&a.type==='charge'&&isV)r=await rpc('charge',{k:k,p:a.amt,note:a.note});
+      else if(a&&a.type==='topup'&&isO)r=await rpc('topup',{k:k,p:a.amt,method:a.note});
+      if(r){last=r;say(r.text,r.ok);if(navigator.vibrate)navigator.vibrate(r.ok?80:[60,60,60]);if(r.ok&&me.role==='vendor')await pollSales(true)}
+      scanInfo=await rpc('scan',{k:k});buzz(scanInfo?60:[60,60,60]);
+      if(!scanInfo)say('Unknown bracelet.',false);else if(!r)say('Scanned '+scanInfo.name+'.',true);
+    }else{tappedKey=k;card=await rpc('card',{k:k});if(!card)say('Unknown or deactivated bracelet.',false);
+      else{var gs=ld('fb-guest');if(gs&&gs.k===k){wpin=gs.pin;wallet=await rpc('wallet',{k:k,pin_:gs.pin});if(wallet)wmode='open'}}}
+  }catch(e){say(e.message,false)}
+  busy=false;render();
+  var g2=ld('fb-guest');if(!me&&card&&g2&&g2.k!==k&&feat('chat'))offerFriend(k);
+}
+function arm(type){var p=parseInt($('amt').value,10);if(!(p>0)){say('Enter a whole amount above 0.',false);return render()}
+  armed={type:type,amt:p,note:type==='charge'?($('item').value.trim()):$('meth').value,at:Date.now()};sv('fb-armed',armed);last=null;scanInfo=null;listen();render()}
+function disarm(){clearArm();render()}
+
+/* ---- real NFC (Chrome on Android, https only) ---- */
+async function listen(){
+  if(!HAS){say('Web NFC needs Chrome on Android, opened over https.',false);return render()}
+  if(nfcOn)return;
+  try{var r=new NDEFReader();scanCtl=new AbortController();await r.scan({signal:scanCtl.signal});nfcOn=true;
+    r.onreading=function(e){var t='';e.message.records.forEach(function(x){if(x.recordType==='url'||x.recordType==='text')t+=new TextDecoder(x.encoding||'utf-8').decode(x.data)+' '});
+      var k=tokenFrom(t)||e.serialNumber;if(pairing){pair(e.serialNumber)}else onKey(k)};
+    r.onreadingerror=function(){say('Could not read that tag. Hold it steady and try again.',false);render()};
+    render();
+  }catch(e){nfcOn=false;scanCtl=null;say('NFC could not start: '+e.message+'. Turn NFC on and allow the permission.',false);render()}
+}
+async function pair(serial){var id=pairing;pairing=null;try{await rpc('set_uid',{id:id,u:serial});say('Tag '+serial+' paired.',true);await loadAdm()}catch(e){say(e.message,false);render()}}
+function pairTag(id){pairing=id;say('Hold the bracelet to the back of the phone to pair it.',true);listen();render()}
+async function writeTag(token){
+  if(!HAS){say('Writing tags needs Chrome on Android over https.',false);return render()}
+  if(writeCtl)writeCtl.abort();
+  if(scanCtl){scanCtl.abort();scanCtl=null;nfcOn=false}
+  var ctl=writeCtl=new AbortController();
+  try{say('Hold a blank tag to the back of the phone…',true);render();
+    await new NDEFReader().write({records:[{recordType:'url',data:base()+'#b='+token}]},{overwrite:true,signal:ctl.signal});
+    say('Tag written. Tap Start NFC, then scan it to test.',true)}
+  catch(e){if(e.name==='AbortError'){if(writeCtl!==ctl)return;say('Write cancelled.',false)}else say('Write failed: '+e.message,false)}
+  if(writeCtl===ctl)writeCtl=null;render()}
+function copyLink(token){var u=base()+'#b='+token;if(navigator.clipboard)navigator.clipboard.writeText(u).then(function(){say('Link copied.',true);render()});else prompt('Copy:',u)}
+
+/* ---- admin ---- */
+async function loadAdm(){try{adm.guests=(await rpc('list_guests'))||[];if(me.role==='admin')adm.tx=(await rpc('ledger'))||[]}catch(e){say(e.message,false)}
+  try{adm.events=(await rpc('list_events'))||[]}catch(e){adm.events=null}
+  if(me.role==='admin')try{adm.vendors=(await rpc('vendor_report',{eid:evSel||null}))||[]}catch(e){adm.vendors=null}
+  try{adm.buys=(await rpc('purchases',{eid:evSel||null}))||[]}catch(e){adm.buys=null}
+  try{adm.staff=(await rpc('list_staff'))||[]}catch(e){adm.staff=null}render()}
+function setTab(t){tab=t;if(t!=='top')loadAdm();else render()}
+async function createGuest(){var n=$('gn').value.trim();if(!n){say('Enter a guest name.',false);return render()}
+  var a=$('ga').value.split(',').map(function(x){return x.trim()}).filter(Boolean).map(function(x){return {name:x,done:false}});
+  try{var r=await rpc('create_guest',{n:n,r:$('gr').value.trim(),a:a,p_event:$('ge').value||null});say('Card created for '+n+'. Guest PIN '+r.pin+'.',true);await loadAdm();if(HAS)writeTag(r.token)}catch(e){say(e.message,false);render()}}
+async function markDone(i){try{await rpc('mark_done',{k:key,i:i});scanInfo=await rpc('scan',{k:key});say('Marked done.',true)}catch(e){say(e.message,false)}render()}
+
+/* ---- guest wallet ---- */
+async function openWallet(){wpin=$('pin').value;try{wallet=await rpc('wallet',{k:key,pin_:wpin});if(!wallet)say('Wrong PIN.',false);else{wmode='open';sv('fb-guest',{k:key,pin:wpin})}}catch(e){say(e.message,false)}render()}
+async function guestLogin(){var n=$('gname').value.trim(),p=$('gpin').value.trim();if(!n||!p){say('Enter your name and PIN.',false);return render()}
+  try{var r=await rpc('guest_login',{n:n,pin_:p});if(!r.ok){say(r.text,false);return render()}
+    key=r.token;wpin=p;wallet=await rpc('wallet',{k:key,pin_:p});
+    if(!wallet)say('Could not open your wallet.',false);else{wmode='open';sv('fb-guest',{k:key,pin:p});say('Welcome, '+wallet.name.split(' ')[0]+'.',true)}}
+  catch(e){say(e.message,false)}render()}
+async function refreshWallet(){cdirty=false;try{wallet=await rpc('wallet',{k:key,pin_:wpin});if(!wallet){say('Session expired. Log in again.',false);guestOut();return}say('Updated.',true)}catch(e){say(e.message,false)}render()}
+async function changePin(){var o=$('op').value.trim(),n=$('np').value.trim();if(!o||!n){say('Enter your current and new PIN.',false);return render()}
+  try{var r=await rpc('change_pin',{k:key,pin_:o,new_:n});if(!r.ok)say(r.text,false);
+    else{wpin=n;sv('fb-guest',{k:key,pin:n});wallet=await rpc('wallet',{k:key,pin_:n});say('PIN changed. Use the new PIN next time you log in.',true)}}
+  catch(e){say(e.message,false)}render()}
+function guestOut(){giftOpen=false;giftSince=null;chatOpen=false;stopChat();cdirty=false;wallet=null;wmode=null;key=null;card=null;wpin='';sv('fb-guest',null);render()}
+async function saveCard(){try{await rpc('save_links',{k:key,pin_:wpin,l:readLinks('g')});wallet=await rpc('wallet',{k:key,pin_:wpin});cdirty=false;phdirty.g=false;say('Card saved.',true)}catch(e){say(e.message,false)}render()}
+async function freeze(){try{await rpc('set_frozen',{k:key,pin_:wpin,f:!wallet.frozen});wallet=await rpc('wallet',{k:key,pin_:wpin});say(wallet.frozen?'Bracelet frozen.':'Bracelet unfrozen.',true)}catch(e){say(e.message,false)}render()}
+
+/* ---- digital card: many socials, each one switched on or off ---- */
+var PL=[['title','Title / company','Founder, DJ, Chef…','T'],['phone','Phone (call)','024 000 0000','☎'],['whatsapp','WhatsApp','024 000 0000','WA'],['email','Email','you@email.com','@'],['instagram','Instagram','@yourname','IG'],['tiktok','TikTok','@yourname','TT'],['facebook','Facebook','profile name or link','FB'],['x','X (Twitter)','@yourname','X'],['snapchat','Snapchat','username','SC'],['linkedin','LinkedIn','profile link','in'],['youtube','YouTube','@channel or link','YT'],['telegram','Telegram','@username','TG'],['website','Website','yoursite.com','🌐']];
+function hrefOf(t,v){v=String(v||'').trim();if(!v)return null;
+  var url=/^https?:\/\//i.test(v);
+  if(!url&&/^[a-z][a-z0-9+.-]*:/i.test(v)&&t!=='phone')return null;
+  var h=v.replace(/^@/,''),e=encodeURIComponent(h);
+  switch(t){
+    case 'phone':var n=v.replace(/[^\d+]/g,'');return n?'tel:'+n:null;
+    case 'whatsapp':var d=v.replace(/\D/g,'');if(d.charAt(0)==='0')d='233'+d.slice(1);return d?'https://wa.me/'+d:null;
+    case 'email':return /^[^\s@]+@[^\s@]+$/.test(v)?'mailto:'+encodeURI(v):null;
+    case 'website':return url?v:'https://'+v;
+    case 'instagram':return url?v:'https://instagram.com/'+e;
+    case 'tiktok':return url?v:'https://www.tiktok.com/@'+e;
+    case 'facebook':return url?v:'https://facebook.com/'+e;
+    case 'x':return url?v:'https://x.com/'+e;
+    case 'snapchat':return url?v:'https://snapchat.com/add/'+e;
+    case 'linkedin':return url?v:'https://linkedin.com/in/'+e;
+    case 'youtube':return url?v:'https://youtube.com/@'+e;
+    case 'telegram':return url?v:'https://t.me/'+e}
+  return null}
+function cardLinks(L){var by={};(L||[]).forEach(function(l){by[l.t]=l});
+  return PL.filter(function(p){var l=by[p[0]];return p[0]!=='title'&&l&&l.on&&String(l.v||'').trim()}).map(function(p){var l=by[p[0]],h=hrefOf(p[0],l.v),
+    inner='<span class="ic">'+p[3]+'</span><span><b>'+p[1]+'</b><br><span class="mut">'+esc(l.v)+'</span></span>';
+    return h?'<a class="lnk" href="'+esc(h)+'" target="_blank" rel="noopener">'+inner+'</a>':'<div class="lnk">'+inner+'</div>'}).join('')}
+function vCardView(c){var L=c.links||[],t=L.filter(function(l){return l.t==='title'&&l.on&&String(l.v||'').trim()})[0];
+  var ph=photoOf(L);
+  return '<div class="card">'+(ph?'<div class="ph" style="width:104px;height:104px;margin-bottom:10px">'+phHtml(ph)+'</div>':'')+'<h2 style="font-size:1.6rem;margin-bottom:4px">'+esc(c.name)+'</h2>'+(t?'<p class="mut" style="margin:0 0 12px;font-size:1rem">'+esc(t.v)+'</p>':'')+cardLinks(L)+'<div class="row" style="margin-top:14px"><button class="go" onclick="saveVcf()">👤 Save contact</button><button onclick="wmode=\'pin\';render()">My wallet</button></div></div>'}
+function vc(s){return String(s==null?'':s).replace(/[\r\n]+/g,' ').replace(/[,;\\]/g,function(m){return '\\'+m}).trim()}
+function saveVcf(){var c=card;if(!c)return;var v='BEGIN:VCARD\nVERSION:3.0\nFN:'+vc(c.name)+'\n';
+  (c.links||[]).forEach(function(l){var val=vc(l.v),h=hrefOf(l.t,l.v);if(!l.on||!val)return;
+    if(l.t==='photo'){if(okImg(l.v))v+='PHOTO;ENCODING=b;TYPE=JPEG:'+l.v.split(',')[1]+'\n';return}
+    if(l.t==='title')v+='TITLE:'+val+'\n';else if(l.t==='phone'||l.t==='whatsapp')v+='TEL:'+val+'\n';else if(l.t==='email')v+='EMAIL:'+val+'\n';else if(h&&/^https?:/.test(h))v+='URL:'+h+'\n'});
+  v+='END:VCARD';var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([v],{type:'text/vcard'}));a.download=c.name.replace(/\W+/g,'_')+'.vcf';a.click()}
+var phv={},phdirty={},phid={};
+function okImg(v){return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(String(v||''))}
+function photoOf(L){var l=(L||[]).filter(function(x){return x.t==='photo'&&x.on&&okImg(x.v)})[0];return l?l.v:''}
+function phHtml(v){return v?'<img src="'+esc(v)+'" alt="">':'👤'}
+function setPhoto(pfx,v){phv[pfx]=v;phdirty[pfx]=true;cdirty=true;var b=$(pfx+'_ph');if(b)b.innerHTML=phHtml(v)}
+function pickPhoto(pfx,inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  if(!/^image\//.test(f.type)){say('Choose an image file.',false);return render()}
+  var img=new Image(),u=URL.createObjectURL(f);
+  img.onload=function(){var S=256,c=document.createElement('canvas');c.width=c.height=S;var x=c.getContext('2d'),m=Math.min(img.width,img.height);
+    x.fillStyle='#fff';x.fillRect(0,0,S,S);x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,S,S);URL.revokeObjectURL(u);setPhoto(pfx,c.toDataURL('image/jpeg',.8))};
+  img.onerror=function(){URL.revokeObjectURL(u);say('Could not read that image.',false);render()};img.src=u}
+function photoForm(pfx,links,ident){if(phid[pfx]!==ident){phid[pfx]=ident;phdirty[pfx]=false}
+  if(!phdirty[pfx])phv[pfx]=photoOf(links);
+  return '<div class="lk"><b>Photo</b><div class="row" style="align-items:center;margin-top:6px"><div class="ph" id="'+pfx+'_ph">'+phHtml(phv[pfx])+'</div><button type="button" onclick="$(\''+pfx+'_file\').click()">Upload photo</button><button type="button" onclick="setPhoto(\''+pfx+'\',\'\')">Remove</button><input type="file" id="'+pfx+'_file" accept="image/*" hidden onchange="pickPhoto(\''+pfx+'\',this)"></div></div>'}
+function linksForm(pfx,links,ident){var by={};(links||[]).forEach(function(l){by[l.t]=l});
+  return photoForm(pfx,links,ident)+PL.map(function(p){var l=by[p[0]]||{};return '<div class="lk"><label class="tg"><b>'+p[1]+'</b><span><input type="checkbox" id="'+pfx+'on_'+p[0]+'"'+(l.on?' checked':'')+'> Show</span></label><input type="text" id="'+pfx+'v_'+p[0]+'" placeholder="'+esc(p[2])+'" value="'+esc(l.v||'')+'" autocapitalize="none" maxlength="200"></div>'}).join('')}
+function readLinks(pfx){var r=PL.map(function(p){var v=$(pfx+'v_'+p[0]).value.trim();return {t:p[0],v:v,on:$(pfx+'on_'+p[0]).checked&&!!v}}).filter(function(l){return l.v});if(okImg(phv[pfx]))r.push({t:'photo',v:phv[pfx],on:true});return r}
+function vEditG(){if(!editG)return '';var g=adm.guests.filter(function(x){return x.id===editG})[0];if(!g){editG=null;return ''}
+  return '<div class="card"><h2>Card: '+esc(g.name)+'</h2><p class="mut">Name is always shown. Only items switched on are visible when the bracelet is tapped. The guest sees your changes too.</p>'+linksForm('a',g.links,g.id)+'<div class="row" style="margin-top:12px"><button class="go" onclick="saveGuestCard()">Save card</button><button onclick="editG=null;render()">Cancel</button></div></div>'}
+async function saveGuestCard(){try{await rpc('admin_save_links',{gid:editG,l:readLinks('a')});say('Card saved.',true);phdirty.a=false;editG=null;await loadAdm()}catch(e){say(e.message,false);render()}}
+/* ---- guest chat: event-only, messages vanish, location is a one-time pin ---- */
+var chatOpen=false,chatTo='',chatMsgs=[],chatPeople=[],chatMe='',chatTimer=null,chatBusy=false,chatOk=[],chatReqs=[],chatPend=[],tappedKey=null,tapCtl=null,reqN=0,chatNoteAt=0,chatMode='private',chatQ='',chatView='list',chatSeen=ld('fb-seen')||{},chatKnown=null;
+function cM(){return FX.msg_cost!=null?Number(FX.msg_cost):1}
+function cB(){return FX.bcast_cost!=null?Number(FX.bcast_cost):10}
+function note(t){var e=$('cerr');if(e)e.textContent=t;chatNoteAt=Date.now()}
+function chatCard(){return clockCard()+giftCard()+(!feat('chat')?'':'<div class="card"><div class="row sp"><span><b>Chat</b><br><span class="mut">Tap a guest\u2019s bracelet to add them, then text. '+cM()+' pt per message.</span></span><button class="go" onclick="chatOpenUI()">Open'+(reqN?' ('+reqN+')':'')+'</button></div>'+(HAS?'<button class="go" style="width:100%;margin-top:10px" onclick="homeTap()">\uD83D\uDCF2 Tap a bracelet to add a friend</button>':'<p class="mut" style="margin:10px 0 0">To add a friend, hold their bracelet to the top of your phone. Their card opens and you can send a request.</p>')+'</div>')}
+function vChat(){
+  if(chatView==='conv')return '<div class="card"><div class="row sp" style="flex-wrap:nowrap"><button onclick="chatBack()">\u2039 Friends</button><span id="cwho" style="font-weight:800;flex:1;text-align:center"></span><button class="bad" id="cunf" style="min-height:38px" onclick="chatUnfriend()">Remove</button></div>'+
+   '<div id="cmsgs" aria-live="polite" style="height:340px;overflow-y:auto;border:2px solid var(--line);border-radius:12px;padding:6px 10px;margin:10px 0"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div>'+
+   '<div id="cbox"><div class="row" style="gap:6px;margin-bottom:8px">'+EMO.map(function(e){return '<button style="min-height:40px;padding:4px 10px" onclick="chatEmoji(\''+e+'\')">'+e+'</button>'}).join('')+'</div>'+
+   '<div class="row"><input id="ctxt" maxlength="500" autocomplete="off" placeholder="Message" style="flex:1;min-width:0" onkeydown="if(event.key===\'Enter\')chatSend()"><button class="go" id="csend" onclick="chatSend()">Send</button></div>'+
+   '<div class="row" style="margin-top:8px"><select id="cttl" style="flex:1"><option value="10">Vanishes in 10 min</option><option value="60" selected>Vanishes in 1 hour</option><option value="1440">Vanishes in 24 hours</option></select><button onclick="chatSend(true)">\uD83D\uDCCD Share location</button>'+(chatTo?'<button class="go" onclick="snapCam()">\uD83D\uDCF7 Snap</button>':'')+'</div>'+(chatTo?'<p class="mut" style="margin:8px 0 0;font-size:.8rem">\uD83D\uDCF7 Snaps: live camera only (no gallery), sent with your location and a Go here button. First view is free; each re-view costs the viewer 1, 2, 4, 8\u2026 pts, added to your Snap earnings. Screenshots are not allowed.</p>':'')+'</div></div>';
+  return '<div class="card"><div class="row sp"><h2 style="margin:0">Chat</h2><button onclick="chatClose()">Back</button></div>'+
+   '<p class="mut">Messages vanish by themselves. Private message <b id="cpm"></b> pt \u00B7 broadcast <b id="cpb"></b> pts \u00B7 your balance <b id="cbal"></b> pts.</p>'+
+   (HAS?'<button class="go" style="width:100%" onclick="homeTap()">\uD83D\uDCF2 Tap a bracelet to add a friend</button>':'<p class="mut" style="margin:0">To add a friend, hold their bracelet to the top of your phone and press Message on their card, or use a code / QR below.</p>')+
+   codePanel()+'<div id="spot"></div><div id="creq"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div>'+
+   '<button class="frow" onclick="chatOpenConv(\'\')"><span class="av" style="background:var(--acc)">\uD83D\uDCE2</span><span style="flex:1;min-width:0"><b>Everyone at the event</b><br><span class="mut" id="cbprev"></span></span><span id="cbdot"></span></button>'+
+   '<h2 style="margin:16px 0 6px">My friends <span class="mut" id="cfn"></span></h2><input id="cfq" type="search" placeholder="Search friends" autocomplete="off" value="'+esc(chatQ)+'" oninput="chatQ=this.value;paintFriends()" style="width:100%"><div id="cflist"></div>'+
+   '<button class="bad" style="margin-top:14px" onclick="chatLeave()">Leave chat &amp; delete my messages</button></div>'}
+async function chatOpenUI(){try{await rpc('chat_join',{k:key,pin_:wpin});chatOpen=true;chatView='list';chatTo='';chatKnown=null;chatMsgs=[];chatPeople=[];render();await chatPoll();startChat()}catch(e){say(e.message,false);render()}}
+function chatClose(){chatOpen=false;stopChat();tapCancel();render()}
+async function chatLeave(){if(!confirm('Leave the chat and delete your messages?'))return;try{await rpc('chat_leave',{k:key,pin_:wpin});say('You left the chat.',true)}catch(e){say(e.message,false)}chatClose()}
+function startChat(){stopChat();chatTimer=setInterval(function(){if(!document.hidden)chatPoll()},4000)}
+function stopChat(){if(chatTimer)clearInterval(chatTimer);chatTimer=null}
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&chatOpen)chatPoll()});
+async function chatPoll(){if(!chatOpen||!key)return;
+  try{var d=await rpc('chat_inbox',{k:key,pin_:wpin});if(!chatOpen)return;
+    var old=chatMsgs.length?chatMsgs[chatMsgs.length-1].id:0,first=chatKnown===null;
+    chatMe=d.me;chatMsgs=d.msgs||[];chatPeople=d.people||[];chatReqs=d.reqs||[];chatPend=d.pend||[];reqN=chatReqs.length;
+    if(d.cost){FX.msg_cost=d.cost.m;FX.bcast_cost=d.cost.b}if(wallet&&d.bal!=null)wallet.balance=d.bal;
+    var ids={};chatPeople.forEach(function(p){ids[p.id]=1});
+    if(!first){var nf=chatPeople.filter(function(p){return !chatKnown[p.id]});if(nf.length)celebrate(nf[0].name);
+      var inc=chatMsgs.filter(function(x){return x.id>old&&x.from_id!==chatMe});if(inc.length){try{beep()}catch(e){}msgNotify(inc)}}
+    if(snapOk){try{var ss=await rpc('chat_snap_status',{k:key,pin_:wpin}),sm={};(ss||[]).forEach(function(s){sm[s.id]=s});snapSt=sm;snapsLoaded=true}catch(e){if(/chat_snap_status|schema cache|Could not find/i.test(e.message))snapOk=false}}
+    if(snapOk&&chatView==='list')await snapPotLoad();
+    chatKnown=ids;
+    if(Date.now()-chatNoteAt>6000)note('');paintChat()}
+  catch(e){note(e.message)}}
+function chatLeft(t){var m=Math.max(1,Math.round((t-Date.now())/60000));return m>=60?Math.round(m/60)+' h':m+' min'}
+function chatBubble(x){var mine=x.from_id===chatMe,loc=x.lat!=null&&x.lng!=null&&isFinite(x.lat)&&isFinite(x.lng),sn=snapInfo(x.body);
+  return '<div style="display:flex;justify-content:'+(mine?'flex-end':'flex-start')+';margin:6px 0"><div style="max-width:85%;border:2px solid var(--edge);border-radius:14px;padding:8px 12px;'+(mine?'background:var(--acc);color:#111':'background:var(--card)')+'">'+
+  (!mine&&!chatTo?'<div class="mut" style="font-weight:700">'+esc(x.from_name)+'</div>':'')+
+  (sn?snapBody(sn,mine):x.body?'<div style="overflow-wrap:anywhere">'+esc(x.body)+'</div>':'')+
+  (loc?'<a href="https://www.google.com/maps?q='+Number(x.lat)+','+Number(x.lng)+'" target="_blank" rel="noopener" style="font-weight:700;color:inherit">\uD83D\uDCCD Open location</a>':'')+
+  '<div style="font-size:.75rem;opacity:.7">vanishes in '+chatLeft(x.exp)+'</div></div></div>'}
+
+
+function paintFriends(){var f=$('cflist');if(!f)return;var q=chatQ.trim().toLowerCase(),L=chatPeople.filter(function(p){return !q||p.name.toLowerCase().indexOf(q)>-1});
+  var n=$('cfn');if(n)n.textContent='('+chatPeople.length+')';var b=$('cbprev');if(b)b.textContent=prevTxt('');var bd=$('cbdot');if(bd){var u0=unreadN('');bd.innerHTML=u0?'<span class="dot">'+u0+'</span>':''}
+  f.innerHTML=L.length?L.map(function(p){var u=unreadN(p.id);return '<button class="frow" onclick="chatOpenConv(\''+esc(p.id)+'\')">'+avh(p.name)+'<span style="flex:1;min-width:0"><b>'+esc(p.name)+'</b><br><span class="mut" style="overflow-wrap:anywhere">'+esc(prevTxt(p.id))+'</span></span>'+(u?'<span class="dot">'+u+'</span>':'')+'</button>'}).join(''):'<p class="mut" style="margin:8px 0">'+(chatPeople.length?'No friend matches that.':'No friends yet. Tap a friend\u2019s bracelet, scan their QR or enter their code. They have to accept first.')+'</p>'}
+function paintChat(){
+  var sp=$('spot');if(sp)sp.innerHTML=snapPotCard();
+  var a=$('cpm');if(a)a.textContent=cM();a=$('cpb');if(a)a.textContent=cB();a=$('cbal');if(a)a.textContent=(wallet&&wallet.balance!=null)?wallet.balance:'?';
+  if(chatView==='conv'){var m=$('cmsgs');if(!m)return;
+    var who=chatTo?(chatPeople.filter(function(p){return p.id===chatTo})[0]||{}).name:'';
+    if(chatTo&&!who){chatView='list';chatTo='';return render()}
+    a=$('cwho');if(a)a.innerHTML=chatTo?avh(who,32)+' '+esc(who):'\uD83D\uDCE2 Everyone at the event';a=$('cunf');if(a)a.style.display=chatTo?'':'none';
+    var L=threadMsgs(chatTo),stick=m.scrollTop+m.clientHeight>=m.scrollHeight-60;
+    m.innerHTML=L.length?L.map(chatBubble).join(''):'<p class="mut">'+(chatTo?'Nothing here yet. Say hi to '+esc(who)+' \uD83D\uDC4B':'No broadcasts yet. A broadcast goes to everyone at the event.')+'</p>';
+    if(stick)m.scrollTop=m.scrollHeight;
+    var p=chatTo?cM():cB();a=$('csend');if(a)a.textContent='Send \u00B7 '+p+' pt'+(p===1?'':'s');a=$('ctxt');if(a)a.placeholder=chatTo?'Message '+who:'Broadcast to everyone at the event';
+    markSeen(chatTo)}
+  else paintFriends();
+  paintReq()}
+function geoErr(e){return e.code===1?'Location permission was denied. Allow it in your browser settings.':e.code===3?'Location timed out. Try again with a clearer view of the sky.':'Could not get your position.'}
+async function chatSend(loc){if(chatBusy)return;var i=$('ctxt'),t=i.value.trim();if(!loc&&!t)return;if(snapInfo(t)){note('That text is reserved.');return}
+  var ttl=parseInt($('cttl').value,10)||60,a={k:key,pin_:wpin,to_:chatTo||null,txt:t,la:null,lo:null,ttl:ttl},pr=chatTo?cM():cB(),pt=pr+' pt'+(pr===1?'':'s');
+  chatBusy=true;note('');
+  try{
+    if(!loc&&!chatTo&&!confirm('Send this to everyone at your event? It costs '+pt+'.')){chatBusy=false;return}
+    if(loc){if(!navigator.geolocation)throw new Error('This browser cannot share location.');
+      var who=chatTo?(chatPeople.filter(function(p){return p.id===chatTo})[0]||{}).name:'everyone at your event',lt=Math.min(ttl,60);
+      if(!confirm('Send your current location to '+who+'? It is a one-time pin, not live tracking, it disappears in '+(lt>=60?'1 hour':lt+' min')+' and costs '+pt+'.')){chatBusy=false;return}
+      note('Getting your location\u2026');
+      var p=await new Promise(function(ok,no){navigator.geolocation.getCurrentPosition(ok,no,{enableHighAccuracy:true,timeout:12000,maximumAge:0})});
+      a.la=p.coords.latitude;a.lo=p.coords.longitude;note('')}
+    var r=await rpc('chat_send',a);i.value='';if(r&&r.balance!=null&&wallet)wallet.balance=r.balance;await chatPoll();var m=$('cmsgs');if(m)m.scrollTop=m.scrollHeight}
+  catch(e){note(typeof e.code==='number'?geoErr(e):e.message)}
+  chatBusy=false}
+/* ---- view-once live snaps: camera only (no gallery), opens once, screenshots deterred ---- */
+var snapSt={},snapsLoaded=false,snapOk=true,cam=null,snapView=null;
+var SNAP_RE=/^\[\[snap:(photo|video):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]\]$/;
+var SNAP_DATA=/^data:(image\/jpeg|video\/(webm|mp4));base64,[A-Za-z0-9+\/=]+$/;
+function snapInfo(b){var m=SNAP_RE.exec(String(b||''));return m?{kind:m[1],id:m[2]}:null}
+function snapTxt(b){var s=snapInfo(b);return s?'\uD83D\uDCF7 '+(s.kind==='video'?'Video':'Photo')+' \u00B7 snap':b}
+function uuid(){if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();var b=new Uint8Array(16);crypto.getRandomValues(b);b[6]=b[6]&15|64;b[8]=b[8]&63|128;var h=Array.prototype.map.call(b,function(x){return ('0'+x.toString(16)).slice(-2)}).join('');return h.replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/,'$1-$2-$3-$4-$5')}
+function snapErr(e){var m=(e&&e.message)||String(e);return /chat_snap|schema cache|Could not find the function/i.test(m)?'View-once media is not set up yet. Run xend-snaps.sql in Supabase.':m}
+function hm(t){return new Date(Number(t)).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+function snapBody(s,mine){var st=snapSt[s.id],ic=s.kind==='video'?'\uD83C\uDFA5 Video':'\uD83D\uDCF7 Photo',
+  cap=st&&st.cap?'<div style="overflow-wrap:anywhere;font-weight:800">'+esc(st.cap)+'</div>':'',tm=st&&st.at?' \u00B7 '+esc(hm(st.at)):'',gone=snapsLoaded&&(!st||st.gone),
+  ers=st&&st.erase&&!gone?' \u00B7 erases in '+chatLeft(Number(st.erase)):'';
+  if(mine)return cap+'<div style="font-weight:700">'+ic+tm+'</div><div style="opacity:.85;font-size:.85rem">'+(gone?'Erased from the server':st?(st.views?'Opened '+st.views+'\u00D7'+(st.earned?' \u00B7 you earned '+st.earned+' pt'+(st.earned===1?'':'s'):''):'Not opened yet')+ers:'Sent')+'</div>';
+  var go=st&&st.la!=null&&st.lo!=null&&isFinite(st.la)&&isFinite(st.lo)?'<a href="https://www.google.com/maps/dir/?api=1&amp;destination='+Number(st.la)+','+Number(st.lo)+'" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:6px;padding:10px;border:2px solid #111;border-radius:12px;background:#111;color:#ffc400;font-weight:800;text-decoration:none">\uD83D\uDCCD Go here</a>':'';
+  if(gone)return cap+'<div style="font-weight:700">'+ic+tm+'</div><div class="mut">Erased from the server</div>'+go;
+  var pr=st?Number(st.price)||0:0;
+  return cap+'<div style="font-weight:700">'+ic+tm+'</div>'+go+'<button class="go" style="width:100%;margin-top:6px" onclick="snapOpen(\''+s.id+'\')">\uD83D\uDC41 '+(pr?'View again \u00B7 '+pr+' pt'+(pr===1?'':'s'):'Tap to view \u00B7 first view free')+'</button>'+(ers?'<div class="mut" style="font-size:.75rem">'+ers.slice(3)+'</div>':'')}
+/* --- live camera (getUserMedia only: there is no file picker, so nothing can come from the gallery) --- */
+function camMsg(t){var e=$('cmsg');if(e)e.textContent=t||''}
+function camErr(e){return e&&e.name==='NotAllowedError'?'Camera permission was denied. Allow it in your browser settings.':e&&e.name==='NotFoundError'?'No camera found on this device.':'Could not start the camera.'}
+function snapCam(){if(!chatTo)return;
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){note('This browser cannot open the camera.');return}
+  var t=$('cttl');cam={mode:'photo',facing:'environment',ttl:1440,res:null,rec:null,stream:null,dead:false,tm:null};
+  var d=document.createElement('div');d.id='snapcam';d.setAttribute('role','dialog');d.setAttribute('aria-label','Live camera');
+  d.innerHTML='<div class="sv-top"><button onclick="camClose()">\u2715 Close</button><span style="font-weight:800;color:#ffc400">\u25CF LIVE CAMERA ONLY</span></div><div id="cstage" class="sv-stage" style="background:#111"></div><div id="cmsg" role="status" style="min-height:1.4em;text-align:center;padding:4px 14px;color:#ffc400;font-weight:700"></div><div id="cctl" style="padding:8px 14px 16px"></div>';
+  document.body.appendChild(d);document.body.style.overflow='hidden';camLive()}
+function camStopStream(){if(cam&&cam.stream){cam.stream.getTracks().forEach(function(t){t.stop()});cam.stream=null}}
+function camClose(){if(!cam)return;cam.dead=true;clearInterval(cam.tm);try{if(cam.rec&&cam.rec.state!=='inactive')cam.rec.stop()}catch(e){}camStopStream();cam=null;var d=$('snapcam');if(d)d.remove();if(!snapView)document.body.style.overflow=''}
+async function camLive(){if(!cam)return;cam.res=null;camMsg('');camStopStream();
+  $('cstage').innerHTML='<video id="cvid" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover'+(cam.facing==='user'?';transform:scaleX(-1)':'')+'"></video><div id="ctime" style="position:absolute;top:10px;left:12px;font-weight:800;color:#fff;background:rgba(0,0,0,.55);padding:2px 10px;border-radius:99px;display:none"></div>';
+  camCtl();
+  var c=[{video:{facingMode:{ideal:cam.facing}},audio:true},{video:{facingMode:{ideal:cam.facing}},audio:false}],s=null,er=null,me2=cam;
+  for(var i=0;i<c.length&&!s;i++){try{s=await navigator.mediaDevices.getUserMedia(c[i])}catch(e){er=e}}
+  if(cam!==me2||me2.dead){if(s)s.getTracks().forEach(function(t){t.stop()});return}
+  if(!s){camMsg(camErr(er));return}
+  cam.stream=s;var v=$('cvid');if(v){v.srcObject=s;v.play().catch(function(){})}}
+function camCtl(){var c=$('cctl');if(!c||!cam)return;var rec=!!cam.rec,vid=cam.mode==='video';
+  c.innerHTML='<div class="row" style="justify-content:center;gap:8px;margin-bottom:12px"><button class="'+(!vid?'on':'')+'"'+(rec?' disabled':'')+' onclick="camMode(\'photo\')">Photo</button><button class="'+(vid?'on':'')+'"'+(rec?' disabled':'')+' onclick="camMode(\'video\')">Video</button></div>'+
+  '<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span style="width:90px"></span><button aria-label="'+(vid?(rec?'Stop recording':'Start recording'):'Take photo')+'" onclick="'+(vid?'camRec()':'camShot()')+'" style="width:76px;height:76px;min-height:0;border-radius:50%;border:5px solid #fff;background:'+(vid?'#d00':'#ffc400')+';color:#fff;padding:0;font-size:1.6rem">'+(rec?'\u25A0':'')+'</button><button'+(rec?' disabled':'')+' onclick="camFlip()" style="width:90px">\u21BA Flip</button></div>'}
+function camMode(m){if(cam&&!cam.rec){cam.mode=m;camCtl()}}
+function camFlip(){if(cam&&!cam.rec){cam.facing=cam.facing==='user'?'environment':'user';camLive()}}
+function camShot(){var v=$('cvid');if(!cam||!v||!v.videoWidth){camMsg('Camera is not ready yet.');return}
+  var w=v.videoWidth,h=v.videoHeight,k=Math.min(1,960/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);
+  var x=c.getContext('2d');x.drawImage(v,0,0,c.width,c.height);
+  var fs=Math.max(12,Math.round(c.width/30)),t='\u25CF LIVE \u00B7 '+new Date().toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  x.font='700 '+fs+'px system-ui,sans-serif';var tw=x.measureText(t).width;x.fillStyle='rgba(0,0,0,.6)';x.fillRect(8,c.height-fs*2-2,tw+fs,fs*1.6);x.fillStyle='#ffc400';x.textBaseline='top';x.fillText(t,8+fs/2,c.height-fs*2-2+fs*.3);
+  cam.res={kind:'photo',data:c.toDataURL('image/jpeg',.7)};camReview()}
+function blobData(b){return new Promise(function(ok,no){var f=new FileReader();f.onload=function(){ok(f.result)};f.onerror=no;f.readAsDataURL(b)})}
+function camRec(){if(!cam)return;if(cam.rec){if(cam.rec.state==='recording')cam.rec.stop();return}
+  if(!cam.stream||typeof MediaRecorder==='undefined'){camMsg('This browser cannot record video. Use Photo.');return}
+  var mt=['video/mp4;codecs=avc1','video/webm;codecs=vp8,opus','video/webm','video/mp4'].filter(function(t){return MediaRecorder.isTypeSupported(t)})[0]||'',r,ch=[],me2=cam;
+  try{r=new MediaRecorder(cam.stream,mt?{mimeType:mt,videoBitsPerSecond:700000}:{videoBitsPerSecond:700000})}catch(e){camMsg('This browser cannot record video. Use Photo.');return}
+  r.ondataavailable=function(e){if(e.data&&e.data.size)ch.push(e.data)};
+  r.onstop=function(){clearInterval(me2.tm);if(cam!==me2||me2.dead)return;me2.rec=null;
+    var ty=String(r.mimeType||mt||'video/webm').split(';')[0],b=new Blob(ch,{type:ty});
+    if(!/^video\/(webm|mp4)$/.test(ty)||b.size<1){camMsg('Recording failed. Try again.');camLive();return}
+    if(b.size>4000000){camMsg('Video too large. Record a shorter clip.');camLive();return}
+    blobData(b).then(function(d){if(cam!==me2||me2.dead)return;me2.res={kind:'video',data:d};camReview()}).catch(function(){camMsg('Recording failed. Try again.');camLive()})};
+  r.start();cam.rec=r;cam.t0=Date.now();camCtl();var tt=$('ctime');if(tt){tt.style.display='';tt.textContent='\u25CF 0 / 10 s'}
+  cam.tm=setInterval(function(){if(!cam||!cam.rec)return;var s=(Date.now()-cam.t0)/1000,t=$('ctime');if(t)t.textContent='\u25CF '+Math.floor(s)+' / 10 s';if(s>=10&&cam.rec.state==='recording')cam.rec.stop()},250)}
+function camReview(){if(!cam||!cam.res)return;var r=cam.res;camStopStream();
+  $('cstage').innerHTML=r.kind==='photo'?'<img alt="Preview" src="'+r.data+'" style="max-width:100%;max-height:100%;object-fit:contain">':'<video src="'+r.data+'" autoplay loop playsinline controls style="max-width:100%;max-height:100%"></video>';
+  var pr=cM();$('cctl').innerHTML='<input id="ccap" maxlength="80" autocomplete="off" placeholder="What\u2019s happening here? e.g. Rooftop party, 9pm" style="width:100%;margin-bottom:8px">'+
+  '<p style="margin:0 0 8px;font-size:.8rem;opacity:.85">\uD83D\uDCCD Your current location is attached with a Go here button. First view is free; each re-view costs the viewer 1, 2, 4, 8\u2026 pts, added to your Snap earnings.</p>'+
+  '<div class="row" style="flex-wrap:nowrap"><button onclick="camLive()" style="flex:1">Retake</button><button class="go" id="cgo" onclick="camSend()" style="flex:2">Send \u00B7 '+pr+' pt'+(pr===1?'':'s')+'</button></div>'}
+async function camSend(){if(chatBusy||!cam||!cam.res||!chatTo)return;
+  var to=chatTo,res=cam.res,pr=cM(),ci=$('ccap'),cap=ci?ci.value.trim().slice(0,80):'',who=(chatPeople.filter(function(p){return p.id===to})[0]||{}).name||'this friend';
+  if(!navigator.geolocation){camMsg('This browser cannot share location, so the snap cannot be sent.');return}
+  if(!confirm('Send this '+res.kind+' to '+who+' with your current location and a Go here button? They view it free once; every re-view costs them points paid to you. Sending costs you '+pr+' pt'+(pr===1?'':'s')+'.'))return;
+  chatBusy=true;var id=uuid();
+  try{camMsg('Getting your location\u2026');
+    var p=await new Promise(function(ok,no){navigator.geolocation.getCurrentPosition(ok,no,{enableHighAccuracy:true,timeout:12000,maximumAge:0})});
+    if(!cam||cam.dead){chatBusy=false;return}
+    camMsg('Sending\u2026');
+    await rpc('chat_snap_put',{k:key,pin_:wpin,sid:id,to_:to,kind:res.kind,data:res.data,ttl:1440,cap:cap,la:p.coords.latitude,lo:p.coords.longitude});
+    try{var r=await rpc('chat_send',{k:key,pin_:wpin,to_:to,txt:'[['+'snap:'+res.kind+':'+id+']]',la:null,lo:null,ttl:1440});if(r&&r.balance!=null&&wallet)wallet.balance=r.balance}
+    catch(e){try{await rpc('chat_snap_drop',{k:key,pin_:wpin,sid:id})}catch(x){}throw e}
+    camClose();toast('Sent with your location.',true);await chatPoll();var m=$('cmsgs');if(m)m.scrollTop=m.scrollHeight}
+  catch(e){camMsg(typeof e.code==='number'?geoErr(e):snapErr(e))}
+  chatBusy=false}
+/* --- one-time viewer --- */
+function okSnap(d){return typeof d==='string'&&d.length<6000000&&SNAP_DATA.test(d)}
+async function snapOpen(id){if(snapView||!SNAP_RE.test('[['+'snap:photo:'+id+']]'))return;
+  var st=snapSt[id];if(!st){await chatPoll();st=snapSt[id]}if(!st){note('Still loading. Try again in a moment.');return}
+  var pr=Number(st.price)||0;
+  if(!confirm(pr?'Viewing again costs '+pr+' pt'+(pr===1?'':'s')+' ('+money(pr)+'), paid to the sender. The next view will cost '+(pr*2)+'. Continue?':'Open it? The first view is free. After you close it, viewing again costs 1 pt and the price doubles every time (paid to the sender). Screenshots are not allowed.'))return;
+  try{var r=await rpc('chat_snap_open',{k:key,pin_:wpin,sid:id});if(r&&r.balance!=null&&wallet)wallet.balance=r.balance;
+    if(!r||!okSnap(r.data))note('This snap is no longer available.');else{snapShow(r.data);if(r.paid)toast('Paid '+r.paid+' pt'+(r.paid===1?'':'s')+' to the sender.',true)}}
+  catch(e){note(snapErr(e))}
+  await chatPoll()}
+function snapShow(data){var vid=/^data:video/.test(data),nm=(wallet&&wallet.name)||'viewer',tm=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),wm='';
+  for(var i=0;i<30;i++)wm+='<span>'+esc(nm)+' \u00B7 '+esc(tm)+'</span>';
+  var d=document.createElement('div');d.id='snapv';d.setAttribute('role','dialog');d.setAttribute('aria-label','View-once media');
+  d.innerHTML='<div class="sv-top"><span id="svt" style="font-weight:800"></span><button onclick="snapEnd()">Close</button></div><div class="sv-stage" id="svs"><div class="sv-wm">'+wm+'</div></div>';
+  document.body.appendChild(d);document.body.style.overflow='hidden';snapView={tm:null};var s=$('svs');
+  if(vid){var v=document.createElement('video');v.autoplay=true;v.playsInline=true;v.setAttribute('controlsList','nodownload noremoteplayback');v.disablePictureInPicture=true;v.onended=function(){snapEnd()};v.src=data;s.insertBefore(v,s.firstChild);v.play().catch(function(){});$('svt').textContent='\uD83D\uDC41 Plays once'}
+  else{var n=10,t=$('svt');t.textContent='\uD83D\uDC41 Closes in '+n+' s';
+    var im=new Image();im.onload=function(){var c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext('2d').drawImage(im,0,0);im.onload=null;im.src='';var st=$('svs');if(st)st.insertBefore(c,st.firstChild)};im.src=data;
+    snapView.tm=setInterval(function(){n--;var e=$('svt');if(e)e.textContent='\uD83D\uDC41 Closes in '+n+' s';if(n<=0)snapEnd()},1000)}}
+function snapEnd(msg){if(!snapView)return;clearInterval(snapView.tm);var d=$('snapv');if(d){var v=d.querySelector('video');if(v){v.pause();v.removeAttribute('src');v.load()}d.remove()}snapView=null;if(!cam)document.body.style.overflow='';if(msg)toast(msg,false);if(chatOpen)chatPoll()}
+/* best-effort screenshot deterrents (a web page cannot truly block OS screenshots) */
+function snapGuard(m){if(snapView)snapEnd(m)}
+document.addEventListener('visibilitychange',function(){if(document.hidden)snapGuard('Closed because you left the screen.')});
+window.addEventListener('blur',function(){snapGuard('Closed because you left the screen.')});
+window.addEventListener('pagehide',function(){snapGuard()});
+window.addEventListener('beforeprint',function(){snapGuard('Printing is not allowed.')});
+document.addEventListener('contextmenu',function(e){if(snapView||cam)e.preventDefault()});
+function snapKeys(e){if(!snapView&&!cam)return;var k=String(e.key||'').toLowerCase(),m=e.metaKey||e.ctrlKey,
+  hit=k==='printscreen'||(m&&e.shiftKey&&(k==='3'||k==='4'||k==='5'||k==='s'))||(m&&(k==='p'||k==='s'));
+  if(hit){e.preventDefault();try{navigator.clipboard.writeText(' ')}catch(x){}snapGuard('Screenshots are not allowed. The snap was closed.')}}
+document.addEventListener('keydown',snapKeys,true);document.addEventListener('keyup',snapKeys,true);
+/* ---- Snap earnings: a separate pot, redeemed into the main balance ---- */
+var snapPot=null;
+async function snapPotLoad(){if(!snapOk)return;try{snapPot=await rpc('chat_snap_pot',{k:key,pin_:wpin})}catch(e){if(/chat_snap_pot|schema cache|Could not find/i.test(e.message))snapPot=null}}
+function snapPotCard(){var p=snapPot;if(!snapOk||!p)return '';var av=Number(p.avail)||0,pot=p.mode==='pot';
+  return '<div class="card"><div class="row sp" style="flex-wrap:nowrap"><span><b>\uD83D\uDCF7 Snap earnings</b><br><span class="mut">Points people paid to view your snaps again</span></span><span class="bal" style="font-size:1.8rem;white-space:nowrap">'+av+' pts</span></div>'+
+  '<div class="mut" style="margin:6px 0 10px">Earned '+(Number(p.earned)||0)+' \u00B7 Redeemed '+(Number(p.redeemed)||0)+' \u00B7 \u2248 '+money(av)+'</div>'+
+  (pot?'<button style="width:100%;background:#111;color:#ffc400;border-color:#111"'+(av>0?'':' disabled')+' onclick="snapRedeem()">Redeem '+(av>0?av+' pts ':'')+'to main balance</button>':'<div class="mut">Paid straight to your main balance.</div>')+'</div>'}
+async function snapRedeem(){var p=snapPot,av=p?Number(p.avail)||0:0;if(!(av>0))return;
+  if(!confirm('Move '+av+' pts ('+money(av)+') from Snap earnings to your main balance?'))return;
+  try{var r=await rpc('chat_snap_redeem',{k:key,pin_:wpin});var w2=await rpc('wallet',{k:key,pin_:wpin});if(w2)wallet=w2;
+    await snapPotLoad();toast('Moved '+((r&&r.moved)||av)+' pts to your main balance.',true);paintChat()}
+  catch(e){note(snapErr(e));await snapPotLoad();paintChat()}}
+/* ---- alerts: notifications + vibration for messages, transactions and scans ---- */
+var NOTIF=ld('fb-notif')!==false,ownAt=0,lastBal=null,bgMsgId=null;
+if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(function(){})}catch(e){}}
+function notifyOK(){return 'Notification' in window&&Notification.permission==='granted'}
+function buzz(p){if(NOTIF&&navigator.vibrate){try{navigator.vibrate(p||[120,80,120])}catch(e){}}}
+function bellPaint(){var b=$('bell');if(!b)return;var p='Notification' in window?Notification.permission:'none';
+  b.textContent=!NOTIF?'\uD83D\uDD15 Off':(p==='granted'?'\uD83D\uDD14 On':'\uD83D\uDD14 Enable');b.title='Notifications and vibration for messages, points and scans'}
+function bellSet(v){NOTIF=v;sv('fb-notif',v);bellPaint()}
+async function bellTap(){
+  if(!('Notification' in window)){bellSet(!NOTIF);toast(NOTIF?'Vibration alerts on. This browser cannot show notifications (on iPhone, add the app to your Home Screen first).':'Alerts off.',true);if(NOTIF)buzz(80);return}
+  if(Notification.permission==='denied'){toast('Notifications are blocked. Allow them for this site in your browser settings.',false);return}
+  if(Notification.permission==='default'){var r='denied';try{r=await Notification.requestPermission()}catch(e){}
+    bellSet(r==='granted');if(r==='granted')notify('Alerts on','You will be alerted for messages, points and scans.','test',[100,60,100],true);else toast('Notifications were not allowed.',false);return}
+  bellSet(!NOTIF);toast(NOTIF?'Alerts on.':'Alerts off.',true);if(NOTIF)buzz(80)}
+async function notify(title,body,tag,pat,force){if(!NOTIF)return;buzz(pat);
+  if(!notifyOK()||(!force&&!document.hidden&&document.hasFocus()))return;
+  var o={body:body,tag:tag||'x',renotify:true,vibrate:pat||[120,80,120]};
+  try{var r=null;if('serviceWorker' in navigator)r=await Promise.race([navigator.serviceWorker.ready,new Promise(function(ok){setTimeout(ok,1500)})]);
+    if(r&&r.showNotification)await r.showNotification(title,o);else new Notification(title,o)}
+  catch(e){try{new Notification(title,o)}catch(x){}}}
+function msgNotify(L){var x=L[L.length-1],loc=x.lat!=null&&x.lng!=null,b=snapTxt(x.body)||(loc?'\uD83D\uDCCD Shared a location':'New message'),t=(x.from_name||'New message')+(L.length>1?' ('+L.length+' new)':'');
+  notify(t,b.length>120?b.slice(0,120)+'\u2026':b,'msg',[80,50,80])}
+/* new messages while the chat screen is closed */
+setInterval(async function(){if(me||!wallet||!key||!feat('chat')){bgMsgId=null;return}
+  if(chatOpen||!NOTIF){bgMsgId=null;return}
+  try{var d=await rpc('chat_inbox',{k:key,pin_:wpin}),M=(d&&d.msgs)||[],mid=d&&d.me,top=0;
+    M.forEach(function(x){if(x.id>top)top=x.id});
+    if(bgMsgId===null){bgMsgId=top;return}
+    var inc=M.filter(function(x){return x.id>bgMsgId&&x.from_id!==mid&&x.exp>Date.now()});bgMsgId=Math.max(bgMsgId,top);
+    if(inc.length)msgNotify(inc)}catch(e){}},10000);
+/* points received or spent (top-ups, charges at stalls, snap re-views); your own sends are skipped */
+setInterval(async function(){if(me||!wallet||!key||wmode!=='open'){if(!wallet)lastBal=null;return}
+  if(!NOTIF)return;
+  try{var w2=await rpc('wallet',{k:key,pin_:wpin});if(!w2||w2.balance==null)return;var b=Number(w2.balance);
+    if(lastBal===null){lastBal=b;return}
+    if(b!==lastBal){var df=b-lastBal;lastBal=b;
+      if(Date.now()-ownAt>20000){
+        if(df>0)notify('Points received','+'+df+' pts ('+money(df)+'). Balance '+b+' pts.','bal',[120,80,120]);
+        else notify('Points spent',(-df)+' pts ('+money(-df)+') spent. Balance '+b+' pts.','bal',[200])}}}catch(e){}},10000);
+bellPaint();
+/* ---- views ---- */
+function when(t){return new Date(t).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}
+function vCfg(){return '<div class="card"><h2>Connect to your database</h2><p class="mut">Paste your Supabase project URL and anon (public) key. Run setup.sql in Supabase first.</p><div class="row"><input id="cu" placeholder="https://xxxx.supabase.co" style="flex:1;min-width:220px"><input id="ck" placeholder="anon key" style="flex:1;min-width:220px"><button class="go" onclick="saveCfg()">Save</button></div></div>'}
+function saveCfg(){var u=$('cu').value.trim(),k=$('ck').value.trim();if(!/^https:\/\//.test(u)||!k){say('Enter both values.',false);return render()}sv('fb-cfg',{url:u,key:k});location.reload()}
+function vLogin(){var T=[['guest','Guest'],['vendor','Vendor'],['staff','Admin / Staff']],f='';
+  if(lmode==='guest')f='<h2>Guest login</h2><p class="mut">See your points without your bracelet. Use the name on your card and your PIN.</p><div class="row"><input id="gname" placeholder="Your name" autocomplete="name" style="flex:1;min-width:150px"><input id="gpin" type="password" inputmode="numeric" placeholder="PIN" style="width:100px"><button class="go" onclick="guestLogin()">View my points</button></div>';
+  else{var v=lmode==='vendor';f='<h2>'+(v?'Vendor login':'Admin / staff login')+'</h2><p class="mut">'+(v?'Charge guests and see your sales.':'Create guest cards, top up points and manage vendors.')+'</p><div class="row"><input id="em" type="text" autocapitalize="none" autocomplete="username" placeholder="Username or email"><input id="pw" type="password" autocomplete="current-password" placeholder="Password"><button class="go" onclick="login(\''+lmode+'\')">Log in</button></div>'}
+  return '<div class="card"><div class="seg">'+T.map(function(t){return '<button class="'+(lmode===t[0]?'on':'')+'" onclick="setL(\''+t[0]+'\')">'+t[1]+'</button>'}).join('')+'</div>'+f+'<p class="mut" style="margin:14px 0 0">Or hold a bracelet to the back of the phone to see its owner\u2019s card.</p></div>'}
+function vPublic(){
+  var h='';
+  if(wmode==='pin')h+='<div class="card"><h2>My wallet</h2><div class="row"><input id="pin" type="password" inputmode="numeric" placeholder="PIN" style="width:120px"><button class="go" onclick="openWallet()">Open</button><button onclick="wmode=null;render()">Back</button></div></div>';
+  else if(wallet)h+=chatOpen?vChat():giftOpen?vGift():vWallet();
+  else{
+    if(card)h+=vCardView(card);
+    h+=vLogin()}
+  return h}
+function vWallet(){var w=wallet;
+  if(w.live===false)return '<div class="card"><h2>Hi '+esc(w.name.split(' ')[0])+'</h2><p class="mut">The event is not active, so points are hidden for now. You can still edit your card below.</p></div>'+chatCard()+'<div class="card"><h2>My card</h2><div oninput="cdirty=true" onchange="cdirty=true">'+linksForm('g',w.links,key)+'</div><button class="go" style="margin-top:12px;width:100%" onclick="saveCard()">Save my card</button></div><button onclick="guestOut()">Log out</button>';
+  return '<div class="card"><div class="mut">Hi '+esc(w.name.split(' ')[0])+', your balance</div><div class="bal">'+w.balance+' pts</div><div class="mut">≈ '+money(w.balance)+'</div><p class="mut">Points can only be added by organizers.</p><div class="row"><button onclick="refreshWallet()">Refresh</button><button onclick="freeze()">'+(w.frozen?'Unfreeze':'Freeze')+' bracelet</button></div></div>'+chatCard()+
+  '<div class="card"><h2>My card</h2><p class="mut">Your name is always shown when your bracelet is tapped. Everything else stays hidden until you switch it on.</p><div oninput="cdirty=true" onchange="cdirty=true">'+linksForm('g',w.links,key)+'</div><button class="go" style="margin-top:12px;width:100%" onclick="saveCard()">Save my card</button></div>'+
+  '<div class="card"><h2>Change PIN</h2><p class="mut">4 to 6 digits. Avoid easy ones like 1234.</p><div class="row"><input id="op" type="password" inputmode="numeric" placeholder="Current PIN" style="width:130px"><input id="np" type="password" inputmode="numeric" placeholder="New PIN" style="width:110px"><button class="go" onclick="changePin()">Change</button></div></div>'+
+  (w.acts.length?'<div class="card"><h2>Activities</h2>'+w.acts.map(function(a){return '<div class="item row sp"><span>'+esc(a.name)+'</span><span class="tag '+(a.done?'ok':'')+'">'+(a.done?'Done':'Not done')+'</span></div>'}).join('')+'</div>':'')+
+  '<div class="card"><h2>Recent activity</h2>'+(w.tx.length?w.tx.map(function(t){return '<div class="item row sp"><span>'+esc(t.type)+' · '+esc(t.who)+'<br><span class="mut">'+when(t.ts)+'</span></span><b>'+(t.amt>0?'+':'')+t.amt+'</b></div>'}).join(''):'<p class="mut">Nothing yet.</p>')+'</div>'+
+  '<button onclick="guestOut()">Log out</button>'}
+function nfcBtn(){return HAS&&!nfcOn?'<button class="go" onclick="listen()" style="margin-bottom:12px">Start NFC</button>':''}
+function armedCard(){var a=armed;return '<div class="card"><h2>Ready: tap a bracelet</h2><div class="bal">'+(a.type==='topup'?'+':'')+a.amt+' pts</div><p class="mut">'+esc(a.note||'')+' Expires in 2 minutes.</p><button class="bad" onclick="disarm()">Cancel</button></div>'}
+function lastCard(){return last?'<div class="msg big '+(last.ok?'ok':'err')+'">'+esc(last.text)+'</div>':''}
+function vTill(){
+  if(armed&&Date.now()-armed.at>120000)clearArm();
+  if(armed)return nfcBtn()+armedCard();
+  return lastCard()+nfcBtn()+'<div class="card"><h2>New charge</h2><div class="row"><input id="amt" type="number" min="1" step="1" placeholder="Price in points" style="width:150px"><input id="item" placeholder="Reason / item bought"><button class="go" onclick="arm(\'charge\')">Wait for tap</button></div></div>'}
+function vTop(){
+  if(armed&&Date.now()-armed.at>120000)clearArm();
+  var h=nfcBtn();
+  if(armed)h+=armedCard();
+  else h+=lastCard()+'<div class="card"><h2>New top-up</h2><p class="mut">Take the cash or MoMo first. 1 point = '+money(1)+'.</p><div class="row">'+[10,20,50,100].map(function(x){return '<button onclick="$(\'amt\').value='+x+'">'+x+'</button>'}).join('')+'</div><div class="row" style="margin-top:10px"><input id="amt" type="number" min="1" step="1" placeholder="Amount" style="width:120px"><input id="meth" value="Cash" style="width:100px"><button class="go" onclick="arm(\'topup\')">Wait for tap</button></div></div>';
+  if(scanInfo)h+='<div class="card"><h2>'+esc(scanInfo.name)+'</h2><div class="row sp"><span>Hotel: <b>'+esc(scanInfo.room||'-')+'</b></span><span>Balance <b>'+scanInfo.balance+'</b></span></div>'+(scanInfo.frozen?'<p><span class="tag">Frozen</span></p>':'')+(scanInfo.event?'<p class="mut">Event: '+esc(scanInfo.event)+(scanInfo.live?'':' · <b>spending off</b>')+'</p>':'')+
+    (scanInfo.acts&&scanInfo.acts.length?scanInfo.acts.map(function(a,i){return '<div class="item row sp"><span>'+esc(a.name)+'</span>'+(a.done?'<span class="tag ok">Done</span>':'<button class="go" onclick="markDone('+i+')">Mark done</button>')}).join('</div>')+'</div>':'')+'</div>';
+  return h}
+function vCards(){
+  return vEditG()+'<div class="card"><h2>New card</h2><div class="row"><select id="ge" style="width:100%">'+evOpts('')+'</select><input id="gn" placeholder="Guest name"><input id="gr" placeholder="Hotel room"><input id="ga" placeholder="Activities, comma separated" style="flex:1;min-width:200px"><button class="go" onclick="createGuest()">Create &amp; write tag</button></div></div>'+
+  '<div class="card"><h2>Guests</h2>'+(adm.guests.length?adm.guests.map(function(g){return '<div class="item"><div class="row sp"><b>'+esc(g.name)+'</b><span>'+g.balance+' pts</span></div><div class="mut">'+esc(g.room)+' · PIN '+esc(g.pin)+(g.uid?' · tag '+esc(g.uid):'')+'</div><div class="row" style="margin-top:6px"><button onclick="writeTag(\''+g.token+'\')">Write tag</button><button onclick="pairTag(\''+g.id+'\')">Pair tag</button><button onclick="editG=\''+g.id+'\';render();scrollTo(0,0)">Edit card</button><button onclick="copyLink(\''+g.token+'\')">Copy link</button>'+(feat('remote_credit')?'<button class="go" onclick="creditG(\''+g.token+'\')">Credit</button>':'')+'</div><div class="row" style="margin-top:6px"><select onchange="setGE(\''+g.id+'\',this.value,'+g.spend_on+')">'+evOpts(g.event_id)+'</select><button class="'+(g.spend_on?'on':'bad')+'" onclick="setGE(\''+g.id+'\',\''+(g.event_id||'')+'\','+!g.spend_on+')">Spending '+(g.spend_on?'ON':'OFF')+'</button></div></div>'}).join(''):'<p class="mut">No guests yet.</p>')+'</div>'}
+function vLedger(){return '<div class="card"><h2>Latest 40 transactions</h2><div style="overflow-x:auto"><table>'+adm.tx.map(function(t){return '<tr><td>'+when(t.ts)+'</td><td>'+esc(t.guest)+'</td><td>'+esc(t.type)+(t.note?': '+esc(t.note):'')+'<br><span class="mut">'+esc(t.who)+(t.event?' · '+esc(t.event):'')+'</span></td><td><b>'+(t.amt>0?'+':'')+t.amt+'</b></td></tr>'}).join('')+'</table></div></div>'}
+/* ---- vendor: live sales + payment pop-up ---- */
+function startSales(){stopSales();vs=null;lastSale=null;pollSales(true);vtimer=setInterval(function(){pollSales()},4000)}
+function stopSales(){if(vtimer)clearInterval(vtimer);vtimer=null}
+document.addEventListener('visibilitychange',function(){if(!document.hidden&&vtimer)pollSales()});
+async function pollSales(silent){if(!me||me.role!=='vendor')return;
+  try{var d=await rpc('my_sales');if(!me||me.role!=='vendor')return;vs=d;var top=d.recent&&d.recent.length?d.recent[0].id:0;
+    if(lastSale===null||silent)lastSale=Math.max(lastSale||0,top);
+    else if(top>lastSale){var fresh=d.recent.filter(function(x){return x.id>lastSale}).reverse();lastSale=top;pushPop(fresh)}
+    paintSales()}catch(e){}}
+function paintSales(){var a=$('vsum'),b=$('vrec');if(!a||!b||!vs)return;
+  a.innerHTML='<div class="card"><div class="mut">Your sales today</div><div class="bal">'+vs.today+' pts</div><p class="mut" style="margin:10px 0 0">All time: <b>'+vs.total+' pts</b> · '+vs.count+' sales · 1 pt = '+money(1)+'</p></div>';
+  b.innerHTML='<div class="card"><h2>Recent sales</h2>'+(vs.recent.length?vs.recent.map(function(x){return '<div class="item row sp"><span>'+esc(x.guest)+(x.note?' · '+esc(x.note):'')+'<br><span class="mut">'+when(x.ts)+'</span></span><b>+'+x.amt+'</b></div>'}).join(''):'<p class="mut">No sales yet.</p>')+'</div>'}
+function beep(){try{var c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.15;o.start();setTimeout(function(){o.stop();c.close()},200)}catch(e){}}
+function pushPop(items){popItems=popItems.concat(items);drawPop();beep();var t=items.reduce(function(a,x){return a+x.amt},0);notify('Payment received','+'+t+' pts'+(items.length===1&&items[0].guest?' from '+items[0].guest:' ('+items.length+' payments)'),'sale',[120,80,120])}
+function drawPop(){var t=popItems.reduce(function(a,x){return a+x.amt},0),h='<div class="popcard" role="alertdialog"><div style="font-weight:700">Payment received</div><div class="bal">+'+t+' pts</div>';
+  if(popItems.length===1)h+='<p style="margin:8px 0 0;font-size:1.1rem"><b>'+esc(popItems[0].guest)+'</b>'+(popItems[0].note?'<br>'+esc(popItems[0].note):'')+'</p>';
+  else h+='<p style="margin:8px 0 0"><b>'+popItems.length+' new payments</b></p>'+popItems.slice(-4).map(function(x){return '<div>'+esc(x.guest)+' · +'+x.amt+'</div>'}).join('');
+  $('pop').innerHTML=h+'<button onclick="closePop()" style="width:100%;margin-top:16px;background:#111;color:#ffc400;border-color:#111">OK</button></div>'}
+function closePop(){popItems=[];$('pop').innerHTML=''}
+function vVendor(){return '<div id="vsum"></div>'+vTill()+'<div id="vrec"></div>'}
+
+/* ---- admin: create vendor / organizer logins ---- */
+async function mkAcct(kind){var pf=kind==='vendor'?'v':'s',fn=kind==='vendor'?'create_vendor':'create_staff',who=kind==='vendor'?'Vendor':'Staff',
+  n=$(pf+'n').value.trim(),u=$(pf+'u').value.trim().toLowerCase().replace(/[^a-z0-9._-]/g,''),p=$(pf+'p').value;
+  if(!n||u.length<3||p.length<6){say('Enter a name, a username (3+ letters or numbers) and a password of 6 or more characters.',false);return render()}
+  try{await rpc(fn,{p_username:u,p_password:p,p_name:n});
+    say(who+' created: '+n+' · Username: '+u+' · Password: '+p,true);await loadAdm()}
+  catch(e){say(e.message,false);render()}}
+function createVendor(){return mkAcct('vendor')}
+function createStaffAcct(){return mkAcct('staff')}
+function acctForm(pf,title,hint,btn,fn,ph){return '<div class="card"><h2>'+title+'</h2><p class="mut">'+hint+'</p><div class="row"><input id="'+pf+'n" placeholder="'+ph+'"><input id="'+pf+'u" placeholder="Username" autocapitalize="none" autocomplete="off"><input id="'+pf+'p" placeholder="Password (6+ characters)" autocapitalize="none" autocomplete="off"><button class="go" onclick="'+fn+'()">'+btn+'</button></div></div>'}
+function vTeam(){var st=adm.staff,ad=me.role==='admin';
+  return acctForm('v','New vendor','Vendors charge guests and see their own sales. They log in with the username and password you set here.','Create vendor','createVendor','Vendor name (e.g. Jollof Stand)')+
+  (ad?acctForm('s','New staff','Staff top up points, create guest cards and add vendors. They log in with the username and password you set here.','Create staff','createStaffAcct','Staff name'):'')+
+  '<div class="card"><h2>'+(ad?'Team':'Vendors')+'</h2>'+(st===null?'<p class="mut">Run setup.sql in Supabase first.</p>':st.length?st.map(function(x){return '<div class="item"><div class="row sp"><b>'+esc(x.name)+'</b><span class="tag">'+roleLabel(x.role)+'</span></div>'+(x.role==='vendor'?'<select onchange="setSE(\''+x.id+'\',this.value)" style="margin-top:6px">'+evOpts(x.event_id)+'</select>':'')+'</div>'}).join(''):'<p class="mut">None yet.</p>')+'</div>'}
+function vVendors(){var v=adm.vendors;
+  if(v===null)return '<div class="card"><h2>Sales by vendor</h2><p class="mut">Run setup.sql in Supabase first.</p></div>';
+  var tot=v.reduce(function(a,x){return a+x.total},0),td=v.reduce(function(a,x){return a+x.today},0);
+  return '<div class="card"><h2>What we owe each vendor</h2><select onchange="evSel=this.value;loadAdm()" style="width:100%;margin-bottom:10px">'+evOpts(evSel,'All events')+'</select>'+(v.length?'<div style="overflow-x:auto"><table><tr><td><b>Vendor</b></td><td><b>Sales</b></td><td><b>Today</b></td><td><b>Total</b></td></tr>'+v.map(function(x){return '<tr><td>'+esc(x.vendor)+'<br><span class="mut">last '+when(x.last_sale)+'</span></td><td>'+x.sales+'</td><td>'+x.today+'</td><td><b>'+x.total+'</b></td></tr>'}).join('')+'<tr><td><b>All vendors</b></td><td></td><td><b>'+td+'</b></td><td><b>'+tot+'</b></td></tr></table></div>':'<p class="mut">No purchases yet.</p>')+'<p class="mut">Points. 1 point = '+money(1)+', so total = amount owed. Tap the tab again to refresh.</p></div>'}
+
+function evOpts(sel,none){var o='<option value="">'+(none||'No event')+'</option>';(adm.events||[]).forEach(function(e){o+='<option value="'+e.id+'"'+(e.id===sel?' selected':'')+'>'+esc(e.name)+(e.active?'':' (off)')+'</option>'});return o}
+async function setGE(id,eid,on){try{await rpc('set_guest_event',{gid:id,eid:eid||null,on_:on});say('Guest updated.',true);await loadAdm()}catch(e){say(e.message,false);render()}}
+async function setSE(id,eid){try{await rpc('set_staff_event',{sid:id,eid:eid||null});say('Vendor event updated.',true);await loadAdm()}catch(e){say(e.message,false);render()}}
+async function newEvent(){var n=$('en').value.trim();try{await rpc('create_event',{p_name:n});say('Event created.',true);await loadAdm()}catch(e){say(e.message,false);render()}}
+async function evOn(id,on){try{await rpc('set_event_active',{eid:id,on_:on});say('Event mode '+(on?'ON':'OFF')+'.',true);await loadAdm()}catch(e){say(e.message,false);render()}}
+async function evClose(id){if(!confirm('Close this event? Spending stops and you get the vendor summary.'))return;
+  try{closeSum={id:id,rows:await rpc('close_event',{eid:id})};say('Event closed.',true);await loadAdm()}catch(e){say(e.message,false);render()}}
+async function evReset(id){if(!confirm('Delete ALL transactions of this event? Print or note the summary first. This cannot be undone.'))return;
+  try{var n=await rpc('reset_event',{eid:id});closeSum=null;say('Ledger reset: '+n+' transactions cleared.',true);await loadAdm()}catch(e){say(e.message,false);render()}}
+function vEvents(){var E=adm.events;if(E===null)return '<div class="card"><p class="mut">Run events.sql in Supabase first.</p></div>';
+  var sum=closeSum?'<div class="card"><h2>Amount owed to vendors</h2>'+(closeSum.rows.length?closeSum.rows.map(function(x){return '<div class="item row sp"><span>'+esc(x.vendor)+'<br><span class="mut">'+x.sales+' sales</span></span><b>'+x.total+' pts</b></div>'}).join('')+'<div class="item row sp"><b>Total</b><b>'+closeSum.rows.reduce(function(a,x){return a+x.total},0)+' pts</b></div>':'<p class="mut">No sales.</p>')+'<button class="bad" style="margin-top:10px" onclick="closeSum=null;render()">Hide</button></div>':'';
+  return sum+'<div class="card"><h2>New event</h2><div class="row"><input id="en" placeholder="Event name"><button class="go" onclick="newEvent()">Create</button></div></div><div class="card"><h2>Events</h2><p class="mut">Event mode OFF: guests of that event can only edit their business card and cannot spend. Guests and vendors only work together inside the same event.</p>'+
+   (E.length?E.map(function(e){return '<div class="item"><div class="row sp"><b>'+esc(e.name)+'</b><span class="tag">'+e.guests+' guests'+(e.closed?' · closed':'')+'</span></div><div class="row" style="margin-top:6px"><button class="'+(e.active?'on':'bad')+'" onclick="evOn(\''+e.id+'\','+!e.active+')">Event mode '+(e.active?'ON':'OFF')+'</button><button onclick="evClose(\''+e.id+'\')">Close &amp; summarise</button>'+(e.closed?'<button class="bad" onclick="evReset(\''+e.id+'\')">Reset ledger</button>':'')+'</div></div>'}).join(''):'<p class="mut">No events yet.</p>')+'</div>'}
+function vBuys(){var b=adm.buys;if(b===null)return '<div class="card"><p class="mut">Run events.sql in Supabase first.</p></div>';
+  return '<div class="card"><h2>Who bought what</h2><select onchange="evSel=this.value;loadAdm()" style="width:100%;margin-bottom:10px">'+evOpts(evSel,'All events')+'</select>'+(b.length?'<div style="overflow-x:auto"><table>'+b.map(function(x){return '<tr><td>'+when(x.ts)+'</td><td><b>'+esc(x.guest)+'</b><br>'+esc(x.item||'(no reason given)')+'</td><td>'+esc(x.vendor)+'</td><td><b>'+x.amt+'</b></td></tr>'}).join('')+'</table></div>':'<p class="mut">No purchases yet.</p>')+'</div>'}
+function vStaff(){
+  if(me.role==='vendor')return vVendor();
+  var T=me.role==='admin'?[['top','Top-up'],['till','Charge'],['cards','Cards'],['events','Events'],['vendors','Owed'],['buys','Purchases'],['team','Team'],['ledger','Ledger']]:[['top','Top-up'],['cards','Cards'],['buys','Purchases'],['team','Vendors']];
+  return '<div class="row tabs" style="margin-bottom:14px">'+T.map(function(t){return '<button class="'+(tab===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'</button>'}).join('')+'</div>'+({top:vTop,till:vTill,cards:vCards,events:vEvents,buys:vBuys,vendors:vVendors,team:vTeam,ledger:vLedger})[tab]()}
+function render(){
+  $('nfc').textContent=me?(HAS?(nfcOn?'NFC on':'NFC off'):'No NFC here'):'';
+  $('who').innerHTML=me?esc(me.name)+' <span class="mut">('+roleLabel(me.role)+')</span> <button onclick="logout()">Log out</button>':'';
+  $('msg').innerHTML=flash?'<div class="msg '+(flash.ok?'ok':'err')+'" role="status">'+esc(flash.t)+'</div>':'';flash=null;
+  if(writeCtl)$('msg').innerHTML+='<button class="bad" onclick="writeCtl.abort()" style="margin-bottom:12px">Cancel writing</button>';
+  $('view').innerHTML=!cfg?vCfg():!me?vPublic():vStaff();
+  if(me&&me.role==='vendor')paintSales();
+  if(chatOpen&&($('cmsgs')||$('cflist')))paintChat();
+}
+setInterval(async function(){if(me||!wallet||wmode!=='open'||document.hidden||cdirty||busy)return;var ae=document.activeElement;if(ae&&(ae.tagName==='INPUT'||ae.tagName==='SELECT'))return;
+  try{var w2=await rpc('wallet',{k:key,pin_:wpin});if(w2&&JSON.stringify(w2)!==JSON.stringify(wallet)){wallet=w2;render()}}catch(e){}},15000);
+/* ---- features: toggles, currency, countdown, import, front page ---- */
+var FX={chat:true,remote_credit:true,frontcard:true,cur:{sym:'GH\u20B5',code:'GHS',ratio:1}},showLogin=false,clk=null,clkAt=0,impRows=[],impOut=null,impKind='guest';
+function feat(n){return FX[n]!==false}
+function money(p){var c=FX.cur||{sym:'',ratio:1};return c.sym+' '+(Number(p||0)*Number(c.ratio||1)).toLocaleString(undefined,{maximumFractionDigits:2})}
+function dur(ms){var s=Math.max(0,Math.floor(ms/1000)),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);s%=60;return (d?d+'d ':'')+('0'+h).slice(-2)+':'+('0'+m).slice(-2)+':'+('0'+s).slice(-2)}
+function clockTxt(c,off){var n=Date.now()+off;if(c.s&&n<c.s)return 'Starts in '+dur(c.s-n);if(c.e)return n<c.e?'Ends in '+dur(c.e-n):'Event ended';return c.s?'Live now':''}
+function clockCard(){return clk&&(clk.s||clk.e)?'<div class="card" style="text-align:center"><div class="mut">'+esc(clk.name)+'</div><div class="bal" id="clkt" style="font-size:1.8rem">'+esc(clockTxt(clk,clk.off))+'</div></div>':''}
+setInterval(async function(){
+  var t=$('clkt');if(t&&clk)t.textContent=clockTxt(clk,clk.off);
+  if(!sb)return;
+  if(Date.now()-clkAt>60000&&(me||(wallet&&key))){clkAt=Date.now();try{await rpc('events_tick')}catch(e){}
+    if(wallet&&key&&!me){try{var c=await rpc('my_clock',{k:key}),had=!!clk;if(c){c.off=c.now-Date.now();clk=c}
+      var ended=c&&c.e&&Date.now()+c.off>=c.e;
+      if(ended){var w2=await rpc('wallet',{k:key,pin_:wpin});if(w2)wallet=w2}
+      var ae=document.activeElement;if((!had||ended)&&!(ae&&(ae.tagName==='INPUT'||ae.tagName==='SELECT'))&&!chatOpen)render()}catch(e){}}}
+},1000);
+async function fxSet(v){try{FX=await rpc('cfg_set',{v:v});say('Saved.',true)}catch(e){say(e.message,false)}render()}
+async function loadTimes(){try{adm.times=await rpc('event_times')}catch(e){adm.times=null}render()}
+function setTab(t){tab=t;if(t!=='top')loadAdm();else render();if(t==='set'||t==='home')loadTimes();if(t==='groups')loadGroups()}
+function tgl(k,label,hint){var on=feat(k);return '<div class="item row sp"><span><b>'+label+'</b><br><span class="mut">'+hint+'</span></span><button class="'+(on?'on':'bad')+'" onclick="fxSet({'+k+':'+!on+'})">'+(on?'ON':'OFF')+'</button></div>'}
+function dtv(ms){if(!ms)return '';var d=new Date(Number(ms)-new Date().getTimezoneOffset()*60000);return d.toISOString().slice(0,16)}
+async function saveTimes(id){var s=$('s_'+id).value,e=$('e_'+id).value;try{await rpc('set_event_times',{eid:id,s:s?new Date(s).toISOString():null,e:e?new Date(e).toISOString():null});say('Schedule saved.',true)}catch(x){say(x.message,false)}loadTimes()}
+async function saveCur(){var r=parseFloat($('cr').value);if(!(r>0)){say('Enter a ratio above 0.',false);return render()}fxSet({cur:{sym:$('cs').value.trim()||'GH\u20B5',code:$('cc').value.trim().toUpperCase(),ratio:r}})}
+function vSet(){var T=adm.times,c=FX.cur||{};
+  return '<div class="card"><h2>Features</h2><p class="mut">Switch features on or off for everyone, instantly.</p>'+tgl('chat','Guest chat','Event-only chat, private texts need acceptance')+tgl('gifts','Gifting','Guests send points to guests at the same event')+tgl('remote_credit','Credit without tap','Admin/staff can credit a guest from the Cards tab')+tgl('frontcard','Business card front page','Off: login form shows straight away under the card')+'</div>'+
+  giftLimits()+msgPrices()+'<div class="card"><h2>Currency</h2><p class="mut">1 point = ratio \u00D7 currency. Example: Cedi, GHS, ratio 1 \u00B7 or Dollar, USD, ratio 0.07.</p><div class="row"><input id="cs" value="'+esc(c.sym)+'" placeholder="Symbol" style="width:90px"><input id="cc" value="'+esc(c.code)+'" placeholder="Code" style="width:90px"><input id="cr" type="number" step="any" value="'+esc(c.ratio)+'" placeholder="Ratio" style="width:110px"><button class="go" onclick="saveCur()">Save</button></div><p class="mut">Preview: 1 pt = '+money(1)+' \u00B7 100 pts = '+money(100)+'</p></div>'+
+  '<div class="card"><h2>Event schedule</h2><p class="mut">Event mode turns on at the start and off at the end automatically.</p>'+(T===null?'<p class="mut">Run features.sql in Supabase first.</p>':T&&T.length?T.map(function(e){return '<div class="item"><div class="row sp"><b>'+esc(e.name)+'</b><span class="tag">'+(e.active?'Live':'Off')+'</span></div><div class="row" style="margin-top:6px"><input id="s_'+e.id+'" type="datetime-local" value="'+dtv(e.s)+'"><input id="e_'+e.id+'" type="datetime-local" value="'+dtv(e.e)+'"><button class="go" onclick="saveTimes(\''+e.id+'\')">Save</button></div></div>'}).join(''):'<p class="mut">No events yet.</p>')+'</div>'}
+function vHome(){var g=adm.guests||[],pts=g.reduce(function(a,x){return a+(x.balance||0)},0),v=adm.vendors||[],sold=v.reduce(function(a,x){return a+x.total},0),T=adm.times||[];
+  var live=T.filter(function(e){return e.active});
+  return '<div class="card"><div class="mut">Points in guest wallets</div><div class="bal">'+pts+'</div><div class="mut">\u2248 '+money(pts)+' \u00B7 '+g.length+' guests</div></div>'+
+  (me.role==='admin'?'<div class="card"><div class="mut">Owed to vendors (all events)</div><div class="bal" style="font-size:2rem">'+sold+' pts</div><div class="mut">\u2248 '+money(sold)+'</div></div>':'')+
+  '<div class="card"><h2>Live events</h2>'+(live.length?live.map(function(e){return '<div class="item row sp"><b>'+esc(e.name)+'</b><span class="mut">'+(e.e?'ends in '+dur(e.e-Date.now()):'no end set')+'</span></div>'}).join(''):'<p class="mut">No event is live.</p>')+'</div>'}
+async function creditG(tok){var a=parseInt(prompt('How many points to credit? (1 pt = '+money(1)+')'),10);if(!(a>0))return;
+  try{var r=await rpc('topup',{k:tok,p:a,method:'Remote'});say(r.text,r.ok)}catch(e){say(e.message,false)}await loadAdm()}
+/* import from Excel / CSV */
+function pw(){var s='abcdefghjkmnpqrstuvwxyz23456789',o='';for(var i=0;i<8;i++)o+=s[Math.floor(Math.random()*s.length)];return o}
+function loadXlsx(){return new Promise(function(ok,no){if(window.XLSX)return ok();var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';s.onload=ok;s.onerror=function(){no(new Error('Excel reader could not load. Save the sheet as CSV instead.'))};document.head.appendChild(s)})}
+async function impFile(inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  try{var R;if(/\.xlsx?$/i.test(f.name)){await loadXlsx();var wb=XLSX.read(await f.arrayBuffer());R=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}
+    else R=(await f.text()).split(/\r?\n/).map(function(l){return l.split(/,|\t/)});
+    R=R.map(function(r){return r.map(function(c){return String(c).trim()})}).filter(function(r){return r[0]});
+    if(R.length&&/^(full\s*)?name$/i.test(R[0][0]))R.shift();impRows=R;impOut=null;say(R.length+' rows ready to import.',true)}catch(e){say(e.message,false)}render()}
+function impK(k){impKind=k;render()}
+async function runImport(){if(!impRows.length){say('Choose a file first.',false);return render()}
+  var out=[],ev=$('imev')?$('imev').value:'';
+  for(var i=0;i<impRows.length;i++){var r=impRows[i];
+    try{if(impKind==='guest'){var a=(r[2]||'').split(/[;|]/).map(function(x){return x.trim()}).filter(Boolean).map(function(x){return {name:x,done:false}});
+        var g=await rpc('create_guest',{n:r[0],r:r[1]||'',a:a,p_event:ev||null});out.push([r[0],'PIN '+g.pin,'ok'])}
+      else{var u=(r[1]||r[0].toLowerCase().replace(/[^a-z0-9]/g,'')+Math.floor(10+Math.random()*90)).toLowerCase().replace(/[^a-z0-9._-]/g,''),p=r[2]||pw();
+        await rpc(impKind==='vendor'?'create_vendor':'create_staff',{p_username:u,p_password:p,p_name:r[0]});out.push([r[0],u+' / '+p,'ok'])}}
+    catch(e){out.push([r[0],e.message,'fail'])}}
+  impOut=out;impRows=[];say('Import finished: '+out.filter(function(x){return x[2]==='ok'}).length+' of '+out.length+' created.',true);await loadAdm()}
+function vImport(){var K=[['guest','Guests'],['vendor','Vendors'],['staff','Staff']],h={guest:'Columns: name, hotel room, activities (separated by ; )',vendor:'Columns: name, username, password. Leave username/password empty to auto-generate.',staff:'Columns: name, username, password. Leave username/password empty to auto-generate.'};
+  return '<div class="card"><h2>Import from Excel / CSV</h2><div class="seg">'+K.map(function(k){return '<button class="'+(impKind===k[0]?'on':'')+'" onclick="impK(\''+k[0]+'\')">'+k[1]+'</button>'}).join('')+'</div><p class="mut">'+h[impKind]+' First row may be a header. Excel (.xlsx) or CSV.</p>'+
+  (impKind==='guest'?'<select id="imev" style="width:100%;margin-bottom:10px">'+evOpts('')+'</select>':'')+
+  '<div class="row"><button onclick="$(\'impf\').click()">Choose file</button><input type="file" id="impf" accept=".csv,.xlsx,.xls,.txt" hidden onchange="impFile(this)"><button class="go" onclick="runImport()">Import '+(impRows.length?impRows.length+' rows':'')+'</button></div></div>'+
+  (impOut?'<div class="card"><h2>Results</h2><p class="mut">Save these logins and PINs now. Passwords are not shown again.</p><div style="overflow-x:auto"><table>'+impOut.map(function(x){return '<tr><td><b>'+esc(x[0])+'</b></td><td>'+esc(x[1])+'</td><td>'+(x[2]==='ok'?'\u2713':'\u2717')+'</td></tr>'}).join('')+'</table></div><button style="margin-top:10px" onclick="navigator.clipboard&&navigator.clipboard.writeText(impOut.map(function(x){return x.join(\'\\t\')}).join(\'\\n\')).then(function(){say(\'Copied.\',true);render()})">Copy results</button></div>':'')}
+function vStaff(){
+  if(me.role==='vendor')return vVendor();
+  var T=me.role==='admin'?[['home','Home'],['top','Top-up'],['till','Charge'],['cards','Cards'],['events','Events'],['vendors','Owed'],['buys','Purchases'],['team','Team'],['import','Import'],['set','Settings'],['ledger','Ledger']]:[['top','Top-up'],['cards','Cards'],['import','Import'],['buys','Purchases'],['team','Vendors']];
+  return '<div class="row tabs" style="margin-bottom:14px">'+T.map(function(t){return '<button class="'+(tab===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'</button>'}).join('')+'</div>'+({home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,buys:vBuys,vendors:vVendors,team:vTeam,import:vImport,set:vSet,ledger:vLedger})[tab]()}
+/* front page: centred minimal business card */
+function vCardView(c){var L=c.links||[],t=L.filter(function(l){return l.t==='title'&&l.on&&String(l.v||'').trim()})[0],ph=photoOf(L),by={};L.forEach(function(l){by[l.t]=l});
+  var ic=PL.filter(function(p){var l=by[p[0]];return p[0]!=='title'&&l&&l.on&&String(l.v||'').trim()}).map(function(p){var h=hrefOf(p[0],by[p[0]].v),a='style="width:48px;height:48px;flex:none;text-decoration:none" aria-label="'+esc(p[1])+'" title="'+esc(p[1])+'"';
+    return h?'<a class="ic" '+a+' href="'+esc(h)+'" target="_blank" rel="noopener">'+p[3]+'</a>':'<span class="ic" '+a+'>'+p[3]+'</span>'}).join('');
+  return '<div class="card" style="text-align:center"><div class="ph" style="width:104px;height:104px;margin:0 auto 12px">'+phHtml(ph)+'</div><h2 style="font-size:1.6rem;margin:0 0 4px">'+esc(c.name)+'</h2>'+(t?'<p class="mut" style="margin:0 0 6px">'+esc(t.v)+'</p>':'')+
+  '<div class="row" style="justify-content:center;gap:12px;margin:16px 0">'+ic+'</div><div class="row" style="justify-content:center"><button class="go" onclick="wmode=\'pin\';render()">My wallet</button><button onclick="showLogin=!showLogin;render()">Log in</button></div><button class="bad" style="margin-top:12px;min-height:38px" onclick="saveVcf()">Save contact</button></div>'}
+function vLanding(){return '<div class="card" style="text-align:center"><h2 style="font-size:1.6rem;margin-bottom:4px">XEND-CASH</h2><p class="mut">Hold a bracelet to the back of the phone to see its card, or open your wallet.</p><div class="row" style="justify-content:center"><button class="go" onclick="lmode=\'guest\';showLogin=true;render()">My wallet</button><button onclick="showLogin=!showLogin;render()">Log in</button></div></div>'}
+function vPublic(){var h='';
+  if(wmode==='pin')h+='<div class="card"><h2>My wallet</h2><div class="row"><input id="pin" type="password" inputmode="numeric" placeholder="PIN" style="width:120px"><button class="go" onclick="openWallet()">Open</button><button onclick="wmode=null;render()">Back</button></div></div>';
+  else if(wallet)h+=chatOpen?vChat():giftOpen?vGift():vWallet();
+  else{h+=card?vCardView(card):vLanding();if(showLogin||!feat('frontcard'))h+=vLogin()}
+  return h}
+/* chat: tap a bracelet to add a guest, they accept, then text */
+async function chatAns(id,a){try{await rpc('chat_reply',{k:key,pin_:wpin,from_:id,ans:a});await chatPoll()}catch(e){note(e.message)}}
+function paintReq(){var r=$('creq');if(!r)return;
+  r.innerHTML=chatReqs.map(function(x){return '<div class="item row sp"><span><b>'+esc(x.name)+'</b> wants to chat</span><span class="row"><button class="go" onclick="chatAns(\''+esc(x.id)+'\',\'ok\')">Accept</button><button onclick="chatAns(\''+esc(x.id)+'\',\'no\')">Decline</button><button class="bad" onclick="chatAns(\''+esc(x.id)+'\',\'block\')">Block</button></span></div>'}).join('')+
+  chatPend.map(function(x){return '<p class="mut" style="margin:6px 0">Waiting for <b>'+esc(x.name)+'</b> to accept.</p>'}).join('')}
+function tapStop(){if(tapCtl){try{tapCtl.abort()}catch(e){}tapCtl=null}}
+/* other phones: tapping a bracelet opens its card; a logged-in guest gets a Message button there */
+var vCardView0=vCardView;
+vCardView=function(c){var gs=ld('fb-guest'),b='';
+  if(gs&&feat('chat')&&tappedKey&&tappedKey!==gs.k)b='<div class="card" style="text-align:center"><button class="go" style="width:100%" onclick="chatFromCard()">\uD83D\uDCAC Message '+esc(String(c.name||'').split(' ')[0])+'</button><p class="mut" style="margin:8px 0 0">They have to accept first. Messages cost '+cM()+' pt each.</p></div>';
+  if(!gs&&feat('chat'))b='<div class="card"><p class="mut" style="margin:0">Want to message this person? Log in as a guest with your name and PIN, then tap their bracelet again.</p></div>';
+  return b+vCardView0(c)};
+async function chatFromCard(){var gs=ld('fb-guest'),other=tappedKey;if(!gs||!other)return;
+  try{key=gs.k;wpin=gs.pin;wallet=await rpc('wallet',{k:gs.k,pin_:gs.pin});if(!wallet)throw new Error('Session expired. Log in again.');wmode='open';card=null;
+    await rpc('chat_join',{k:key,pin_:wpin});var r=await rpc('chat_tap',{k:key,pin_:wpin,other_:other});tappedKey=null;
+    chatOpen=true;chatView='list';chatTo='';chatKnown=null;chatMsgs=[];chatPeople=[];render();await chatPoll();startChat();
+    toast(r.status==='connected'?'Connected with '+r.name+'! You can text now.':'Request sent to '+r.name+'. You can text once they accept.',true)}
+  catch(e){say(e.message,false);render()}}
+/* tell a guest when someone wants to chat */
+setInterval(async function(){if(me||!wallet||!key||!feat('chat')||chatOpen)return;
+  try{var d=await rpc('chat_badge',{k:key,pin_:wpin}),n=(d&&d.n)||0;
+    if(n!==reqN){var more=n>reqN;reqN=n;if(more){say('Someone wants to chat with you. Open Chat to accept.',true);notify('Chat request','Someone wants to chat with you.','req',[100,60,100])}var ae=document.activeElement;if(!(ae&&(ae.tagName==='INPUT'||ae.tagName==='SELECT'))&&!giftOpen)render()}}catch(e){}},10000);
+/* tap detected -> ask before sending a friend request */
+var pendTap=null;
+async function homeTap(){
+  if(tapCtl){tapCancel();return}
+  if(!HAS){toast('This browser cannot read bracelets in the page. Tap their bracelet to open their card, or use a friend code / QR.',false);return}
+  try{var r=new NDEFReader();tapCtl=new AbortController();await r.scan({signal:tapCtl.signal});tapOverlay(true);
+    r.onreading=function(e){var t='';e.message.records.forEach(function(x){if(x.recordType==='url'||x.recordType==='text')t+=new TextDecoder(x.encoding||'utf-8').decode(x.data)+' '});
+      var k2=tokenFrom(t)||e.serialNumber;tapCancel();offerFriend(k2)};
+    r.onreadingerror=function(){toast('Could not read that bracelet. Hold it steady and try again.',false)};
+  }catch(e){tapCtl=null;toast(e.name==='NotAllowedError'?'NFC permission was denied. Allow it in your browser settings and try again.':'NFC could not start: '+e.message+'. Turn NFC on and try again.',false)}}
+async function offerFriend(k2){var gs=ld('fb-guest');
+  try{var c;try{c=await rpc('chat_peek',{k:gs?gs.k:key,pin_:gs?gs.pin:wpin,other_:k2})}
+    catch(e){if(/chat_peek|schema cache/i.test(e.message)&&/^[0-9a-f]{32}$/i.test(k2)){c=await rpc('card',{k:k2});if(!c)throw new Error('Unknown or deactivated bracelet.')}else throw e}
+    pendTap=k2;$('pop').innerHTML='<div class="popcard" role="alertdialog"><div style="font-weight:700">Bracelet detected</div><div style="margin:8px 0">'+avh(c.name,64).replace('class="av"','class="av" style="margin:0 auto"')+'</div><div class="bal" style="font-size:2rem">'+esc(c.name)+'</div><p style="margin:8px 0 0">Send a friend request? They have to accept before you can text. Messages cost '+cM()+' pt each.</p><button onclick="friendYes()" style="width:100%;margin-top:16px;background:#111;color:#ffc400;border-color:#111">Add as friend</button><button onclick="pendTap=null;closePop()" style="width:100%;margin-top:8px">Cancel</button></div>';
+    if(navigator.vibrate)navigator.vibrate([100,60,100])}catch(e){toast(e.message,false)}}
+async function friendYes(){closePop();var k2=pendTap;pendTap=null;if(!k2)return;
+  var gs=ld('fb-guest');if(gs&&(!wallet||key!==gs.k)){tappedKey=k2;return chatFromCard()}
+  try{await rpc('chat_join',{k:key,pin_:wpin});var r=await rpc('chat_tap',{k:key,pin_:wpin,other_:k2});
+    chatOpen=true;chatView='list';chatTo='';chatKnown=null;chatMsgs=[];chatPeople=[];render();await chatPoll();startChat();
+    toast(r.status==='connected'?'Connected with '+r.name+'! You can text now.':'Request sent to '+r.name+'. You can text once they accept.',true)}
+  catch(e){toast(e.message,false)}}
+/* friend code + QR: for phones that cannot tap */
+var myCode=null;
+function codePanel(){return '<details style="margin-top:10px" ontoggle="if(this.open)loadCode()"><summary>Friend code / QR (no tapping needed)</summary><div id="ccode" style="text-align:center;padding:8px 0" class="mut">Loading\u2026</div><div class="row"><input id="ccin" placeholder="Their code" maxlength="8" autocapitalize="characters" autocomplete="off" style="width:150px"><button onclick="codeAdd()">Add by code</button></div></details>'}
+async function loadCode(){var d=$('ccode');if(!d)return;
+  try{if(!myCode||myCode.k!==key)myCode={k:key,c:await rpc('chat_mycode',{k:key,pin_:wpin})};
+    var u=base()+'#f='+myCode.c,q='';
+    if(typeof qrcode==='function'){var x=qrcode(0,'M');x.addData(u);x.make();q=x.createSvgTag({cellSize:4,margin:2,scalable:true})}
+    d.innerHTML=(q?'<div style="width:190px;max-width:100%;margin:0 auto;background:#fff;padding:6px;border-radius:8px">'+q+'</div>':'')+'<div style="font-size:2rem;font-weight:800;letter-spacing:4px;margin-top:8px;color:var(--ink)">'+esc(myCode.c)+'</div><div>Friends scan this with their phone camera, or type the code.</div>'}
+  catch(e){d.textContent=e.message}}
+async function codeAdd(){var v=$('ccin').value.trim();if(!v)return;
+  try{var r=await rpc('chat_tap',{k:key,pin_:wpin,other_:v});$('ccin').value='';note(r.status==='connected'?'Connected with '+r.name+'. You can text now.':'Request sent to '+r.name+'. You can text once they accept.');await chatPoll()}
+  catch(e){note(e.message)}}
+async function friendLink(code){var gs=ld('fb-guest');
+  if(!gs){say('Log in as a guest with your name and PIN first, then scan the code again.',false);return render()}
+  try{key=gs.k;wpin=gs.pin;wallet=await rpc('wallet',{k:gs.k,pin_:gs.pin});if(!wallet){key=null;throw new Error('Session expired. Log in again.')}wmode='open';render();await offerFriend(code)}
+  catch(e){say(e.message,false);render()}}
+/* chat extras: toast, tap overlay, friend list helpers, fun bits */
+var EMO=['\uD83D\uDC4B','\uD83D\uDE02','\u2764\uFE0F','\uD83D\uDD25','\uD83C\uDF89','\uD83D\uDE0E'],toastT=null;
+function toast(t,ok){var e=$('toast');if(!e)return;e.textContent=t;e.className=ok===false?'err':'';clearTimeout(toastT);toastT=setTimeout(function(){e.textContent=''},6000)}
+function tapOverlay(on){var p=$('pop');if(!p)return;if(!on){if(p.dataset.tap){p.innerHTML='';delete p.dataset.tap}return}
+  p.dataset.tap='1';p.innerHTML='<div class="popcard" role="alertdialog"><div style="font-weight:700">Ready to add a friend</div><div class="pulse" aria-hidden="true">\uD83D\uDCF2</div><p style="margin:0">Hold their bracelet to the back of your phone.</p><button onclick="tapCancel()" style="width:100%;margin-top:16px">Cancel</button></div>'}
+function tapCancel(){tapStop();tapOverlay(false)}
+function celebrate(n){var p=$('pop');if(!p)return;p.innerHTML='<div class="popcard" role="alertdialog"><div style="font-size:3.2rem">\uD83C\uDF89</div><div style="font-weight:700">You and</div><div class="bal" style="font-size:2rem">'+esc(n)+'</div><p style="margin:8px 0 0"><b>are now friends!</b> Say hi \uD83D\uDC4B</p><button onclick="closePop()" style="width:100%;margin-top:16px;background:#111;color:#ffc400;border-color:#111">Nice!</button></div>';try{beep()}catch(e){}if(navigator.vibrate)navigator.vibrate([120,80,120])}
+function avc(n){var h=0,s=String(n||'?');for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;return 'hsl('+h+',85%,72%)'}
+function avh(n,sz){return '<span class="av" style="background:'+avc(n)+(sz?';flex-basis:'+sz+'px;width:'+sz+'px;height:'+sz+'px':'')+'">'+esc(String(n||'?').trim().charAt(0).toUpperCase())+'</span>'}
+function skey(id){return chatMe+':'+(id||'all')}
+function inThread(x,id){return id?!!(x.to_id&&((x.from_id===chatMe&&x.to_id===id)||(x.from_id===id&&x.to_id===chatMe))):!x.to_id}
+function threadMsgs(id){var now=Date.now();return chatMsgs.filter(function(x){return x.exp>now&&inThread(x,id)})}
+function unreadN(id){var s=chatSeen[skey(id)]||0;return threadMsgs(id).filter(function(x){return x.from_id!==chatMe&&x.id>s}).length}
+function markSeen(id){var L=threadMsgs(id);if(L.length){var m=L[L.length-1].id;if((chatSeen[skey(id)]||0)<m){chatSeen[skey(id)]=m;sv('fb-seen',chatSeen)}}}
+function prevTxt(id){var L=threadMsgs(id);if(!L.length)return id?'Say hi \uD83D\uDC4B':'No broadcasts yet';var x=L[L.length-1],t=(x.from_id===chatMe?'You: ':(id?'':x.from_name+': '))+(snapTxt(x.body)||'\uD83D\uDCCD Location');return t.length>34?t.slice(0,34)+'\u2026':t}
+function chatOpenConv(id){chatTo=id;chatView='conv';render();var m=$('cmsgs');if(m)m.scrollTop=m.scrollHeight}
+function chatBack(){chatView='list';chatTo='';render()}
+function chatEmoji(e){var i=$('ctxt');if(i){i.value+=e;i.focus()}}
+async function chatUnfriend(){var p=chatPeople.filter(function(x){return x.id===chatTo})[0];if(!p||!confirm('Remove '+p.name+' from your friends? Your messages with them are deleted.'))return;
+  try{await rpc('chat_unfriend',{k:key,pin_:wpin,other_:chatTo});chatView='list';chatTo='';render();await chatPoll();toast(p.name+' removed.',true)}catch(e){note(e.message)}}
+function msgPrices(){return '<div class="card"><h2>Message prices</h2><p class="mut">Points charged to the sender. First box: one private message to an accepted contact. Second box: one broadcast to everyone at the event. 0 = free.</p><div class="row"><input id="mc" type="number" min="0" step="1" value="'+cM()+'" style="width:110px" aria-label="Private message price"><input id="bc" type="number" min="0" step="1" value="'+cB()+'" style="width:110px" aria-label="Broadcast price"><button class="go" onclick="fxSet({msg_cost:Math.max(0,parseInt($(\'mc\').value,10)||0),bcast_cost:Math.max(0,parseInt($(\'bc\').value,10)||0)})">Save</button></div></div>'}
+/* ---- gifting, groups, capability-aware tabs ---- */
+var giftOpen=false,giftPeople=[],giftSince=null,caps=null,grpSel={},CAPS=[['topup','Top-up & credit'],['cards','Cards'],['import','Import'],['buys','Purchases'],['team','Vendors']];
+function giftCard(){return feat('gifts')?'<div class="card"><div class="row sp"><span><b>Gift points</b><br><span class="mut">Send points to a guest at your event.</span></span><button class="go" onclick="giftOpenUI()">Gift</button></div></div>':''}
+async function giftOpenUI(){try{giftPeople=(await rpc('gift_people',{k:key,pin_:wpin}))||[];giftOpen=true}catch(e){say(e.message,false)}render()}
+function vGift(){var lim=(FX.gift_max>0?'Max '+FX.gift_max+' per gift. ':'')+(FX.gift_daily>0?'Max '+FX.gift_daily+' per day. ':'');
+  return '<div class="card"><div class="row sp"><h2 style="margin:0">Gift points</h2><button onclick="giftOpen=false;render()">Back</button></div><p class="mut">Gifts cannot be undone. '+lim+'1 pt = '+money(1)+'.</p>'+
+  (giftPeople.length?'<select id="gto" style="width:100%"><option value="">Choose a guest</option>'+giftPeople.map(function(p){return '<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>'}).join('')+'</select>':'<p class="mut">No other guests at your event yet.</p>')+
+  '<div class="row" style="margin-top:10px"><input id="gam" type="number" min="1" step="1" placeholder="Points" style="width:120px"><input id="gpn" type="password" inputmode="numeric" placeholder="Your PIN" style="width:120px" autocomplete="off"><button class="go" onclick="giftSend()">Send gift</button></div><div id="gerr" class="mut" role="status" style="min-height:1.4em;margin-top:8px"></div></div>'}
+function giftPop(t,a,l,bal){$('pop').innerHTML='<div class="popcard" role="alertdialog"><div style="font-weight:700">'+esc(t)+'</div><div class="bal">'+a+' pts</div><div style="color:#2b2b2b">\u2248 '+money(a)+'</div><p style="margin:8px 0 0;font-size:1.1rem"><b>'+esc(l)+'</b></p>'+(bal!=null?'<p style="color:#2b2b2b;margin:6px 0 0">Balance now '+bal+' pts</p>':'')+'<button onclick="closePop()" style="width:100%;margin-top:16px;background:#111;color:#ffc400;border-color:#111">OK</button></div>';beep();if(navigator.vibrate)navigator.vibrate([120,80,120])}
+async function giftSend(){var to=$('gto')?$('gto').value:'',a=parseInt($('gam').value,10),p=$('gpn').value.trim(),er=$('gerr');
+  if(!to||!(a>0)||!p){er.textContent='Choose a guest, enter points and your PIN.';return}
+  var nm=(giftPeople.filter(function(x){return x.id===to})[0]||{}).name;
+  if(!confirm('Send '+a+' pts ('+money(a)+') to '+nm+'? This cannot be undone.'))return;
+  try{var r=await rpc('gift_send',{k:key,pin_:p,to_:to,pts:a});if(!r.ok){er.textContent=r.text;return}
+    giftOpen=false;var w2=await rpc('wallet',{k:key,pin_:wpin});if(w2)wallet=w2;render();giftPop('You sent',r.sent,'to '+r.to,r.balance)}catch(e){er.textContent=e.message}}
+setInterval(async function(){if(me||!wallet||!key||!feat('gifts'))return;
+  try{var d=await rpc('gift_poll',{k:key,pin_:wpin,after_:giftSince});
+    if(giftSince!==null&&d.items&&d.items.length){var t=d.items.reduce(function(a,x){return a+x.amt},0);giftPop('You received',t,d.items.length===1?'from '+d.items[0].from:d.items.length+' gifts',null);ownAt=Date.now();notify('Points received','+'+t+' pts '+(d.items.length===1?'from '+d.items[0].from:'from '+d.items.length+' gifts'),'gift',[120,80,120]);
+      var w2=await rpc('wallet',{k:key,pin_:wpin});if(w2){wallet=w2;if(!chatOpen&&!giftOpen)render()}}
+    giftSince=d.top}catch(e){}},8000);
+function giftLimits(){return '<div class="card"><h2>Gift limits</h2><p class="mut">Points per gift and per guest per 24 hours. 0 = unlimited.</p><div class="row"><input id="gm" type="number" min="0" step="1" value="'+(FX.gift_max||0)+'" style="width:110px"><input id="gd" type="number" min="0" step="1" value="'+(FX.gift_daily||0)+'" style="width:110px"><button class="go" onclick="fxSet({gift_max:Math.max(0,parseInt($(\'gm\').value,10)||0),gift_daily:Math.max(0,parseInt($(\'gd\').value,10)||0)})">Save</button></div></div>'}
+/* groups */
+async function loadGroups(){try{adm.grp=await rpc('group_list')}catch(e){adm.grp=null}render()}
+async function saveGroup(id){var n=$('gn_'+id).value.trim(),c=CAPS.filter(function(x){return $('gc_'+id+'_'+x[0]).checked}).map(function(x){return x[0]});
+  try{await rpc('group_save',{gid:id==='new'?null:id,gname:n,gcaps:c});say('Group saved.',true)}catch(e){say(e.message,false)}loadGroups()}
+async function delGroup(id){if(!confirm('Delete this group? Members keep their accounts and go back to full organizer access.'))return;
+  try{await rpc('group_delete',{gid:id});say('Group deleted.',true)}catch(e){say(e.message,false)}loadGroups()}
+async function moveStaff(){var ids=Object.keys(grpSel).filter(function(k){return grpSel[k]});if(!ids.length){say('Tick the people to move first.',false);return render()}
+  try{var n=await rpc('staff_set_group',{ids:ids,gid:$('gmv').value||null});grpSel={};say(n+' people updated.',true)}catch(e){say(e.message,false)}loadGroups()}
+function capBoxes(id,have){return '<div class="row" style="margin:8px 0">'+CAPS.map(function(x){return '<label class="tg" style="gap:6px"><input type="checkbox" id="gc_'+id+'_'+x[0]+'"'+(have.indexOf(x[0])>-1?' checked':'')+'><span>'+x[1]+'</span></label>'}).join('')+'</div>'}
+function vGroups(){var d=adm.grp;if(d===null)return '<div class="card"><p class="mut">Could not load groups. Run xend-extras.sql in Supabase first.</p></div>';if(!d)return '<div class="card"><p class="mut">Loading\u2026</p></div>';
+  var gn={};d.groups.forEach(function(g){gn[g.id]=g.name});
+  return '<div class="card"><h2>New group</h2><input id="gn_new" placeholder="Group name (e.g. Door team)" style="width:100%">'+capBoxes('new',[])+'<button class="go" onclick="saveGroup(\'new\')">Create group</button></div>'+
+  '<div class="card"><h2>Groups</h2><p class="mut">Staff in a group only see the tabs ticked here. Staff with no group keep full organizer access. Top-up is enforced by the server; the other tabs are hidden in the app.</p>'+
+  (d.groups.length?d.groups.map(function(g){return '<div class="item"><div class="row sp"><input id="gn_'+g.id+'" value="'+esc(g.name)+'" style="flex:1"><span class="tag">'+g.n+' members</span></div>'+capBoxes(g.id,g.caps||[])+'<div class="row"><button class="go" onclick="saveGroup(\''+g.id+'\')">Save</button><button class="bad" onclick="delGroup(\''+g.id+'\')">Delete</button></div></div>'}).join(''):'<p class="mut">No groups yet.</p>')+'</div>'+
+  '<div class="card"><h2>Move staff in a batch</h2>'+(d.staff.length?d.staff.map(function(s){return '<label class="item tg"><span><input type="checkbox" onchange="grpSel[\''+s.id+'\']=this.checked"'+(grpSel[s.id]?' checked':'')+'> '+esc(s.name)+' <span class="mut">('+roleLabel(s.role)+(s.group_id?' \u00B7 '+esc(gn[s.group_id]||''):'')+')</span></span></label>'}).join('')+'<div class="row" style="margin-top:10px"><select id="gmv" style="flex:1"><option value="">No group (full access)</option>'+d.groups.map(function(g){return '<option value="'+g.id+'">'+esc(g.name)+'</option>'}).join('')+'</select><button class="go" onclick="moveStaff()">Move selected</button></div>':'<p class="mut">No staff or vendors yet.</p>')+'</div>'}
+function vStaff(){
+  if(me.role==='vendor')return vVendor();
+  var T;if(me.role==='admin')T=[['home','Home'],['top','Top-up'],['till','Charge'],['cards','Cards'],['events','Events'],['vendors','Owed'],['buys','Purchases'],['team','Team'],['groups','Groups'],['import','Import'],['set','Settings'],['ledger','Ledger']];
+  else T=[['top','Top-up','topup'],['cards','Cards','cards'],['import','Import','import'],['buys','Purchases','buys'],['team','Vendors','team']].filter(function(t){return !caps||caps.indexOf(t[2])>-1});
+  if(!T.length)return '<div class="card"><h2>No access yet</h2><p class="mut">Your group has no permissions. Ask an admin.</p></div>';
+  if(!T.some(function(t){return t[0]===tab}))tab=T[0][0];
+  return '<div class="row tabs" style="margin-bottom:14px">'+T.map(function(t){return '<button class="'+(tab===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+t[1]+'</button>'}).join('')+'</div>'+({home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,buys:vBuys,vendors:vVendors,team:vTeam,groups:vGroups,import:vImport,set:vSet,ledger:vLedger})[tab]()}
+/* ================= blank bracelets: guest signs up and claims the bracelet ================= */
+var claimTok=null,claimCode='',actStep=null,clmBusy=false,blankSt=null,lastBatch=null,bq=null;
+
+/* a tag was tapped: if it is a blank, start activation (guest) or tell staff (admin) */
+var onKey0=onKey;
+onKey=async function(k){
+  await onKey0(k);
+  if(me?(scanInfo):(card||wallet))return;
+  try{var b=await rpc('blank_info',{k:k});if(!b)return;
+    if(me){say(b.claimed?'This bracelet was activated but has no account record.':'Blank bracelet '+b.code+'. The guest must sign up before it can hold points.',!b.claimed)}
+    else if(b.claimed){say('This bracelet is already activated. Log in with your username and PIN.',false);showLogin=true;lmode='guest'}
+    else{claimTok=k;claimCode=b.code;actStep=null;say('New bracelet. Create your account to activate it.',true)}
+    render()}catch(e){}
+};
+
+var vPublic0=vPublic;
+vPublic=function(){if(!wallet&&claimTok)return vClaim();if(!wallet&&actStep==='code')return vActCode();return vPublic0()};
+var vLanding0=vLanding;
+vLanding=function(){var h=vLanding0();return h.replace(/<\/div><\/div>$/,'</div><button class="bad" style="margin-top:12px" onclick="actOpen()">Activate a new bracelet</button></div>')};
+var vLogin0=vLogin;
+vLogin=function(){var h=vLogin0();if(lmode!=='guest')return h;
+  h=h.replace('See your points without your bracelet. Use the name on your card and your PIN.','See your points without your bracelet. Use your username and PIN.').replace('placeholder="Your name" autocomplete="name"','placeholder="Username" autocapitalize="none" autocomplete="username"');
+  return h+'<div class="card"><h2>New bracelet?</h2><p class="mut">Got a bracelet that is not activated yet? Tap it to the phone, or enter the product ID printed on it.</p><button class="go" onclick="actOpen()">Activate my bracelet</button></div>'};
+
+function actOpen(){claimTok=null;actStep='code';render()}
+function vActCode(){return '<div class="card"><h2>Activate a bracelet</h2><p class="mut">Enter the product ID printed on your bracelet or its packaging. Or just tap the bracelet to the back of your phone.</p><div class="row"><input id="acode" placeholder="Product ID, e.g. K7M4Q-92XWD" autocapitalize="characters" autocomplete="off" style="flex:1;min-width:200px"><button class="go" onclick="lookupCode()">Continue</button><button onclick="actStep=null;render()">Back</button></div></div>'}
+async function lookupCode(){var c=$('acode').value.trim();if(!c){say('Enter the product ID.',false);return render()}
+  try{var r=await rpc('blank_by_code',{c:c});
+    if(!r){say('No bracelet has that product ID. Check the code and try again.',false);return render()}
+    if(r.claimed){actStep=null;showLogin=true;lmode='guest';say('That bracelet is already activated. Log in with your username and PIN.',false);return render()}
+    claimTok=r.token;claimCode=c.toUpperCase();actStep=null;render()}
+  catch(e){say(e.message,false);render()}}
+/* claim = (1) enter the user ID from your purchase, (2) choose a username and PIN. No ID, no account. */
+var clmFor=null,clmStep='id',clmId='',clmName='',clmU='';
+function vClaim(){
+  if(clmFor!==claimTok){clmFor=claimTok;clmStep='id';clmId='';clmName='';clmU=''}
+  if(clmStep==='choose')return '<div class="card"><h2>Hi '+esc(clmName.split(' ')[0])+'</h2><p class="mut">Choose your username and PIN. They become your login for this bracelet.</p>'+
+    '<div style="display:flex;flex-direction:column;gap:10px"><input id="clm_u" placeholder="Choose a username" autocapitalize="none" autocomplete="username" value="'+esc(clmU)+'"><input id="clm_p" type="password" inputmode="numeric" maxlength="6" placeholder="Choose a PIN (4 to 6 digits)" autocomplete="new-password"><input id="clm_p2" type="password" inputmode="numeric" maxlength="6" placeholder="Repeat the PIN" autocomplete="new-password"></div>'+
+    '<p class="mut">Username: 3 to 20 letters, numbers, dot or underscore.</p><div class="row"><button class="go" onclick="claimFinish()">Activate bracelet</button><button onclick="clmStep=\'id\';render()">Back</button></div></div>';
+  return '<div class="card"><h2>Activate your bracelet</h2><p class="mut">Product ID <b>'+esc(claimCode)+'</b>. Enter the user ID you were given when you bought it.</p>'+
+    '<div class="row"><input id="clm_id" placeholder="Your user ID" autocapitalize="characters" autocomplete="off" value="'+esc(clmId)+'" style="flex:1;min-width:180px"><button class="go" onclick="claimCheck()">Continue</button></div>'+
+    '<div class="row" style="margin-top:12px"><button onclick="claimTok=null;clmFor=null;render()">Cancel</button></div></div>'}
+function clmErr(t){say(t,false);render()}
+async function claimCheck(){if(clmBusy)return;clmId=(($('clm_id')||{}).value||'').trim();if(!clmId)return clmErr('Enter your user ID.');
+  clmBusy=true;try{var r=await rpc('claim_id_check',{k:claimTok,uid:clmId});if(!r.ok){clmBusy=false;return clmErr(r.text)}clmName=r.name;clmStep='choose'}catch(e){say(e.message,false)}clmBusy=false;render()}
+async function claimFinish(){if(clmBusy)return;var u=(($('clm_u')||{}).value||'').trim().toLowerCase(),p=($('clm_p')||{}).value||'',p2=($('clm_p2')||{}).value||'';clmU=u;
+  if(!/^[a-z0-9_.]{3,20}$/.test(u))return clmErr('Username: 3 to 20 letters, numbers, dot or underscore.');
+  if(!/^[0-9]{4,6}$/.test(p))return clmErr('PIN must be 4 to 6 digits.');
+  if(p!==p2)return clmErr('The two PINs do not match.');
+  clmBusy=true;
+  try{var r=await rpc('claim_with_id',{k:claimTok,uid:clmId,u:u,pin_:p});
+    if(!r.ok){clmBusy=false;return clmErr(r.text)}
+    key=r.token;wpin=p;wallet=await rpc('wallet',{k:key,pin_:wpin});
+    if(!wallet){claimTok=null;clmFor=null;clmBusy=false;showLogin=true;lmode='guest';return clmErr('Bracelet activated, but the wallet did not open. Log in with username '+u+' and your PIN.')}
+    wmode='open';sv('fb-guest',{k:key,pin:wpin});claimTok=null;clmFor=null;clmId='';
+    say('Bracelet activated. Welcome, '+r.name.split(' ')[0]+'. Log in later with username '+u+' and your PIN.',true)}
+  catch(e){say(e.message,false)}
+  clmBusy=false;render()}
+
+/* login by username + PIN, falling back to the old name + PIN */
+guestLogin=async function(){var n=$('gname').value.trim(),p=$('gpin').value.trim();if(!n||!p){say('Enter your username and PIN.',false);return render()}
+  try{var r;try{r=await rpc('claim_login',{n:n,pin_:p})}catch(e){if(/claim_login|schema cache|Could not find/i.test(e.message))r=await rpc('guest_login',{n:n,pin_:p});else throw e}
+    if(!r.ok){say(r.text,false);return render()}
+    key=r.token;wpin=p;wallet=await rpc('wallet',{k:key,pin_:p});
+    if(!wallet)say('Could not open your wallet.',false);else{wmode='open';sv('fb-guest',{k:key,pin:p});say('Welcome, '+wallet.name.split(' ')[0]+'.',true)}}
+  catch(e){say(e.message,false)}render()};
+
+/* ---- admin / staff: make blanks, export, write tags ---- */
+var loadAdm0=loadAdm;
+loadAdm=async function(){try{blankSt=await rpc('blank_stats',{eid:null})}catch(e){blankSt=null}return loadAdm0()};
+var vCards0=vCards;
+vCards=function(){return vBlank()+vCards0()};
+function vBlank(){
+  var s=blankSt,h='<div class="card"><h2>Blank bracelets</h2><p class="mut">Make bracelets with no owner. Write the link onto each tag (or send the CSV to your manufacturer). Whoever gets a bracelet signs up and it becomes their account.</p>';
+  h+=s?'<div class="row sp"><span>In stock <b>'+s.unclaimed+'</b></span><span>Activated <b>'+s.claimed+'</b></span><span>Total <b>'+s.total+'</b></span></div>':'<p class="mut">Not set up yet. Run xend-blank-bracelets.sql in Supabase.</p>';
+  h+='<div class="row" style="margin-top:10px"><input id="bn" type="number" min="1" max="10000" step="1" placeholder="How many?" style="width:120px"><select id="be">'+evOpts('')+'</select><button class="go" onclick="blankMake()">Generate</button></div>';
+  h+='<div class="row" style="margin-top:10px"><button onclick="blankCsv()">Download unclaimed (CSV)</button>'+(lastBatch?'<button onclick="dlCsv(lastBatch,\'new-bracelets.csv\')">Download last batch ('+lastBatch.length+')</button>'+(HAS&&!bq?'<button onclick="bqStart()">Write tags with this phone</button>':''):'')+'</div></div>';
+  if(bq){var it=bq.list[bq.i];
+    h+='<div class="card"><h2>Writing tags: '+(bq.i+1)+' of '+bq.list.length+'</h2><div class="bal" style="font-size:1.6rem">'+esc(it.code)+'</div>'+
+    (bq.ok?'<p class="mut">Written. Label the bracelet with this code, then move it away from the phone.</p><div class="row">'+(bq.i+1<bq.list.length?'<button class="go" onclick="bqNext()">Next bracelet</button>':'<button class="go" onclick="bqStop()">Finish</button>')+'<button class="bad" onclick="bqStop()">Stop</button></div>':
+    '<p class="mut">Press Write tag, then hold a blank bracelet to the back of the phone.</p><div class="row"><button class="go" onclick="bqWrite()">Write tag</button><button class="bad" onclick="bqStop()">Stop</button></div>')+'</div>'}
+  return h}
+async function blankMake(){var n=parseInt($('bn').value,10);if(!(n>0&&n<=10000)){say('Enter a number from 1 to 10000.',false);return render()}
+  if(n>=1000&&!confirm('Create '+n+' blank bracelets?'))return;
+  try{lastBatch=await rpc('blank_create',{n:n,p_event:$('be').value||null});say(n+' blank bracelets created. Download the CSV or write the tags now.',true);await loadAdm()}catch(e){say(e.message,false);render()}}
+function dlCsv(list,name){var rows=['code,link'].concat(list.map(function(x){return x.code+','+base()+'#b='+x.token}));
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.join('\r\n')],{type:'text/csv'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)}
+async function blankCsv(){try{var L=await rpc('blank_list',{eid:null,only_unclaimed:true});if(!L||!L.length){say('No unclaimed bracelets in stock.',false);return render()}dlCsv(L,'unclaimed-bracelets.csv');say(L.length+' bracelets exported.',true)}catch(e){say(e.message,false)}render()}
+function bqStart(){if(!HAS||!lastBatch)return;bq={list:lastBatch,i:0,ok:false};render()}
+function bqNext(){if(bq){bq.i++;bq.ok=false;render()}}
+function bqStop(){if(writeCtl)writeCtl.abort();bq=null;render()}
+async function bqWrite(){if(!bq||!HAS)return;var it=bq.list[bq.i];
+  if(writeCtl)writeCtl.abort();if(scanCtl){scanCtl.abort();scanCtl=null;nfcOn=false}
+  var ctl=writeCtl=new AbortController();
+  try{say('Hold a blank bracelet to the back of the phone…',true);render();
+    await new NDEFReader().write({records:[{recordType:'url',data:base()+'#b='+it.token}]},{overwrite:true,signal:ctl.signal});
+    if(bq)bq.ok=true;say('Written: '+it.code+'.',true)}
+  catch(e){if(e.name==='AbortError'){if(writeCtl!==ctl)return;say('Write cancelled.',false)}else say('Write failed: '+e.message,false)}
+  if(writeCtl===ctl)writeCtl=null;render()}
+
+/* ---- admin: upload the buyer list (CSV / Excel): user ID, name, room ---- */
+var buyRows=[],buyOut=null,vBlank0=vBlank;
+vBlank=function(){return vBlank0()+vBuyers()};
+function vBuyers(){var s=blankSt;
+  return '<div class="card"><h2>Buyer list</h2><p class="mut">Only people on this list can activate a bracelet. Columns: <b>user ID, name, room</b>. Only the name is required; a blank user ID is generated. The buyer enters the user ID on the bracelet, then chooses their own username and PIN.'+(s?' Waiting: <b>'+(s.ids_pending||0)+'</b> · Used: <b>'+(s.ids_used||0)+'</b>':'')+'</p>'+
+  '<select id="bie" style="width:100%;margin-bottom:10px">'+evOpts('')+'</select><div class="row"><button onclick="$(\'buyf\').click()">Choose file</button><input type="file" id="buyf" accept=".csv,.xlsx,.xls,.txt" hidden onchange="buyFile(this)"><button class="go" onclick="buyImport()">Import '+(buyRows.length?buyRows.length+' buyers':'')+'</button></div></div>'+
+  (buyOut?'<div class="card"><h2>Import results</h2><p class="mut">'+buyOut.filter(function(x){return x.ok}).length+' of '+buyOut.length+' imported. Download this and give each buyer their user ID.</p><div class="row"><button class="go" onclick="buyCsv()">Download results (CSV)</button></div>'+
+  (buyOut.some(function(x){return !x.ok})?'<div style="overflow-x:auto;margin-top:10px"><table>'+buyOut.filter(function(x){return !x.ok}).map(function(x){return '<tr><td><b>'+esc(x.name||'-')+'</b></td><td>'+esc(x.text)+'</td></tr>'}).join('')+'</table></div>':'')+'</div>':'')}
+async function buyFile(inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  try{var R;if(/\.xlsx?$/i.test(f.name)){await loadXlsx();var wb=XLSX.read(await f.arrayBuffer());R=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}
+    else R=(await f.text()).split(/\r?\n/).map(function(l){return l.split(/,|\t/)});
+    R=R.map(function(r){return r.map(function(c){return String(c).trim()})}).filter(function(r){return r.some(Boolean)});
+    if(R.length&&/^(user\s*_?id|id|name)$/i.test(R[0][0]||''))R.shift();
+    buyRows=R.map(function(r){return {id:r[0]||'',name:r[1]||'',room:r[2]||''}});buyOut=null;say(buyRows.length+' buyers ready to import.',true)}
+  catch(e){say(e.message,false)}render()}
+async function buyImport(){if(!buyRows.length){say('Choose a file first.',false);return render()}
+  var ev=$('bie')?$('bie').value:'',out=[];
+  try{for(var i=0;i<buyRows.length;i+=500){out=out.concat(await rpc('claim_ids_import',{rows:buyRows.slice(i,i+500),p_event:ev||null}))}
+    buyOut=out;buyRows=[];say('Import finished: '+out.filter(function(x){return x.ok}).length+' of '+out.length+' buyers added.',true)}
+  catch(e){buyOut=out.length?out:null;say(e.message,false)}
+  await loadAdm()}
+function buyCsv(){if(!buyOut)return;var q=function(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  var rows=['user_id,name,room,status'].concat(buyOut.map(function(x){return [x.id||'',x.name||'',x.room||'',x.ok?'ok':x.text].map(q).join(',')}));
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.join('\r\n')],{type:'text/csv'}));a.download='buyer-ids.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)}
+boot();
+</script>
+</body>
+</html>
