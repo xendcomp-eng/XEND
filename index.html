@@ -77,6 +77,27 @@ button.frow{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;
 .sv-stage video,.sv-stage canvas{max-width:100%;max-height:100%;pointer-events:none}
 .sv-wm{position:absolute;inset:0;overflow:hidden;pointer-events:none;display:flex;flex-wrap:wrap;align-content:space-around;justify-content:space-around;gap:28px;transform:rotate(-24deg) scale(1.4);font-weight:800;font-size:.9rem;color:rgba(255,255,255,.22)}
 @media print{#snapv,#snapcam{display:none!important}}
+textarea{font:inherit;color:inherit;background:var(--card);border:2px solid var(--fld);border-radius:12px;padding:10px 12px;width:100%;min-height:90px;max-width:100%;resize:vertical}
+textarea:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.xban{background:var(--acc);color:#111;border:2px solid #111;border-radius:12px;padding:10px 14px;font-weight:700;text-align:center;margin-bottom:14px}
+.xhero{text-align:center;padding:26px 8px 18px}
+.xhero h1{font-size:2rem;line-height:1.15;margin:8px 0}
+.xlogo{height:32px;max-width:120px;object-fit:contain;vertical-align:middle;margin-right:8px;border-radius:6px}
+.xgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.xgrid .card{margin:0}
+.xp img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;border:2px solid var(--edge);margin-bottom:10px;display:block}
+.xf{display:flex;flex-direction:column;gap:10px}
+.xf label{font-weight:700;font-size:.9rem}
+.anim-fade-in{animation:xfi .7s ease both}
+.anim-slide-up{animation:xsu .7s ease both}
+.anim-pulse{animation:xpl 2.4s ease-in-out infinite}
+@keyframes xfi{from{opacity:0}to{opacity:1}}
+@keyframes xsu{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes xpl{50%{transform:scale(1.025)}}
+@media (prefers-reduced-motion:reduce){.anim-fade-in,.anim-slide-up,.anim-pulse{animation:none}}
+#ordm{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px}
+#ordm .card{width:100%;max-width:420px;max-height:92vh;overflow:auto;margin:0}
+#ordm input,#ordm select{width:100%}
 </style>
 </head>
 <body>
@@ -926,7 +947,135 @@ async function buyImport(){if(!buyRows.length){say('Choose a file first.',false)
 function buyCsv(){if(!buyOut)return;var q=function(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
   var rows=['user_id,name,room,status'].concat(buyOut.map(function(x){return [x.id||'',x.name||'',x.room||'',x.ok?'ok':x.text].map(q).join(',')}));
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.join('\r\n')],{type:'text/csv'}));a.download='buyer-ids.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)}
+/* ================= XEND storefront + CMS: public site, pre-orders, admin editor ================= */
+var xcms=null,xerr=false,xbusy=false,xclk=0,xclt=null,ordP=null,ordLink='',
+  vLandingOld=vLanding,vStaff0=vStaff,setTab0=setTab,render0=render,
+  XPAGES=['site','shop','secs','orders'],
+  XCFG=[['site_name','Site name (public store)','XEND'],['cash_app_name','App / wallet name','XEND-CASH'],['site_logo_url','Logo URL','https://...'],
+    ['hero_title','Hero title',''],['hero_subtitle','Hero subtitle','',1],['banner_text','Promo banner (empty = hidden)',''],
+    ['about_title','About heading',''],['about_text','About text','',1],['shop_title','Shop heading',''],['wallet_title','Wallet button label','My wallet'],
+    ['momo_link','MoMo payment link','https://...'],['card_link','Card payment link','https://...'],['bank_link','Bank payment link','https://...'],['low_stock_at','Low-stock threshold (units)','3']],
+  XALL=[['home','Home'],['top','Top-up'],['till','Charge'],['cards','Cards'],['events','Events'],['vendors','Owed'],['buys','Purchases'],['team','Team'],['groups','Groups'],['import','Import'],['set','Settings'],['site','Site'],['shop','Shop'],['secs','Sections'],['orders','Orders'],['ledger','Ledger']];
+function xv(k,d){var c=xcms&&xcms.config,v=c&&c[k];return (v!=null&&String(v).trim()!=='')?String(v):(d==null?'':d)}
+function xurl(u){u=String(u||'').trim();return /^(https?:\/\/|data:image\/(png|jpe?g|webp|gif);base64,)/i.test(u)?u:''}
+function xhtml(s){return esc(s).replace(/\n/g,'<br>')}
+function xMoney(p){var s=(FX.cur&&FX.cur.sym)||'GH\u20B5';return s+' '+Number(p||0).toLocaleString(undefined,{maximumFractionDigits:2})}
+var xmsg='';
+async function loadCms(){try{xcms=await rpc('cms_get');xerr=!xcms;xmsg=''}catch(e){xerr=true;xmsg=e.message||String(e);try{console.error('cms_get failed',e)}catch(x){}}}
+/* context-aware branding: XEND on the public store, XEND-CASH (or the configured name) inside the app */
+function xStore(){return !me&&!wallet&&!card&&!claimTok&&actStep!=='code'&&wmode!=='pin'}
+function xBrand(){var n=xStore()?xv('site_name','XEND'):xv('cash_app_name','XEND-CASH'),b=document.querySelector('header b');
+  if(b){b.textContent='';var lg=xurl(xv('site_logo_url'));if(lg){var im=document.createElement('img');im.className='xlogo';im.alt='';im.src=lg;b.appendChild(im)}b.appendChild(document.createTextNode(n))}
+  document.title=n}
+render=function(){render0();xBrand()};
+/* public storefront */
+function xStat(p){var n=Number(p.stock_count)||0;return (n<=0||p.status==='sold_out')?'sold_out':(p.status==='low_stock'?'low_stock':'in_stock')}
+function xProd(p){var st=xStat(p),n=Number(p.stock_count)||0,img=xurl(p.image_url),
+  tag=st==='sold_out'?'<span class="tag" style="background:var(--ink);color:var(--bg)">Sold out</span>':st==='low_stock'?'<span class="tag">Only '+n+' left</span>':'<span class="tag ok">In stock</span>';
+  return '<div class="card xp">'+(img?'<img src="'+esc(img)+'" alt="'+esc(p.title)+'" loading="lazy">':'')+'<div class="row sp"><h2 style="margin:0">'+esc(p.title)+'</h2>'+tag+'</div>'+(p.description?'<p class="mut">'+xhtml(p.description)+'</p>':'')+
+  '<div class="row sp"><span style="font-size:1.4rem;font-weight:800">'+esc(xMoney(p.price))+'</span>'+(st==='sold_out'?'<button disabled>Sold Out</button>':'<button class="go" onclick="ordOpen(\''+esc(p.id)+'\')">Pre-order</button>')+'</div></div>'}
+function xSec(s){var al=/^(left|center|right)$/.test(s.alignment)?s.alignment:'center',an=/^(fade-in|slide-up|pulse)$/.test(s.animation)?' anim-'+s.animation:'';
+  return '<div class="card'+an+'" style="text-align:'+al+'"><h2>'+esc(s.title)+'</h2>'+(s.content?'<div>'+xhtml(s.content)+'</div>':'')+'</div>'}
+vLanding=function(){
+  if(!xcms&&!xerr)return '<div class="card" style="text-align:center"><p class="mut">Loading\u2026</p></div>';
+  var bn=xv('banner_text'),pr=(xcms&&xcms.products)||[],sec=(xcms&&xcms.sections)||[],about=xv('about_text'),
+    note=xcms?'':'<div class="msg err" role="alert">Store content could not load'+(xmsg?': '+esc(xmsg):'')+'. Run xend-storefront.sql in Supabase, then reload.</div>';
+  return note+(bn?'<div class="xban anim-fade-in">'+esc(bn)+'</div>':'')+
+  '<section class="xhero anim-slide-up"><h1>'+esc(xv('hero_title','XEND Smart Bracelet'))+'</h1><p class="mut" style="font-size:1.05rem">'+xhtml(xv('hero_subtitle','NFC-enabled leather bracelets for instant contact sharing and safety.'))+'</p><div class="row" style="justify-content:center;margin-top:14px"><button class="go" onclick="xShop()">Pre-order now</button><button onclick="lmode=\'guest\';showLogin=true;render()">'+esc(xv('wallet_title','My wallet'))+'</button></div></section>'+
+  sec.map(xSec).join('')+
+  '<h2 id="xshop" style="text-align:center;margin:18px 0 12px">'+esc(xv('shop_title','Pre-order yours'))+'</h2>'+(pr.length?'<div class="xgrid">'+pr.map(xProd).join('')+'</div>':'<p class="mut" style="text-align:center">No products yet. Check back soon.</p>')+
+  (about?'<div class="card" style="margin-top:14px;text-align:center"><h2>'+esc(xv('about_title','About'))+'</h2><div>'+xhtml(about)+'</div></div>':'')+
+  '<p id="xfoot" class="mut" style="text-align:center;margin:24px 0 4px;user-select:none" onclick="xFoot()">\u2022 Xend Ecosystem \u2022</p><div style="text-align:center"><button class="bad" style="min-height:38px" onclick="actOpen()">Activate a new bracelet</button></div>'};
+function xShop(){var e=$('xshop');if(e)e.scrollIntoView({behavior:'smooth'})}
+/* hidden admin entrance: 5 quick taps on the footer text */
+function xFoot(){xclk++;clearTimeout(xclt);xclt=setTimeout(function(){xclk=0},2500);
+  if(xclk>=5){xclk=0;lmode='staff';showLogin=true;render();setTimeout(function(){window.scrollTo(0,document.body.scrollHeight)},0)}}
+/* pre-order modal: lead is saved first (server decrements stock), then the guest is sent to the live payment link */
+function ordOpen(id){var p=((xcms&&xcms.products)||[]).filter(function(x){return x.id===id})[0];if(!p)return;
+  if(xStat(p)==='sold_out'){toast('Sorry, this item is sold out.',false);return}
+  ordP=p;ordLink='';var d=$('ordm');if(!d){d=document.createElement('div');d.id='ordm';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');document.body.appendChild(d)}
+  d.innerHTML='<div class="card"><div class="row sp"><h2 style="margin:0">Pre-order</h2><button onclick="ordClose()" aria-label="Close">\u2715</button></div><p class="mut">'+esc(p.title)+' \u00B7 <b>'+esc(xMoney(p.price))+'</b></p><div class="xf">'+
+  '<div><label for="o_n">Full name</label><input id="o_n" autocomplete="name" maxlength="120"></div>'+
+  '<div><label for="o_p">Phone number (MoMo)</label><input id="o_p" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="024 000 0000"></div>'+
+  '<div><label for="o_e">Email address</label><input id="o_e" type="email" autocomplete="email" maxlength="160" autocapitalize="none"></div>'+
+  '<div><label for="o_m">Preferred payment method</label><select id="o_m"><option value="momo">Mobile Money (MoMo)</option><option value="card">Card</option><option value="bank">Bank transfer</option></select></div>'+
+  '<div id="o_err" role="alert" style="min-height:1.4em;font-weight:700"></div><button class="go" id="o_go" onclick="ordSubmit()">Place pre-order</button></div><p class="mut" style="margin:10px 0 0">Your details are saved first, then you continue to payment.</p></div>';
+  document.body.style.overflow='hidden';setTimeout(function(){var i=$('o_n');if(i)i.focus()},50)}
+function ordClose(){var d=$('ordm');if(d)d.remove();ordP=null;ordLink='';if(!snapView&&!cam)document.body.style.overflow=''}
+function ordPay(){if(ordLink)location.assign(ordLink)}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('ordm'))ordClose()});
+async function ordSubmit(){if(xbusy||!ordP)return;
+  var n=$('o_n').value.trim(),ph=$('o_p').value.trim(),em=$('o_e').value.trim(),m=$('o_m').value,er=$('o_err'),b=$('o_go');
+  if(!n||!ph||!em){er.textContent='Please fill in your name, phone and email.';return}
+  if(!/^[^\s@]+@[^\s@]+$/.test(em)){er.textContent='Enter a valid email address.';return}
+  if(ph.replace(/\D/g,'').length<9){er.textContent='Enter a valid phone number.';return}
+  xbusy=true;b.disabled=true;er.textContent='Saving your order\u2026';
+  try{var r=await rpc('place_preorder',{p_name:n,p_phone:ph,p_email:em,p_method:m,p_product:ordP.id}),t=ordP.title;
+    ordLink=/^https?:\/\//i.test(r.link||'')?r.link:'';
+    var d=$('ordm');if(d)d.innerHTML='<div class="card" style="text-align:center"><h2>Order received \u2713</h2><p>Thank you, '+esc(n.split(' ')[0])+'. Your pre-order for <b>'+esc(t)+'</b> is saved.</p>'+
+      (ordLink?'<p class="mut">Taking you to payment\u2026</p><button class="go" style="width:100%" onclick="ordPay()">Continue to payment</button>':'<p class="mut">We will contact you on '+esc(ph)+' with payment details.</p>')+
+      '<button style="width:100%;margin-top:10px" onclick="ordClose()">Close</button></div>';
+    if(ordLink){var lk=ordLink;setTimeout(function(){if($('ordm')&&ordLink===lk)location.assign(lk)},2500)}
+    loadCms().then(function(){if(xStore())render()})}
+  catch(e){var e2=$('o_err');if(e2)e2.textContent=e.message;var b2=$('o_go');if(b2)b2.disabled=false;loadCms().then(function(){if(xStore())render()})}
+  xbusy=false}
+/* keep stock fresh while the store is open (only repaints when something changed) */
+setInterval(async function(){if(!xStore()||document.hidden||$('ordm')||xbusy)return;var ae=document.activeElement;if(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName))return;
+  var was=JSON.stringify(xcms);await loadCms();if(JSON.stringify(xcms)!==was&&xStore()&&!$('ordm'))render()},60000);
+/* ---- admin: Site / Shop / Sections / Orders tabs ---- */
+function xSel(id,opts,val){return '<select id="'+id+'">'+opts.map(function(o){return '<option value="'+o[0]+'"'+(o[0]===val?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>'}
+function xNeed(){return '<div class="card"><p class="mut">Run xend-storefront.sql in Supabase first, then reload.</p></div>'}
+async function xLoadAdm(){try{adm.secs=await rpc('cms_sections_all')}catch(e){adm.secs=null}
+  try{adm.orders=await rpc('preorders_list')}catch(e){adm.orders=null}
+  await loadCms();render()}
+function xvSite(){if(!xcms)return xNeed();
+  var f=XCFG.map(function(x){var id='xc_'+x[0];return '<div><label for="'+id+'"><b>'+x[1]+'</b></label>'+(x[3]?'<textarea id="'+id+'" maxlength="600">'+esc(xv(x[0]))+'</textarea>':'<input id="'+id+'" value="'+esc(xv(x[0]))+'" placeholder="'+esc(x[2])+'" maxlength="400" autocapitalize="none" style="width:100%">')+'</div>'}).join('');
+  var l=XALL.map(function(t){return '<div><label for="xl_'+t[0]+'" class="mut">'+t[1]+'</label><input id="xl_'+t[0]+'" value="'+esc(xv('label_'+t[0]))+'" placeholder="'+esc(t[1])+'" maxlength="30" style="width:100%"></div>'}).join('');
+  return '<div class="card"><h2>Site &amp; payment settings</h2><p class="mut">Site name shows on the public store and browser tab. The app / wallet name shows once someone is inside the wallet or staff screens. Payment links must start with https://.</p><div class="xf">'+f+'</div></div>'+
+  '<div class="card"><h2>Menu &amp; page names</h2><p class="mut">Rename any tab. Leave empty to keep the default.</p><div class="xf">'+l+'</div></div><button class="go" style="width:100%" onclick="xSaveSite()">Save all settings</button>'}
+async function xSaveSite(){var v={};XCFG.forEach(function(x){v[x[0]]=$('xc_'+x[0]).value.trim()});
+  var lt=parseInt(v.low_stock_at,10);v.low_stock_at=String(lt>=0?lt:3);
+  if(v.site_logo_url&&!xurl(v.site_logo_url)){toast('Logo URL must start with https://',false);return}
+  var bad=['momo_link','card_link','bank_link'].filter(function(k){return v[k]&&v[k]!=='#'&&!/^https?:\/\//i.test(v[k])});
+  if(bad.length){toast('Payment links must start with https:// (or leave empty).',false);return}
+  XALL.forEach(function(t){v['label_'+t[0]]=$('xl_'+t[0]).value.trim()});
+  try{await rpc('cms_save_config',{v:v});await loadCms();toast('Saved.',true);render()}catch(e){toast(e.message,false)}}
+function xProdForm(p){var id=p?p.id:'new',g=function(k){return p&&p[k]!=null?p[k]:''};
+  return '<div class="item"><div class="xf"><input id="pp_'+id+'_t" placeholder="Product title" value="'+esc(g('title'))+'" maxlength="120"><textarea id="pp_'+id+'_d" placeholder="Description" maxlength="500">'+esc(g('description'))+'</textarea><input id="pp_'+id+'_i" placeholder="Image URL (https://...)" value="'+esc(g('image_url'))+'" autocapitalize="none">'+
+  '<div class="row"><input id="pp_'+id+'_p" type="number" min="0" step="any" placeholder="Price" aria-label="Price" value="'+esc(g('price'))+'" style="width:120px"><input id="pp_'+id+'_s" type="number" min="0" step="1" placeholder="Stock" aria-label="Stock" value="'+esc(g('stock_count'))+'" style="width:120px">'+(p?'<span class="tag">'+esc(xStat(p).replace('_',' '))+'</span>':'')+'</div>'+
+  '<div class="row"><button class="go" onclick="xProdSave(\''+id+'\')">'+(p?'Save':'Add product')+'</button>'+(p?'<button class="bad" onclick="xProdDel(\''+id+'\')">Delete</button>':'')+'</div></div></div>'}
+function xvShop(){if(!xcms)return xNeed();var L=xcms.products||[];
+  return '<div class="card"><h2>New product</h2>'+xProdForm(null)+'</div><div class="card"><h2>Inventory</h2><p class="mut">Each pre-order lowers stock by 1. At 0 the item shows Sold Out and ordering is blocked until you restock here.</p>'+(L.length?L.map(xProdForm).join(''):'<p class="mut">No products yet.</p>')+'</div>'}
+async function xProdSave(id){var q=function(s){return $('pp_'+id+'_'+s).value.trim()},price=parseFloat(q('p')),stock=parseInt(q('s'),10);
+  if(!q('t')){toast('Enter a product title.',false);return}
+  if(!(price>=0)){toast('Enter a valid price.',false);return}
+  if(!(stock>=0)){toast('Enter the stock quantity (0 or more).',false);return}
+  if(q('i')&&!xurl(q('i'))){toast('Image URL must start with https://',false);return}
+  try{await rpc('product_save',{p:{id:id==='new'?null:id,title:q('t'),description:q('d'),image_url:q('i'),price:price,stock_count:stock}});await loadCms();toast(id==='new'?'Product added.':'Product saved.',true);render()}catch(e){toast(e.message,false)}}
+async function xProdDel(id){if(!confirm('Delete this product?'))return;
+  try{await rpc('product_delete',{pid:id});await loadCms();toast('Product deleted.',true);render()}catch(e){toast(e.message,false)}}
+function xSecForm(s){var id=s?s.id:'new',g=function(k,d){return s&&s[k]!=null?s[k]:d};
+  return '<div class="item"><div class="xf"><input id="ss_'+id+'_t" placeholder="Section title" maxlength="120" value="'+esc(g('title',''))+'"><textarea id="ss_'+id+'_c" placeholder="Content" maxlength="2000">'+esc(g('content',''))+'</textarea><div class="row">'+
+  xSel('ss_'+id+'_a',[['left','Align left'],['center','Align center'],['right','Align right']],g('alignment','center'))+xSel('ss_'+id+'_n',[['fade-in','Fade in'],['slide-up','Slide up'],['pulse','Pulse'],['none','No animation']],g('animation','fade-in'))+
+  '<input id="ss_'+id+'_o" type="number" step="1" placeholder="Order" aria-label="Sort order" value="'+esc(g('sort_order',0))+'" style="width:100px"></div>'+
+  '<label class="tg" style="justify-content:flex-start"><input type="checkbox" id="ss_'+id+'_v"'+(g('is_visible',true)?' checked':'')+'><span>Visible on the page</span></label>'+
+  '<div class="row"><button class="go" onclick="xSecSave(\''+id+'\')">'+(s?'Save':'Add section')+'</button>'+(s?'<button class="bad" onclick="xSecDel(\''+id+'\')">Delete</button>':'')+'</div></div></div>'}
+function xvSecs(){var L=adm.secs;if(L===null)return xNeed();if(!L)L=[];
+  return '<div class="card"><h2>New section</h2>'+xSecForm(null)+'</div><div class="card"><h2>Landing page sections</h2><p class="mut">Shown on the public page between the hero and the shop, lowest order first.</p>'+(L.length?L.map(xSecForm).join(''):'<p class="mut">No sections yet.</p>')+'</div>'}
+async function xSecSave(id){var q=function(s){return $('ss_'+id+'_'+s)};if(!q('t').value.trim()){toast('Enter a section title.',false);return}
+  try{await rpc('section_save',{s:{id:id==='new'?null:id,title:q('t').value.trim(),content:q('c').value,alignment:q('a').value,animation:q('n').value,sort_order:parseInt(q('o').value,10)||0,is_visible:q('v').checked}});toast('Section saved.',true);await xLoadAdm()}catch(e){toast(e.message,false)}}
+async function xSecDel(id){if(!confirm('Delete this section?'))return;try{await rpc('section_delete',{sid:id});toast('Section deleted.',true);await xLoadAdm()}catch(e){toast(e.message,false)}}
+function xvOrders(){var o=adm.orders;if(o===null)return xNeed();if(!o)o=[];var ST=['pending','paid','delivered','cancelled'];
+  return '<div class="card"><h2>Pre-orders</h2>'+(o.length?'<div style="overflow-x:auto"><table>'+o.map(function(x){return '<tr><td>'+when(x.created_at)+'</td><td><b>'+esc(x.name)+'</b><br><a href="tel:'+esc(String(x.phone).replace(/[^\d+]/g,''))+'">'+esc(x.phone)+'</a><br>'+esc(x.email)+'</td><td>'+esc(x.product_title||'-')+(x.price!=null?'<br>'+esc(xMoney(x.price)):'')+'<br><span class="mut">'+esc(x.payment_method)+'</span></td><td><select aria-label="Order status" onchange="xOrdSt(\''+esc(x.id)+'\',this.value)">'+ST.map(function(s){return '<option'+(s===x.status?' selected':'')+'>'+s+'</option>'}).join('')+'</select></td></tr>'}).join('')+'</table></div>':'<p class="mut">No pre-orders yet.</p>')+'</div>'}
+async function xOrdSt(id,s){try{await rpc('preorder_status',{oid:id,st:s});toast('Order marked '+s+'.',true)}catch(e){toast(e.message,false)}await xLoadAdm()}
+/* tab bar: admins get the new tabs; every tab name can be overridden from the Site tab */
+setTab=function(t){if(XPAGES.indexOf(t)>-1){tab=t;render();xLoadAdm()}else setTab0(t)};
+vStaff=function(){
+  if(!me||me.role!=='admin'){var h=vStaff0();if(me&&me.role!=='vendor')XALL.forEach(function(t){var l=xv('label_'+t[0]);if(l)h=h.replace(new RegExp('(onclick="setTab\\(\''+t[0]+'\'\\)">)[^<]*(</button>)'),function(m,a,b){return a+esc(l)+b})});return h}
+  var T=XALL,map={home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,vendors:vVendors,buys:vBuys,team:vTeam,groups:vGroups,import:vImport,set:vSet,site:xvSite,shop:xvShop,secs:xvSecs,orders:xvOrders,ledger:vLedger};
+  return '<div class="row tabs" style="margin-bottom:14px">'+T.map(function(t){return '<button class="'+(tab===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+esc(xv('label_'+t[0],t[1]))+'</button>'}).join('')+'</div>'+(map[tab]||vHome)()};
 boot();
+loadCms().then(function(){var ae=document.activeElement;if(!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)))render()});
 </script>
 </body>
 </html>
