@@ -101,6 +101,18 @@ textarea:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 #ordm{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px}
 #ordm .card{width:100%;max-width:420px;max-height:92vh;overflow:auto;margin:0}
 #ordm input,#ordm select{width:100%}
+
+.card.xmny{background:#0f2e22;color:#fff;border-color:#0f2e22}
+.card.xmny .mut{color:#b9d8c9}
+.card.xmny .bal{color:#7dffb0}
+.card.xmny button{background:transparent;color:#fff;border-color:#7dffb0}
+.card.xmny button.go{background:#7dffb0;color:#0f2e22;border-color:#7dffb0}
+.card.xmny input,.card.xmny select{background:#fff;color:#111;border-color:#7dffb0}
+.card.xmny .item{border-color:#24503f}
+.tag.xm{border-color:#7dffb0;color:#7dffb0}
+.xk{display:grid;grid-template-columns:1fr 1fr;gap:10px}.xk>div{border:2px solid var(--edge);border-radius:12px;padding:10px 12px}
+.xk b{font-size:1.25rem;display:block}
+td.xr,th.xr{text-align:right;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -128,6 +140,7 @@ function base(){return location.href.split('#')[0].split('?')[0]}
 function clearArm(){armed=null;sv('fb-armed',null)}
 
 async function boot(){
+  payCapture();
   if(cfg){sb=supabase.createClient(cfg.url,cfg.key);try{FX=await rpc('cfg_get')||FX}catch(e){}var s=(await sb.auth.getSession()).data.session;if(s)await loadMe();
     var fm=String(location.hash||'').match(/[#&]f=([0-9a-f]{6})/i);if(fm){try{history.replaceState(null,'',location.pathname)}catch(e){}await friendLink(fm[1].toUpperCase());return}
     var t=tokenFrom(location.hash||location.search);if(t){try{history.replaceState(null,'',location.pathname)}catch(e){}await onKey(t);return}
@@ -218,7 +231,7 @@ async function changePin(){var o=$('op').value.trim(),n=$('np').value.trim();if(
   try{var r=await rpc('change_pin',{k:key,pin_:o,new_:n});if(!r.ok)say(r.text,false);
     else{wpin=n;sv('fb-guest',{k:key,pin:n});wallet=await rpc('wallet',{k:key,pin_:n});gEdit=null;say('PIN changed. Use the new PIN next time you log in.',true)}}
   catch(e){say(e.message,false)}render()}
-function guestOut(){gEdit=null;giftOpen=false;giftSince=null;chatOpen=false;stopChat();cdirty=false;wallet=null;wmode=null;key=null;card=null;wpin='';sv('fb-guest',null);render()}
+function guestOut(){mw=null;mwMode=null;mwErr='';gEdit=null;giftOpen=false;giftSince=null;chatOpen=false;stopChat();cdirty=false;wallet=null;wmode=null;key=null;card=null;wpin='';sv('fb-guest',null);render()}
 async function saveCard(){try{await rpc('save_links',{k:key,pin_:wpin,l:readLinks('g')});wallet=await rpc('wallet',{k:key,pin_:wpin});cdirty=false;phdirty.g=false;gEdit=null;say('Card saved.',true)}catch(e){say(e.message,false)}render()}
 async function freeze(){try{await rpc('set_frozen',{k:key,pin_:wpin,f:!wallet.frozen});wallet=await rpc('wallet',{k:key,pin_:wpin});say(wallet.frozen?'Bracelet frozen.':'Bracelet unfrozen.',true)}catch(e){say(e.message,false)}render()}
 
@@ -514,8 +527,8 @@ setInterval(async function(){if(me||!wallet||!key||wmode!=='open'){if(!wallet)la
     if(lastBal===null){lastBal=b;return}
     if(b!==lastBal){var df=b-lastBal;lastBal=b;
       if(Date.now()-ownAt>20000){
-        if(df>0)notify('Points received','+'+df+' pts ('+money(df)+'). Balance '+b+' pts.','bal',[120,80,120]);
-        else notify('Points spent',(-df)+' pts ('+money(-df)+') spent. Balance '+b+' pts.','bal',[200])}}}catch(e){}},10000);
+        if(df>0)notify('Tokens received','+'+df+' tokens. Balance '+b+' tokens.','bal',[120,80,120]);
+        else notify('Tokens spent',(-df)+' tokens spent. Balance '+b+' tokens.','bal',[200])}}}catch(e){}},10000);
 bellPaint();
 /* ---- views ---- */
 function when(t){return new Date(t).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}
@@ -534,12 +547,13 @@ function vPublic(){
     h+=vLogin()}
   return h}
 function vWallet(){var w=wallet;
-  if(w.live===false)return '<div class="card"><h2>Hi '+esc(w.name.split(' ')[0])+'</h2><p class="mut">The event is not active, so points are hidden for now. You can still edit your card below.</p></div>'+chatCard()+cardEditBlock(w)+'<button onclick="guestOut()">Log out</button>';
-  return '<div class="card"><div class="mut">Hi '+esc(w.name.split(' ')[0])+', your balance</div><div class="bal">'+w.balance+' pts</div><div class="mut">≈ '+money(w.balance)+'</div><p class="mut">Points can only be added by organizers.</p><div class="row"><button onclick="refreshWallet()">Refresh</button><button onclick="freeze()">'+(w.frozen?'Unfreeze':'Freeze')+' bracelet</button></div></div>'+chatCard()+
+  if(mwMode)return vMoneyFlow();
+  if(w.live===false)return vMoneyBlock()+'<div class="card"><h2>Hi '+esc(w.name.split(' ')[0])+'</h2><p class="mut">The event is not active, so your event tokens are hidden for now. Your money wallet above is not affected. You can still edit your card below.</p></div>'+chatCard()+cardEditBlock(w)+'<button onclick="guestOut()">Log out</button>';
+  return vMoneyBlock()+'<div class="card"><div class="row sp"><span class="mut">Hi '+esc(w.name.split(' ')[0])+', your event tokens</span><span class="tag">Not cash</span></div><div class="bal">'+w.balance+' tokens</div><p class="mut">Loaded by organizers for the event. Spend them at stalls or send them to friends. They cannot be withdrawn or turned into money.</p><div class="row"><button onclick="refreshWallet()">Refresh</button><button onclick="freeze()">'+(w.frozen?'Unfreeze':'Freeze')+' bracelet</button></div></div>'+chatCard()+
   cardEditBlock(w)+
   pinEditBlock()+
   (w.acts.length?'<div class="card"><h2>Activities</h2>'+w.acts.map(function(a){return '<div class="item row sp"><span>'+esc(a.name)+'</span><span class="tag '+(a.done?'ok':'')+'">'+(a.done?'Done':'Not done')+'</span></div>'}).join('')+'</div>':'')+
-  txCounters(w.tx,'Points activity',w.tx.length?'<div>'+w.tx.map(function(t){return '<div class="item row sp"><span>'+esc(t.type)+' \u00B7 '+esc(t.who)+'<br><span class="mut">'+when(t.ts)+'</span></span><b>'+(t.amt>0?'+':'')+t.amt+'</b></div>'}).join('')+'</div>':'','')+
+  txCounters(w.tx,'Event token activity',w.tx.length?'<div>'+w.tx.map(function(t){return '<div class="item row sp"><span>'+esc(t.type)+' \u00B7 '+esc(t.who)+'<br><span class="mut">'+when(t.ts)+'</span></span><b>'+(t.amt>0?'+':'')+t.amt+'</b></div>'}).join('')+'</div>':'','')+
   '<button onclick="guestOut()">Log out</button>'}
 function nfcBtn(){return HAS&&!nfcOn?'<button class="go" onclick="listen()" style="margin-bottom:12px">Start NFC</button>':''}
 function armedCard(){var a=armed;return '<div class="card"><h2>Ready: tap a bracelet</h2><div class="bal">'+(a.type==='topup'?'+':'')+a.amt+' pts</div><p class="mut">'+esc(a.note||'')+' Expires in 2 minutes.</p><button class="bad" onclick="disarm()">Cancel</button></div>'}
@@ -659,7 +673,7 @@ function vSet(){var T=adm.times,c=FX.cur||{};
   '<div class="card"><h2>Event schedule</h2><p class="mut">Event mode turns on at the start and off at the end automatically.</p>'+(T===null?'<p class="mut">Run features.sql in Supabase first.</p>':T&&T.length?T.map(function(e){return '<div class="item"><div class="row sp"><b>'+esc(e.name)+'</b><span class="tag">'+(e.active?'Live':'Off')+'</span></div><div class="row" style="margin-top:6px"><input id="s_'+e.id+'" type="datetime-local" value="'+dtv(e.s)+'"><input id="e_'+e.id+'" type="datetime-local" value="'+dtv(e.e)+'"><button class="go" onclick="saveTimes(\''+e.id+'\')">Save</button></div></div>'}).join(''):'<p class="mut">No events yet.</p>')+'</div>'}
 function vHome(){var g=adm.guests||[],pts=g.reduce(function(a,x){return a+(x.balance||0)},0),v=adm.vendors||[],sold=v.reduce(function(a,x){return a+x.total},0),T=adm.times||[];
   var live=T.filter(function(e){return e.active});
-  return '<div class="card"><div class="mut">Points in guest wallets</div><div class="bal">'+pts+'</div><div class="mut">\u2248 '+money(pts)+' \u00B7 '+g.length+' guests</div></div>'+
+  return '<div class="card"><div class="mut">Event tokens in guest wallets</div><div class="bal">'+pts+'</div><div class="mut">\u2248 '+money(pts)+' \u00B7 '+g.length+' guests</div></div>'+
   (me.role==='admin'?'<div class="card"><div class="mut">Owed to vendors (all events)</div><div class="bal" style="font-size:2rem">'+sold+' pts</div><div class="mut">\u2248 '+money(sold)+'</div></div>':'')+
   '<div class="card"><h2>Live events</h2>'+(live.length?live.map(function(e){return '<div class="item row sp"><b>'+esc(e.name)+'</b><span class="mut">'+(e.e?'ends in '+dur(e.e-Date.now()):'no end set')+'</span></div>'}).join(''):'<p class="mut">No event is live.</p>')+'</div>'}
 async function creditG(tok){var a=parseInt(prompt('How many points to credit? (1 pt = '+money(1)+')'),10);if(!(a>0))return;
@@ -785,22 +799,26 @@ async function chatUnfriend(){var p=chatPeople.filter(function(x){return x.id===
 function msgPrices(){return '<div class="card"><h2>Message prices</h2><p class="mut">Points charged to the sender. First box: one private message to an accepted contact. Second box: one broadcast to everyone at the event. 0 = free.</p><div class="row"><input id="mc" type="number" min="0" step="1" value="'+cM()+'" style="width:110px" aria-label="Private message price"><input id="bc" type="number" min="0" step="1" value="'+cB()+'" style="width:110px" aria-label="Broadcast price"><button class="go" onclick="fxSet({msg_cost:Math.max(0,parseInt($(\'mc\').value,10)||0),bcast_cost:Math.max(0,parseInt($(\'bc\').value,10)||0)})">Save</button></div></div>'}
 /* ---- gifting, groups, capability-aware tabs ---- */
 var giftOpen=false,giftPeople=[],giftSince=null,caps=null,grpSel={},CAPS=[['topup','Top-up & credit'],['cards','Cards'],['import','Import'],['buys','Purchases'],['team','Vendors']];
-function giftCard(){return feat('gifts')?'<div class="card"><div class="row sp"><span><b>Gift points</b><br><span class="mut">Send points to a guest at your event.</span></span><button class="go" onclick="giftOpenUI()">Gift</button></div></div>':''}
+function giftCard(){return feat('gifts')?'<div class="card"><div class="row sp"><span><b>Send tokens</b><br><span class="mut">Send event tokens to a guest. A small fee applies.</span></span><button class="go" onclick="giftOpenUI()">Gift</button></div></div>':''}
 async function giftOpenUI(){try{giftPeople=(await rpc('gift_people',{k:key,pin_:wpin}))||[];giftOpen=true}catch(e){say(e.message,false)}render()}
-function vGift(){var lim=(FX.gift_max>0?'Max '+FX.gift_max+' per gift. ':'')+(FX.gift_daily>0?'Max '+FX.gift_daily+' per day. ':'');
-  return '<div class="card"><div class="row sp"><h2 style="margin:0">Gift points</h2><button onclick="giftOpen=false;render()">Back</button></div><p class="mut">Gifts cannot be undone. '+lim+'1 pt = '+money(1)+'.</p>'+
+function vGift(){var lim=(FX.gift_max>0?'Max '+FX.gift_max+' per gift. ':'')+(FX.gift_daily>0?'Max '+FX.gift_daily+' per day. ':''),
+    fl=mw&&mw.fees?'Fee: '+feeTxt('token')+' per send, added on top. ':'';
+  if(mw===null)setTimeout(mwLoad,0);
+  return '<div class="card"><div class="row sp"><h2 style="margin:0">Send tokens</h2><button onclick="giftOpen=false;render()">Back</button></div><p class="mut">These are event tokens, not money. Sends cannot be undone. '+lim+fl+'</p>'+
   (giftPeople.length?'<select id="gto" style="width:100%"><option value="">Choose a guest</option>'+giftPeople.map(function(p){return '<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>'}).join('')+'</select>':'<p class="mut">No other guests at your event yet.</p>')+
-  '<div class="row" style="margin-top:10px"><input id="gam" type="number" min="1" step="1" placeholder="Points" style="width:120px"><input id="gpn" type="password" inputmode="numeric" placeholder="Your PIN" style="width:120px" autocomplete="off"><button class="go" onclick="giftSend()">Send gift</button></div><div id="gerr" class="mut" role="status" style="min-height:1.4em;margin-top:8px"></div></div>'}
-function giftPop(t,a,l,bal){$('pop').innerHTML='<div class="popcard" role="alertdialog"><div style="font-weight:700">'+esc(t)+'</div><div class="bal">'+a+' pts</div><div style="color:#2b2b2b">\u2248 '+money(a)+'</div><p style="margin:8px 0 0;font-size:1.1rem"><b>'+esc(l)+'</b></p>'+(bal!=null?'<p style="color:#2b2b2b;margin:6px 0 0">Balance now '+bal+' pts</p>':'')+'<button onclick="closePop()" style="width:100%;margin-top:16px;background:#111;color:#ffc400;border-color:#111">OK</button></div>';beep();if(navigator.vibrate)navigator.vibrate([120,80,120])}
+  '<div class="row" style="margin-top:10px"><input id="gam" type="number" min="1" step="1" placeholder="Tokens" style="width:120px" oninput="gPrev()"><input id="gpn" type="password" inputmode="numeric" placeholder="Your PIN" style="width:120px" autocomplete="off"><button class="go" onclick="giftSend()">Send tokens</button></div><div id="gprev" class="mut" style="margin-top:8px"></div><div id="gerr" class="mut" role="status" style="min-height:1.4em;margin-top:8px"></div></div>'}
+function gPrev(){var p=$('gprev');if(!p)return;var a=parseInt($('gam').value,10),f=feeOf('token',a);if(!(a>0)||f==null){p.textContent='';return}
+  p.innerHTML='Friend gets <b>'+a+'</b> \u00B7 fee <b>'+f+'</b> \u00B7 taken from you <b>'+(a+f)+'</b> tokens'}
+function giftPop(t,a,l,bal,fee){$('pop').innerHTML='<div class="popcard" role="alertdialog"><div style="font-weight:700">'+esc(t)+'</div><div class="bal">'+a+' tokens</div><p style="margin:8px 0 0;font-size:1.1rem"><b>'+esc(l)+'</b></p>'+(fee>0?'<p style="color:#2b2b2b;margin:6px 0 0">Fee '+fee+' token'+(fee>1?'s':'')+'</p>':'')+(bal!=null?'<p style="color:#2b2b2b;margin:6px 0 0">Token balance now '+bal+'</p>':'')+'<button onclick="closePop()" style="width:100%;margin-top:16px;background:#111;color:#ffc400;border-color:#111">OK</button></div>';beep();if(navigator.vibrate)navigator.vibrate([120,80,120])}
 async function giftSend(){var to=$('gto')?$('gto').value:'',a=parseInt($('gam').value,10),p=$('gpn').value.trim(),er=$('gerr');
-  if(!to||!(a>0)||!p){er.textContent='Choose a guest, enter points and your PIN.';return}
-  var nm=(giftPeople.filter(function(x){return x.id===to})[0]||{}).name;
-  if(!confirm('Send '+a+' pts ('+money(a)+') to '+nm+'? This cannot be undone.'))return;
+  if(!to||!(a>0)||!p){er.textContent='Choose a guest, enter tokens and your PIN.';return}
+  var nm=(giftPeople.filter(function(x){return String(x.id)===to})[0]||{}).name,f=feeOf('token',a)||0;
+  if(!confirm('Send '+a+' tokens to '+nm+'?'+(f?'\nFee: '+f+' token'+(f>1?'s':'')+'. Total taken: '+(a+f)+' tokens.':'')+'\nThis cannot be undone.'))return;
   try{var r=await rpc('gift_send',{k:key,pin_:p,to_:to,pts:a});if(!r.ok){er.textContent=r.text;return}
-    giftOpen=false;var w2=await rpc('wallet',{k:key,pin_:wpin});if(w2)wallet=w2;render();giftPop('You sent',r.sent,'to '+r.to,r.balance)}catch(e){er.textContent=e.message}}
+    giftOpen=false;var w2=await rpc('wallet',{k:key,pin_:wpin});if(w2)wallet=w2;render();giftPop('You sent',r.sent,'to '+r.to,r.balance,r.fee);mwLoad()}catch(e){er.textContent=e.message}}
 setInterval(async function(){if(me||!wallet||!key||!feat('gifts'))return;
   try{var d=await rpc('gift_poll',{k:key,pin_:wpin,after_:giftSince});
-    if(giftSince!==null&&d.items&&d.items.length){var t=d.items.reduce(function(a,x){return a+x.amt},0);giftPop('You received',t,d.items.length===1?'from '+d.items[0].from:d.items.length+' gifts',null);ownAt=Date.now();notify('Points received','+'+t+' pts '+(d.items.length===1?'from '+d.items[0].from:'from '+d.items.length+' gifts'),'gift',[120,80,120]);
+    if(giftSince!==null&&d.items&&d.items.length){var t=d.items.reduce(function(a,x){return a+x.amt},0);giftPop('You received',t,d.items.length===1?'from '+d.items[0].from:d.items.length+' gifts',null);ownAt=Date.now();notify('Tokens received','+'+t+' tokens '+(d.items.length===1?'from '+d.items[0].from:'from '+d.items.length+' gifts'),'gift',[120,80,120]);
       var w2=await rpc('wallet',{k:key,pin_:wpin});if(w2){wallet=w2;if(!chatOpen&&!giftOpen)render()}}
     giftSince=d.top}catch(e){}},8000);
 function giftLimits(){return '<div class="card"><h2>Gift limits</h2><p class="mut">Points per gift and per guest per 24 hours. 0 = unlimited.</p><div class="row"><input id="gm" type="number" min="0" step="1" value="'+(FX.gift_max||0)+'" style="width:110px"><input id="gd" type="number" min="0" step="1" value="'+(FX.gift_daily||0)+'" style="width:110px"><button class="go" onclick="fxSet({gift_max:Math.max(0,parseInt($(\'gm\').value,10)||0),gift_daily:Math.max(0,parseInt($(\'gd\').value,10)||0)})">Save</button></div></div>'}
@@ -957,8 +975,8 @@ var xcms=null,xerr=false,xbusy=false,xclk=0,xclt=null,ordP=null,ordLink='',
   XCFG=[['site_name','Site name (public store)','XEND'],['cash_app_name','App / wallet name','XEND-CASH'],
     ['hero_title','Hero title',''],['hero_subtitle','Hero subtitle','',1],['banner_text','Promo banner (empty = hidden)',''],
     ['about_title','About heading',''],['about_text','About text','',1],['shop_title','Shop heading',''],['wallet_title','Wallet button label','My wallet'],
-    ['momo_link','MoMo payment link','https://...'],['card_link','Card payment link','https://...'],['bank_link','Bank payment link','https://...'],['low_stock_at','Low-stock threshold (units)','3']],
-  XALL=[['home','Home'],['top','Top-up'],['till','Charge'],['cards','Cards'],['events','Events'],['vendors','Owed'],['buys','Purchases'],['team','Team'],['groups','Groups'],['import','Import'],['set','Settings'],['site','Site'],['brand','Logo & Banner'],['shop','Shop'],['secs','Sections'],['btns','Buttons'],['orders','Orders'],['theme','Colors'],['ledger','Ledger']];
+    ['low_stock_at','Low-stock threshold (units)','3']],
+  XALL=[['home','Home'],['top','Top-up'],['till','Charge'],['cards','Cards'],['events','Events'],['vendors','Owed'],['buys','Purchases'],['team','Team'],['groups','Groups'],['import','Import'],['set','Settings'],['site','Site'],['brand','Logo & Banner'],['shop','Shop'],['secs','Sections'],['btns','Buttons'],['orders','Orders'],['money','Money'],['theme','Colors'],['ledger','Ledger']];
 function xv(k,d){var c=xcms&&xcms.config,v=c&&c[k];return (v!=null&&String(v).trim()!=='')?String(v):(d==null?'':d)}
 function xurl(u){u=String(u||'').trim();return /^(https?:\/\/|data:image\/(png|jpe?g|webp|gif);base64,)/i.test(u)?u:''}
 function xhtml(s){return esc(s).replace(/\n/g,'<br>')}
@@ -1001,27 +1019,121 @@ function ordOpen(id){var p=((xcms&&xcms.products)||[]).filter(function(x){return
   '<div><label for="o_n">Full name</label><input id="o_n" autocomplete="name" maxlength="120"></div>'+
   '<div><label for="o_p">Phone number (MoMo)</label><input id="o_p" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="024 000 0000"></div>'+
   '<div><label for="o_e">Email address</label><input id="o_e" type="email" autocomplete="email" maxlength="160" autocapitalize="none"></div>'+
-  '<div><label for="o_m">Preferred payment method</label><select id="o_m"><option value="momo">Mobile Money (MoMo)</option><option value="card">Card</option><option value="bank">Bank transfer</option></select></div>'+
-  '<div id="o_err" role="alert" style="min-height:1.4em;font-weight:700"></div><button class="go" id="o_go" onclick="ordSubmit()">'+esc(xBL('p_submit','Place pre-order'))+'</button></div><p class="mut" style="margin:10px 0 0">Your details are saved first, then you continue to payment.</p></div>';
+  '<div><label for="o_m">Pay with</label><select id="o_m"><option value="momo">Mobile Money (MoMo)</option><option value="card">Card</option><option value="bank">Other (bank transfer)</option></select></div>'+
+  '<div id="o_err" role="alert" style="min-height:1.4em;font-weight:700"></div><button class="go" id="o_go" onclick="ordSubmit()">Pay '+esc(xMoney(p.price))+'</button></div><p class="mut" style="margin:10px 0 0">You pay on a secure payment page. Your order is created only after the payment is confirmed. If you do not pay, nothing is ordered. We hold the item for 15 minutes while you pay.</p></div>';
   document.body.style.overflow='hidden';setTimeout(function(){var i=$('o_n');if(i)i.focus()},50)}
 function ordClose(){var d=$('ordm');if(d)d.remove();ordP=null;ordLink='';if(!snapView&&!cam)document.body.style.overflow=''}
 function ordPay(){if(ordLink)location.assign(ordLink)}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('ordm'))ordClose()});
+/* ---- payments: the browser only STARTS a payment. The server confirms it and creates the order / credit. ---- */
+var payRef=null,mw=null,mwErr='',mwMode=null,mwLoading=false,mwPeople=[],mwBusy=false;
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+async function payCall(b){var r,d=null;
+  try{r=await fetch(cfg.url.replace(/\/$/,'')+'/functions/v1/xend-pay',{method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.key},body:JSON.stringify(b)})}
+  catch(e){throw new Error('Could not reach the payment service. Check your connection.')}
+  try{d=await r.json()}catch(e){}
+  if(!r.ok||!d||d.error)throw new Error((d&&d.error)||'The payment service is not available yet.');return d}
+function mny(p){return 'GH\u20B5 '+(Number(p||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+function pes(v){var n=Math.round(parseFloat(v)*100);return isFinite(n)?n:0}
+function feeOf(asset,amt){var f=mw&&mw.fees&&mw.fees[asset];if(!f)return null;return Number(f.flat||0)+Math.ceil(amt*Number(f.pct_bps||0)/10000)}
+function feeTxt(asset,fees){var f=(fees||(mw&&mw.fees)||{})[asset];if(!f)return '';var p=Number(f.pct_bps||0)/100,a=[];
+  if(asset==='money'){if(f.flat>0)a.push(mny(f.flat));if(p>0)a.push(p+'%')}else{if(f.flat>0)a.push(f.flat+' token'+(f.flat>1?'s':''));if(p>0)a.push(p+'%')}
+  return a.join(' + ')||'free'}
+function payShow(h){var d=$('ordm');if(!d){d=document.createElement('div');d.id='ordm';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');document.body.appendChild(d)}
+  d.innerHTML='<div class="card" style="text-align:center">'+h+'<button style="width:100%;margin-top:10px" onclick="ordClose()">Close</button></div>';document.body.style.overflow='hidden'}
 async function ordSubmit(){if(xbusy||!ordP)return;
   var n=$('o_n').value.trim(),ph=$('o_p').value.trim(),em=$('o_e').value.trim(),m=$('o_m').value,er=$('o_err'),b=$('o_go');
   if(!n||!ph||!em){er.textContent='Please fill in your name, phone and email.';return}
   if(!/^[^\s@]+@[^\s@]+$/.test(em)){er.textContent='Enter a valid email address.';return}
   if(ph.replace(/\D/g,'').length<9){er.textContent='Enter a valid phone number.';return}
-  xbusy=true;b.disabled=true;er.textContent='Saving your order\u2026';
-  try{var r=await rpc('place_preorder',{p_name:n,p_phone:ph,p_email:em,p_method:m,p_product:ordP.id}),t=ordP.title;
-    ordLink=/^https?:\/\//i.test(r.link||'')?r.link:'';
-    var d=$('ordm');if(d)d.innerHTML='<div class="card" style="text-align:center"><h2>Order received \u2713</h2><p>Thank you, '+esc(n.split(' ')[0])+'. Your pre-order for <b>'+esc(t)+'</b> is saved.</p>'+
-      (ordLink?'<p class="mut">Taking you to payment\u2026</p><button class="go" style="width:100%" onclick="ordPay()">Continue to payment</button>':'<p class="mut">We will contact you on '+esc(ph)+' with payment details.</p>')+
-      '<button style="width:100%;margin-top:10px" onclick="ordClose()">Close</button></div>';
-    if(ordLink){var lk=ordLink;setTimeout(function(){if($('ordm')&&ordLink===lk)location.assign(lk)},2500)}
-    loadCms().then(function(){if(xStore())render()})}
-  catch(e){var e2=$('o_err');if(e2)e2.textContent=e.message;var b2=$('o_go');if(b2)b2.disabled=false;loadCms().then(function(){if(xStore())render()})}
+  xbusy=true;b.disabled=true;er.textContent='Opening secure payment\u2026';
+  try{var r=await payCall({action:'preorder',name:n,phone:ph,email:em,method:m,product_id:ordP.id});
+    sv('xc-payref',{ref:r.reference,t:Date.now(),kind:'preorder'});ordLink=r.url;
+    var d=$('ordm');if(d)d.innerHTML='<div class="card" style="text-align:center"><h2>Taking you to payment\u2026</h2><p class="mut">Your order is created only after the payment is confirmed.</p><button class="go" style="width:100%" onclick="ordPay()">Continue to payment</button></div>';
+    location.assign(r.url);return}
+  catch(e){var e2=$('o_err');if(e2)e2.textContent=e.message;var b2=$('o_go');if(b2)b2.disabled=false;loadCms().then(function(){if(xStore()&&!$('ordm'))render()})}
   xbusy=false}
+/* coming back from the payment page (or reopening within 30 minutes): ask the server what happened */
+function payCapture(){
+  try{var q=new URLSearchParams(location.search),r=q.get('reference')||q.get('trxref');if(r&&/^x[pd][0-9a-f]{18}$/.test(r)){payRef=r;history.replaceState(null,'',location.pathname+location.hash)}}catch(e){}
+  if(!payRef){var s=ld('xc-payref');if(s&&s.ref&&Date.now()-s.t<1800000)payRef=s.ref}
+  if(payRef)setTimeout(payResolve,700)}
+async function payResolve(){var ref=payRef;if(!ref)return;payRef=null;
+  payShow('<div class="pulse" aria-hidden="true">\u2026</div><h2>Confirming your payment</h2><p class="mut">This takes a few seconds.</p>');
+  var d=null;
+  for(var i=0;i<10;i++){try{d=await payCall({action:'verify',reference:ref})}catch(e){d={status:'error',msg:e.message}}
+    if(/^(paid|failed|mismatch|unknown)$/.test(d.status))break;await sleep(2500)}
+  var retry='<button class="go" style="width:100%;margin-top:10px" onclick="payRef=\''+ref+'\';payResolve()">Check again</button>';
+  if(/^(paid|failed|mismatch|unknown)$/.test(d.status))sv('xc-payref',null);
+  if(d.status==='paid'&&d.purpose==='deposit'){mw=null;payShow('<h2>Money added \u2713</h2><p>'+esc(mny(d.net))+' is now in your money wallet'+(d.fee?' (fee '+esc(mny(d.fee))+')':'')+'.</p>');if(wallet&&key&&!me)render()}
+  else if(d.status==='paid'){payShow('<h2>Payment confirmed \u2713</h2><p>Your order'+(d.order_no?' <b>#'+esc(d.order_no)+'</b>':'')+' for <b>'+esc(d.title||'your item')+'</b> is placed. We will contact you to arrange delivery.</p>');loadCms().then(function(){if(xStore())render()})}
+  else if(d.status==='failed')payShow('<h2>Payment not completed</h2><p>The payment did not go through, so no order was created and nothing was reserved. You can try again.</p>');
+  else if(d.status==='mismatch')payShow('<h2>Payment needs review</h2><p>The amount received did not match this order, so nothing was created automatically. Please contact us and quote this reference:</p><p><b>'+esc(ref)+'</b></p>');
+  else if(d.status==='unknown')payShow('<h2>Payment not found</h2><p>We could not find this payment.</p>');
+  else if(d.status==='error')payShow('<h2>Could not check the payment</h2><p class="mut">'+esc(d.msg||'')+'</p>'+retry);
+  else payShow('<h2>Still waiting for confirmation</h2><p>Nothing has been created yet. If you completed the payment, your order appears automatically as soon as it is confirmed.</p><p class="mut">Reference: <b>'+esc(ref)+'</b></p>'+retry)}
+/* ---- money wallet (real money). Separate from event tokens. ---- */
+async function mwLoad(){if(mwLoading||!key||!wpin)return;mwLoading=true;
+  try{mw=await rpc('money_wallet',{k:key,pin_:wpin});mwErr=''}catch(e){mw=false;mwErr=e.message}
+  mwLoading=false;var ae=document.activeElement;if(!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)))render()}
+var MK={deposit:'Money added',send:'Sent',receive:'Received',withdraw:'Withdrawal',withdraw_refund:'Withdrawal refunded',fee:'Token fee'};
+function mwRow(t){var tok=t.asset==='token',eff=Number(t.amount)-Number(t.fee||0),who=t.counterparty?' \u00B7 '+esc(t.counterparty):'';
+  return '<div class="item row sp"><span>'+esc(MK[t.kind]||t.kind)+who+'<br><span class="mut">'+when(t.created_at)+(t.fee>0&&!tok?' \u00B7 fee '+esc(mny(t.fee)):'')+'</span></span><b>'+(tok?'-'+t.fee+' tokens':(eff>0?'+':'')+esc(mny(eff)))+'</b></div>'}
+function vMoneyBlock(){
+  if(mw===null){setTimeout(mwLoad,0);return '<div class="card xmny"><div class="mut"><b>Money wallet</b></div><p class="mut">Loading\u2026</p></div>'}
+  if(mw===false)return '<div class="card"><h2>Money wallet</h2><p class="mut">Not available yet'+(mwErr?': '+esc(mwErr):'')+'.</p><button onclick="mw=null;render()">Try again</button></div>';
+  var pend=(mw.pending||[]).map(function(p){return '<p class="mut" style="margin:8px 0 0"><span class="tag xm">Pending</span> Withdrawal of '+esc(mny(p.amount))+' to '+esc(p.momo_number)+'</p>'}).join(''),
+    tx=(mw.tx||[]).slice(0,15);
+  return '<div class="card xmny"><div class="row sp"><span><b>Money wallet</b></span><span class="tag xm">Real money</span></div><div class="bal" style="margin-top:8px">'+esc(mny(mw.balance))+'</div>'+
+  '<p class="mut">Cash you added by MoMo or card. It is kept separate from your event tokens.</p>'+
+  '<div class="row"><button class="go" onclick="mwOpen(\'deposit\')">Add money</button><button onclick="mwOpen(\'send\')">Send</button><button onclick="mwOpen(\'withdraw\')">Withdraw</button></div>'+
+  '<p class="mut" style="margin:10px 0 0">Fee on each add, send or withdrawal: '+esc(feeTxt('money'))+'.</p>'+pend+
+  (tx.length?'<details style="margin-top:10px"><summary><b>Money &amp; fee activity</b></summary>'+tx.map(mwRow).join('')+'</details>':'')+'</div>'}
+async function mwOpen(m){mwMode=m;mwErr='';
+  if(m==='send'){try{mwPeople=(await rpc('gift_people',{k:key,pin_:wpin}))||[]}catch(e){mwPeople=[];mwErr=e.message}}
+  render();scrollTo(0,0)}
+function mwClose(){mwMode=null;render()}
+function mwHead(t){return '<div class="row sp"><h2 style="margin:0">'+t+'</h2><button onclick="mwClose()">Back</button></div>'}
+function vMoneyFlow(){var m=mwMode,bal='<p class="mut">Money wallet balance: <b>'+esc(mny(mw&&mw.balance))+'</b>. Fee: '+esc(feeTxt('money'))+'.</p>',
+  er='<div id="mwe" class="mut" role="status" style="min-height:1.4em;margin:8px 0"></div><div id="mwp" class="mut" style="margin:10px 0"></div>';
+  if(m==='deposit')return '<div class="card xmny">'+mwHead('Add money')+'<p class="mut">You pay on a secure payment page (MoMo or card). Money reaches your wallet only after the payment is confirmed. The fee is taken from what you pay.</p><div class="row">'+[10,20,50,100].map(function(x){return '<button onclick="$(\'mwa\').value='+x+';mwPrev()">'+x+'</button>'}).join('')+'</div><div class="row" style="margin-top:10px"><input id="mwa" type="number" inputmode="decimal" min="1" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwDeposit()">Continue to payment</button></div>';
+  if(m==='send')return '<div class="card xmny">'+mwHead('Send money')+'<p class="mut">Real money, not event tokens. Sends cannot be undone.</p>'+bal+
+    (mwPeople.length?'<select id="mws" style="width:100%"><option value="">Choose a guest</option>'+mwPeople.map(function(p){return '<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>'}).join('')+'</select>':'<p class="mut">'+(mwErr?esc(mwErr):'No other guests available yet.')+'</p>')+
+    '<div class="row" style="margin-top:10px"><input id="mwa" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"><input id="mwpin" type="password" inputmode="numeric" placeholder="Your PIN" autocomplete="off"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwSend()">Send money</button></div>';
+  return '<div class="card xmny">'+mwHead('Withdraw money')+'<p class="mut">Sent to your MoMo number by the organizers. The amount and fee leave your wallet now; if a request is rejected you get everything back. Minimum GH\u20B5 5.00.</p>'+bal+
+    '<div class="row"><select id="mwn"><option>MTN MoMo</option><option>Telecel Cash</option><option>AirtelTigo Money</option></select><input id="mwm" type="tel" inputmode="tel" placeholder="MoMo number" autocomplete="tel"><input id="mwa" type="number" inputmode="decimal" min="5" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"><input id="mwpin" type="password" inputmode="numeric" placeholder="Your PIN" autocomplete="off"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwWithdraw()">Request withdrawal</button></div>'}
+function mwPrev(){var p=$('mwp');if(!p||!mw)return;var a=pes($('mwa').value),f=feeOf('money',a);if(!(a>0)||f==null){p.textContent='';return}
+  if(mwMode==='deposit'){p.innerHTML=a>f?'You pay <b>'+esc(mny(a))+'</b> \u00B7 fee <b>'+esc(mny(f))+'</b> \u00B7 added to your wallet <b>'+esc(mny(a-f))+'</b>':'Amount is too small to cover the fee.';return}
+  p.innerHTML='Recipient gets <b>'+esc(mny(a))+'</b> \u00B7 fee <b>'+esc(mny(f))+'</b> \u00B7 taken from your wallet <b>'+esc(mny(a+f))+'</b>'+(a+f>mw.balance?'<br><b>Not enough money in your wallet.</b>':'')}
+async function mwDeposit(){if(mwBusy)return;var a=parseFloat($('mwa').value),er=$('mwe');
+  if(!(a>=1)){er.textContent='Enter at least GH\u20B5 1.00.';return}
+  mwBusy=true;$('mwgo').disabled=true;er.textContent='Opening secure payment\u2026';
+  try{var r=await payCall({action:'deposit',k:key,pin:wpin,amount:a});sv('xc-payref',{ref:r.reference,t:Date.now(),kind:'deposit'});location.assign(r.url);return}
+  catch(e){er.textContent=e.message;var b=$('mwgo');if(b)b.disabled=false}
+  mwBusy=false}
+function mwPop(t,a,l,sub){$('pop').innerHTML='<div class="popcard" role="alertdialog"><div style="font-weight:700">'+esc(t)+'</div><div class="bal">'+esc(a)+'</div><p style="margin:8px 0 0;font-size:1.1rem"><b>'+esc(l)+'</b></p>'+(sub?'<p style="color:#2b2b2b;margin:6px 0 0">'+esc(sub)+'</p>':'')+'<button onclick="closePop()" style="width:100%;margin-top:16px;background:#111;color:#ffc400;border-color:#111">OK</button></div>';beep();if(navigator.vibrate)navigator.vibrate([120,80,120])}
+async function mwSend(){if(mwBusy)return;var to=$('mws')?$('mws').value:'',a=pes($('mwa').value),p=$('mwpin').value.trim(),er=$('mwe');
+  if(!to||!(a>0)||!p){er.textContent='Choose a guest, enter an amount and your PIN.';return}
+  var f=feeOf('money',a),nm=(mwPeople.filter(function(x){return String(x.id)===to})[0]||{}).name;
+  if(f==null){er.textContent='Fees are not loaded yet. Go back and try again.';return}
+  if(!confirm('Send '+mny(a)+' to '+nm+'?\nFee: '+mny(f)+'. Total taken: '+mny(a+f)+'.\nThis cannot be undone.'))return;
+  mwBusy=true;ownAt=Date.now();
+  try{var r=await rpc('money_send',{k:key,pin_:p,to_:to,amt:a,expect_fee:f});mwMode=null;mw=null;render();mwPop('You sent',mny(r.sent),'to '+r.to,'Fee '+mny(r.fee)+' \u00B7 balance now '+mny(r.balance))}
+  catch(e){er.textContent=e.message}
+  mwBusy=false}
+async function mwWithdraw(){if(mwBusy)return;var a=pes($('mwa').value),p=$('mwpin').value.trim(),mo=$('mwm').value.trim(),nw=$('mwn').value,er=$('mwe');
+  if(!(a>=500)||!mo||!p){er.textContent='Enter at least GH\u20B5 5.00, your MoMo number and your PIN.';return}
+  var f=feeOf('money',a);if(f==null){er.textContent='Fees are not loaded yet. Go back and try again.';return}
+  if(!confirm('Withdraw '+mny(a)+' to '+mo+'?\nFee: '+mny(f)+'. Total taken from your wallet: '+mny(a+f)+'.'))return;
+  mwBusy=true;ownAt=Date.now();
+  try{var r=await rpc('money_withdraw',{k:key,pin_:p,amt:a,momo:mo,network:nw,expect_fee:f});mwMode=null;mw=null;render();mwPop('Withdrawal requested',mny(r.amount),'to '+mo,'Fee '+mny(r.fee)+'. The organizers will send it to your MoMo.')}
+  catch(e){er.textContent=e.message}
+  mwBusy=false}
+setInterval(async function(){if(me||!wallet||!key||wmode!=='open'||document.hidden||!mw||mwMode)return;
+  try{var d=await rpc('money_wallet',{k:key,pin_:wpin});if(!d)return;
+    if(JSON.stringify(d)!==JSON.stringify(mw)){var inc=Number(d.balance)-Number(mw.balance);mw=d;
+      if(inc>0&&Date.now()-ownAt>20000&&NOTIF)notify('Money received',mny(inc)+' reached your money wallet.','mny',[120,80,120]);
+      var ae=document.activeElement;if(!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)))render()}}catch(e){}},12000);
 /* keep stock fresh while the store is open (only repaints when something changed) */
 setInterval(async function(){if(!xStore()||document.hidden||$('ordm')||xbusy)return;var ae=document.activeElement;if(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName))return;
   var was=JSON.stringify(xcms);await loadCms();if(JSON.stringify(xcms)!==was&&xStore()&&!$('ordm'))render()},60000);
@@ -1029,18 +1141,16 @@ setInterval(async function(){if(!xStore()||document.hidden||$('ordm')||xbusy)ret
 function xSel(id,opts,val){return '<select id="'+id+'">'+opts.map(function(o){return '<option value="'+o[0]+'"'+(o[0]===val?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select>'}
 function xNeed(){return '<div class="card"><p class="mut">Run xend-storefront.sql in Supabase first, then reload.</p></div>'}
 async function xLoadAdm(){try{adm.secs=await rpc('cms_sections_all')}catch(e){adm.secs=null}
-  try{adm.orders=await rpc('preorders_list')}catch(e){adm.orders=null}
+  try{adm.ordx=await rpc('orders_admin')}catch(e){adm.ordx=null}try{adm.legacy=await rpc('preorders_list')}catch(e){adm.legacy=null}
   await loadCms();render()}
 function xvSite(){if(!xcms)return xNeed();
   var f=XCFG.map(function(x){var id='xc_'+x[0];return '<div><label for="'+id+'"><b>'+x[1]+'</b></label>'+(x[3]?'<textarea id="'+id+'" maxlength="600">'+esc(xv(x[0]))+'</textarea>':'<input id="'+id+'" value="'+esc(xv(x[0]))+'" placeholder="'+esc(x[2])+'" maxlength="400" autocapitalize="none" style="width:100%">')+'</div>'}).join('');
   var l=XALL.map(function(t){return '<div><label for="xl_'+t[0]+'" class="mut">'+t[1]+'</label><input id="xl_'+t[0]+'" value="'+esc(xv('label_'+t[0]))+'" placeholder="'+esc(t[1])+'" maxlength="30" style="width:100%"></div>'}).join('');
-  return '<div class="card"><h2>Site &amp; payment settings</h2><p class="mut">Site name shows on the public store and browser tab. The app / wallet name shows once someone is inside the wallet or staff screens. Payment links must start with https://.</p><div class="xf">'+f+'</div></div>'+
+  return '<div class="card"><h2>Site settings</h2><p class="mut">Site name shows on the public store and browser tab. The app / wallet name shows once someone is inside the wallet or staff screens. Payments are taken by the server-side payment service, so there are no payment links to paste here.</p><div class="xf">'+f+'</div></div>'+
   '<div class="card"><h2>Menu &amp; page names</h2><p class="mut">Rename any tab. Leave empty to keep the default.</p><div class="xf">'+l+'</div></div><button class="go" style="width:100%" onclick="xSaveSite()">Save all settings</button>'}
 async function xSaveSite(){var v={};XCFG.forEach(function(x){v[x[0]]=$('xc_'+x[0]).value.trim()});
   var lt=parseInt(v.low_stock_at,10);v.low_stock_at=String(lt>=0?lt:3);
   if(v.site_logo_url&&!xurl(v.site_logo_url)){toast('Logo URL must start with https://',false);return}
-  var bad=['momo_link','card_link','bank_link'].filter(function(k){return v[k]&&v[k]!=='#'&&!/^https?:\/\//i.test(v[k])});
-  if(bad.length){toast('Payment links must start with https:// (or leave empty).',false);return}
   XALL.forEach(function(t){v['label_'+t[0]]=$('xl_'+t[0]).value.trim()});
   try{await rpc('cms_save_config',{v:v});await loadCms();toast('Saved.',true);render()}catch(e){toast(e.message,false)}}
 function xProdForm(p){var id=p?p.id:'new',g=function(k){return p&&p[k]!=null?p[k]:''};
@@ -1048,7 +1158,7 @@ function xProdForm(p){var id=p?p.id:'new',g=function(k){return p&&p[k]!=null?p[k
   '<div class="row"><input id="pp_'+id+'_p" type="number" min="0" step="any" placeholder="Price" aria-label="Price" value="'+esc(g('price'))+'" style="width:120px"><input id="pp_'+id+'_s" type="number" min="0" step="1" placeholder="Stock" aria-label="Stock" value="'+esc(g('stock_count'))+'" style="width:120px">'+(p?'<span class="tag">'+esc(xStat(p).replace('_',' '))+'</span>':'')+'</div>'+
   '<div class="row"><button class="go" onclick="xProdSave(\''+id+'\')">'+(p?'Save':'Add product')+'</button>'+(p?'<button class="bad" onclick="xProdDel(\''+id+'\')">Delete</button>':'')+'</div></div></div>'}
 function xvShop(){if(!xcms)return xNeed();var L=xcms.products||[];
-  return '<div class="card"><h2>New product</h2>'+xProdForm(null)+'</div><div class="card"><h2>Inventory</h2><p class="mut">Each pre-order lowers stock by 1. At 0 the item shows Sold Out and ordering is blocked until you restock here.</p>'+(L.length?L.map(xProdForm).join(''):'<p class="mut">No products yet.</p>')+'</div>'}
+  return '<div class="card"><h2>New product</h2>'+xProdForm(null)+'</div><div class="card"><h2>Inventory</h2><p class="mut">Stock drops by 1 only when a payment is confirmed. Unpaid checkouts hold a unit for 15 minutes, then release it. At 0 the item shows Sold Out until you restock here.</p>'+(L.length?L.map(xProdForm).join(''):'<p class="mut">No products yet.</p>')+'</div>'}
 async function xProdSave(id){var old=((((xcms&&xcms.products)||[]).filter(function(x){return x.id===id})[0])||{}).image_url;var q=function(s){return $('pp_'+id+'_'+s).value.trim()},price=parseFloat(q('p')),stock=parseInt(q('s'),10);
   if(!q('t')){toast('Enter a product title.',false);return}
   if(!(price>=0)){toast('Enter a valid price.',false);return}
@@ -1068,14 +1178,53 @@ function xvSecs(){var L=adm.secs;if(L===null)return xNeed();if(!L)L=[];
 async function xSecSave(id){var q=function(s){return $('ss_'+id+'_'+s)};if(!q('t').value.trim()){toast('Enter a section title.',false);return}
   try{await rpc('section_save',{s:{id:id==='new'?null:id,title:q('t').value.trim(),content:q('c').value,alignment:q('a').value,animation:q('n').value,sort_order:parseInt(q('o').value,10)||0,is_visible:q('v').checked}});toast('Section saved.',true);await xLoadAdm()}catch(e){toast(e.message,false)}}
 async function xSecDel(id){if(!confirm('Delete this section?'))return;try{await rpc('section_delete',{sid:id});toast('Section deleted.',true);await xLoadAdm()}catch(e){toast(e.message,false)}}
-function xvOrders(){var o=adm.orders;if(o===null)return xNeed();if(!o)o=[];var ST=['pending','paid','delivered','cancelled'];
-  return '<div class="card"><h2>Pre-orders</h2>'+(o.length?'<div style="overflow-x:auto"><table>'+o.map(function(x){return '<tr><td>'+when(x.created_at)+'</td><td><b>'+esc(x.name)+'</b><br><a href="tel:'+esc(String(x.phone).replace(/[^\d+]/g,''))+'">'+esc(x.phone)+'</a><br>'+esc(x.email)+'</td><td>'+esc(x.product_title||'-')+(x.price!=null?'<br>'+esc(xMoney(x.price)):'')+'<br><span class="mut">'+esc(x.payment_method)+'</span></td><td><select aria-label="Order status" onchange="xOrdSt(\''+esc(x.id)+'\',this.value)">'+ST.map(function(s){return '<option'+(s===x.status?' selected':'')+'>'+s+'</option>'}).join('')+'</select></td></tr>'}).join('')+'</table></div>':'<p class="mut">No pre-orders yet.</p>')+'</div>'}
-async function xOrdSt(id,s){try{await rpc('preorder_status',{oid:id,st:s});toast('Order marked '+s+'.',true)}catch(e){toast(e.message,false)}await xLoadAdm()}
+function xvOrders(){var d=adm.ordx;if(d===null)return '<div class="card"><p class="mut">Run xend-payments.sql in Supabase first, then reload.</p></div>';if(!d)d={orders:[],unpaid:[]};
+  var o=d.orders||[],u=d.unpaid||[],lg=adm.legacy||[],ST=[['paid','Paid'],['delivered','Delivered'],['cancelled','Cancelled'],['refund_due','Refund due'],['refunded','Refunded']],
+    rev=o.filter(function(x){return x.status!=='cancelled'&&x.status!=='refunded'}).reduce(function(a,x){return a+Number(x.amount)},0),
+    due=o.filter(function(x){return x.status==='refund_due'}).length,
+    US={pending:'Waiting for payment',failed:'Failed',mismatch:'Amount mismatch',expired:'Expired'};
+  return '<div class="card"><h2>Orders</h2><p class="mut">Every order here was created by the server after the payment provider confirmed the money. Nothing can be added by hand or by the website.</p><div class="xk"><div><span class="mut">Paid orders</span><b>'+o.length+'</b></div><div><span class="mut">Sales (not wallet money)</span><b>'+esc(mny(rev))+'</b></div></div>'+(due?'<p><span class="tag">'+due+' to refund</span> These were paid after the last unit sold. Refund them and mark Refunded.</p>':'')+
+  (o.length?'<div style="overflow-x:auto;margin-top:10px"><table>'+o.map(function(x){return '<tr><td>'+when(x.paid_at)+'<br><span class="mut">#'+esc(x.order_no)+'</span></td><td><b>'+esc(x.name)+'</b><br><a href="tel:'+esc(String(x.phone).replace(/[^\d+]/g,''))+'">'+esc(x.phone)+'</a><br>'+esc(x.email)+'</td><td>'+esc(x.product_title||'-')+'<br><b>'+esc(mny(x.amount))+'</b><br><span class="mut">'+esc(x.payment_method||'')+'</span><br><span class="tag ok">Payment verified</span></td><td><select aria-label="Order status" onchange="xOrdSt(\''+esc(x.id)+'\',this.value)">'+ST.map(function(s){return '<option value="'+s[0]+'"'+(s[0]===x.status?' selected':'')+'>'+s[1]+'</option>'}).join('')+'</select></td></tr>'}).join('')+'</table></div>':'<p class="mut">No paid orders yet.</p>')+'</div>'+
+  '<div class="card"><details><summary><b>Unpaid checkouts ('+u.length+')</b> \u00B7 no order was created</summary><p class="mut">People who started a checkout but have not paid. Stock is held for 15 minutes, then released.</p>'+(u.length?'<div style="overflow-x:auto"><table>'+u.map(function(x){return '<tr><td>'+when(x.created_at)+'</td><td><b>'+esc(x.name||'')+'</b><br>'+esc(x.phone||'')+'</td><td>'+esc(x.title||'-')+'<br>'+esc(mny(x.amount))+'</td><td><span class="tag">'+esc(x.status==='pending'&&!x.holding?'Hold expired':US[x.status]||x.status)+'</span></td></tr>'}).join('')+'</table></div>':'<p class="mut">None.</p>')+'</details></div>'+
+  (lg.length?'<div class="card"><details><summary><b>Legacy pre-orders ('+lg.length+')</b> \u00B7 unverified</summary><p class="mut">Saved before payment confirmation existed. Their payment status was never checked by the server. Read-only.</p><div style="overflow-x:auto"><table>'+lg.map(function(x){return '<tr><td>'+when(x.created_at)+'</td><td><b>'+esc(x.name)+'</b><br>'+esc(x.phone)+'<br>'+esc(x.email)+'</td><td>'+esc(x.product_title||'-')+'</td><td><span class="tag">'+esc(x.status)+'</span></td></tr>'}).join('')+'</table></div></details></div>':'')}
+async function xOrdSt(id,s){try{await rpc('order_set_status',{p_oid:id,p_st:s});toast('Order marked '+s.replace('_',' ')+'.',true)}catch(e){toast(e.message,false)}await xLoadAdm()}
+/* ---- admin: Money tab (fees, rewards, payouts, reconciliation) ---- */
+async function moneyLoad(){try{adm.mon=await rpc('money_admin');adm.monErr=''}catch(e){adm.mon=null;adm.monErr=e.message}try{adm.wd=await rpc('withdrawals_admin')}catch(e){adm.wd=null}render()}
+var RSRC={'money|deposit':'Money: fees on adding money','money|withdraw':'Money: fees on withdrawals','money|send':'Money: fees on guest-to-guest sends','token|send':'Tokens: fees on guest-to-guest sends'};
+function vMoneyAdmin(){var m=adm.mon;
+  if(m===undefined)return '<div class="card"><p class="mut">Loading\u2026</p></div>';
+  if(m===null)return '<div class="card"><p class="mut">Could not load the money tab'+(adm.monErr?': '+esc(adm.monErr):'')+'. Run xend-payments.sql in Supabase first, then reload.</p></div>';
+  var R=m.rewards,rc=m.recon,F=m.fees,wd=adm.wd||[],ok=Number(rc.difference)===0;
+  var rw='<div class="card"><h2>Transaction rewards</h2><p class="mut">Every fee lands here. Money and tokens are kept apart.</p><div class="xk"><div><span class="mut">Money available</span><b>'+esc(mny(R.money.available))+'</b><span class="mut">earned '+esc(mny(R.money.earned))+' \u00B7 withdrawn '+esc(mny(R.money.withdrawn))+'</span></div><div><span class="mut">Tokens available</span><b>'+R.token.available+' tokens</b><span class="mut">earned '+R.token.earned+' \u00B7 withdrawn '+R.token.withdrawn+'</span></div></div>'+
+    '<div class="row" style="margin-top:12px"><input id="rwm" type="number" min="0.01" step="0.01" placeholder="Money to withdraw (GH\u20B5)"><button class="go" onclick="rewardWd(\'money\')">Withdraw money</button></div><div class="row" style="margin-top:8px"><input id="rwt" type="number" min="1" step="1" placeholder="Tokens to withdraw"><button class="go" onclick="rewardWd(\'token\')">Withdraw tokens</button></div><input id="rwn" maxlength="200" placeholder="Note, e.g. MoMo transaction ID" style="width:100%;margin-top:8px">'+
+    '<p class="mut">Withdrawing records the amount as taken out of the reward pool. For money, move the cash out of your payment provider balance yourself; this app does not move bank money. Tokens have no cash value, so a token withdrawal is a record only.</p></div>';
+  var src='<div class="card"><h2>Where the fees came from</h2>'+(m.by_source.length?'<table>'+m.by_source.map(function(s){var k=s.asset+'|'+s.source;return '<tr><td>'+esc(RSRC[k]||k)+'<br><span class="mut">'+s.n+' transactions</span></td><td class="xr"><b>'+(s.asset==='money'?esc(mny(s.total)):s.total+' tokens')+'</b></td></tr>'}).join('')+'</table>':'<p class="mut">No fees yet.</p>')+'</div>';
+  var fs='<div class="card"><h2>Transaction fees</h2><p class="mut">Charged on top of the amount for sends and withdrawals, and taken from the payment when guests add money. Changes apply to new transactions only. Money flat fee is in GH\u20B5; percent is of the amount.</p>'+
+    '<div class="row"><label class="mut" style="flex:1 1 100%">Money: flat fee (GH\u20B5) and percent</label><input id="fmf" type="number" min="0" step="0.01" value="'+(Number(F.money.flat)/100).toFixed(2)+'"><input id="fmp" type="number" min="0" max="20" step="0.01" value="'+(Number(F.money.pct_bps)/100)+'"></div>'+
+    '<div class="row" style="margin-top:8px"><label class="mut" style="flex:1 1 100%">Tokens: flat fee (tokens) and percent</label><input id="ftf" type="number" min="0" step="1" value="'+F.token.flat+'"><input id="ftp" type="number" min="0" max="20" step="0.01" value="'+(Number(F.token.pct_bps)/100)+'"></div>'+
+    '<p class="mut">Today: sending GH\u20B5 100.00 costs '+esc(mny(Number(F.money.flat)+Math.ceil(10000*F.money.pct_bps/10000)))+' in fees; sending 100 tokens costs '+(Number(F.token.flat)+Math.ceil(100*F.token.pct_bps/10000))+' tokens.</p><button class="go" style="width:100%" onclick="feesSave()">Save fees</button></div>';
+  var pend=wd.filter(function(w){return w.status==='pending'}),done=wd.filter(function(w){return w.status!=='pending'}).slice(0,15);
+  var po='<div class="card"><h2>Withdrawal requests ('+pend.length+' waiting)</h2><p class="mut">Pay the guest by MoMo, then mark it paid. Reject to refund the guest in full, fee included.</p>'+
+    (pend.length?pend.map(function(w){return '<div class="item"><div class="row sp"><b>'+esc(w.guest_name||'Guest')+'</b><b>'+esc(mny(w.amount))+'</b></div><div class="mut">'+esc(w.network||'')+' '+esc(w.momo_number)+' \u00B7 fee '+esc(mny(w.fee))+' \u00B7 '+when(w.created_at)+'</div><div class="row" style="margin-top:6px"><button class="go" onclick="wdResolve(\''+esc(w.id)+'\',\'paid\')">Mark paid</button><button class="bad" onclick="wdResolve(\''+esc(w.id)+'\',\'rejected\')">Reject &amp; refund</button></div></div>'}).join(''):'<p class="mut">Nothing waiting.</p>')+
+    (done.length?'<details style="margin-top:10px"><summary>Recent</summary>'+done.map(function(w){return '<div class="item row sp"><span>'+esc(w.guest_name||'Guest')+' \u00B7 '+esc(mny(w.amount))+'<br><span class="mut">'+when(w.resolved_at||w.created_at)+(w.payout_ref?' \u00B7 '+esc(w.payout_ref):'')+'</span></span><span class="tag">'+esc(w.status)+'</span></div>'}).join('')+'</details>':'')+'</div>';
+  var rec='<div class="card"><h2>Where the money is</h2><p class="mut">Real money, from confirmed payments only.</p><table><tr><td>Confirmed deposits</td><td class="xr"><b>'+esc(mny(rc.deposits))+'</b></td></tr><tr><td>In guest money wallets</td><td class="xr">'+esc(mny(rc.in_wallets))+'</td></tr><tr><td>Held for withdrawal requests</td><td class="xr">'+esc(mny(rc.pending_payouts))+'</td></tr><tr><td>Paid out to guests</td><td class="xr">'+esc(mny(rc.paid_out))+'</td></tr><tr><td>Fees earned (all time)</td><td class="xr">'+esc(mny(rc.fees_earned))+'</td></tr><tr><td>Difference</td><td class="xr"><span class="tag'+(ok?' ok':'')+'">'+(ok?'Balanced':esc(mny(rc.difference))+' \u2013 check')+'</span></td></tr></table></div>'+
+    '<div class="card"><h2>Kept separate from wallet money</h2><div class="xk"><div><span class="mut">Event tokens in guest wallets (admin loaded)</span><b>'+m.tokens.in_wallets+'</b></div><div><span class="mut">Pre-order sales ('+m.preorders.count+' orders)</span><b>'+esc(mny(m.preorders.revenue))+'</b></div></div></div>';
+  var rl=(m.recent||[]).length?'<div class="card"><h2>Recent reward activity</h2><div style="overflow-x:auto"><table>'+m.recent.map(function(r){return '<tr><td>'+when(r.created_at)+'</td><td>'+esc(r.source==='admin_withdraw'?'Withdrawn'+(r.note?': '+r.note:''):(RSRC[r.asset+'|'+r.source]||r.source))+(r.guest?'<br><span class="mut">'+esc(r.guest)+'</span>':'')+'</td><td class="xr"><b>'+(r.delta>0?'+':'')+(r.asset==='money'?esc(mny(r.delta)):r.delta+' tokens')+'</b></td></tr>'}).join('')+'</table></div></div>':'';
+  return rw+po+fs+src+rec+'' +rl.replace(/^$/,'')}
+async function rewardWd(asset){var el=$(asset==='money'?'rwm':'rwt'),a=asset==='money'?pes(el.value):parseInt(el.value,10);
+  if(!(a>0)){toast('Enter an amount.',false);return}
+  if(!confirm('Withdraw '+(asset==='money'?mny(a):a+' tokens')+' from the reward pool?'))return;
+  try{await rpc('reward_withdraw',{p_asset:asset,p_amount:a,p_note:$('rwn').value.trim()||null});toast('Withdrawal recorded.',true);await moneyLoad()}catch(e){toast(e.message,false)}}
+async function feesSave(){var mf=pes($('fmf').value),mp=Math.round(parseFloat($('fmp').value)*100),tf=parseInt($('ftf').value,10),tp=Math.round(parseFloat($('ftp').value)*100);
+  if(!(mf>=0)||!(mp>=0&&mp<=2000)||!(tf>=0)||!(tp>=0&&tp<=2000)){toast('Check the fees: percent must be between 0 and 20.',false);return}
+  try{await rpc('fees_set',{p:{money:{flat:mf,pct_bps:mp},token:{flat:tf,pct_bps:tp}}});toast('Fees saved.',true);await moneyLoad()}catch(e){toast(e.message,false)}}
+async function wdResolve(id,st){var note=prompt(st==='paid'?'Payout reference (MoMo transaction ID):':'Reason for rejecting (the guest is refunded in full):','');if(note===null)return;
+  try{await rpc('withdrawal_resolve',{p_wid:id,p_st:st,p_note:note});toast(st==='paid'?'Marked paid.':'Rejected and refunded.',true);await moneyLoad()}catch(e){toast(e.message,false)}}
 /* tab bar: admins get the new tabs; every tab name can be overridden from the Site tab */
-setTab=function(t){if(tab==='brand'&&t!=='brand')brandDraft=null;if(tab==='theme'&&t!=='theme'&&themeDraft){themeDraft=null;themeApply(FX.theme)}if(XPAGES.indexOf(t)>-1){tab=t;render();xLoadAdm()}else setTab0(t)};
+setTab=function(t){if(tab==='brand'&&t!=='brand')brandDraft=null;if(tab==='theme'&&t!=='theme'&&themeDraft){themeDraft=null;themeApply(FX.theme)}if(t==='money'){tab=t;render();moneyLoad();return}if(XPAGES.indexOf(t)>-1){tab=t;render();xLoadAdm()}else setTab0(t)};
 vStaff=function(){
   if(!me||me.role!=='admin'){var h=vStaff0();if(me&&me.role!=='vendor')XALL.forEach(function(t){var l=xv('label_'+t[0]);if(l)h=h.replace(new RegExp('(onclick="setTab\\(\''+t[0]+'\'\\)">)[^<]*(</button>)'),function(m,a,b){return a+esc(l)+b})});return h}
-  var T=XALL,map={home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,vendors:vVendors,buys:vBuys,team:vTeam,groups:vGroups,import:vImport,set:vSet,site:xvSite,brand:xvBrand,shop:xvShop,secs:xvSecs,btns:xvBtns,orders:xvOrders,theme:xvTheme,ledger:vLedger};
+  var T=XALL,map={home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,vendors:vVendors,buys:vBuys,team:vTeam,groups:vGroups,import:vImport,set:vSet,site:xvSite,brand:xvBrand,shop:xvShop,secs:xvSecs,btns:xvBtns,orders:xvOrders,money:vMoneyAdmin,theme:xvTheme,ledger:vLedger};
   return '<div class="row tabs" style="margin-bottom:14px">'+T.map(function(t){return '<button class="'+(tab===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+esc(xv('label_'+t[0],t[1]))+'</button>'}).join('')+'</div>'+(map[tab]||vHome)()};
 /* ================= admin-editable buttons, colours, points counters, guest edit toggles ================= */
 var gEdit=null,themeDraft=null,themeLast='';
