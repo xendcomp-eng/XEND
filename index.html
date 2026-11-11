@@ -1961,7 +1961,7 @@ async function tokSend(kind,id){try{var r=await payoutCall({action:'send',kind:k
   if(tab==='money')await moneyLoad();else await tokLoad()}
 async function tokLeft(eid,dec){
   if(!confirm(dec==='redeemed'?'Redeem every guest\u2019s leftover tokens into their money wallets? Guests can then withdraw it, so make sure your Paystack balance can cover it. This cannot be undone.':'Keep every guest\u2019s leftover tokens in the company? Their balances go to zero. This cannot be undone.'))return;
-  try{var r=await rpc('admin_leftover',{eid:eid,p_dec:dec,p_note:null});toast((dec==='redeemed'?'Redeemed ':'Kept ')+(r.admin_tokens+r.paid_tokens)+' tokens for '+r.guests+' guests.',true)}catch(e){toast(e.message,false)}
+  try{var r=await rpc('admin_leftover',{eid:eid,dec:dec,p_note:null});toast((dec==='redeemed'?'Redeemed ':'Kept ')+(r.admin_tokens+r.paid_tokens)+' tokens for '+r.guests+' guests.',true)}catch(e){toast(e.message,false)}
   await tokLoad()}
 async function tokReopen(sid){if(!confirm('Reopen this vendor\u2019s section so they can charge guests again?'))return;
   try{await rpc('vendor_reopen',{sid:sid});toast('Section reopened.',true)}catch(e){toast(e.message,false)}await tokLoad()}
