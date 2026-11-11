@@ -920,7 +920,7 @@ function vClaim(){
     '<p class="mut">Username: 3 to 20 letters, numbers, dot or underscore.</p><div class="row"><button class="go" onclick="claimFinish()">Activate bracelet</button><button onclick="clmStep=\'id\';render()">Back</button></div></div>';
   return '<div class="card"><h2>Activate your bracelet</h2><p class="mut">'+(claimSerial?'Serial':'Product ID')+' <b>'+esc(claimCode)+'</b>. Enter the user ID you were given when you bought it.</p>'+
     '<div class="row"><input id="clm_id" placeholder="Your user ID" autocapitalize="characters" autocomplete="off" value="'+esc(clmId)+'" style="flex:1;min-width:180px"><button class="go" onclick="claimCheck()">Continue</button></div>'+
-    '<div class="row" style="margin-top:12px"><button onclick="claimTok=null;claimSerial=null;clmFor=null;render()">Cancel</button></div></div>'}
+    bidSaved()+'<div class="row" style="margin-top:12px"><button onclick="claimTok=null;claimSerial=null;clmFor=null;render()">Cancel</button></div></div>'}
 function clmErr(t){say(t,false);render()}
 async function claimCheck(){if(clmBusy)return;clmId=(($('clm_id')||{}).value||'').trim();if(!clmId)return clmErr('Enter your user ID.');
   clmBusy=true;try{var r=await (claimSerial?rpc('serial_claim_id_check',{s:claimSerial,uid:clmId}):rpc('claim_id_check',{k:claimTok,uid:clmId}));if(!r.ok){clmBusy=false;return clmErr(r.text)}clmName=r.name;clmStep='choose'}catch(e){say(e.message,false)}clmBusy=false;render()}
@@ -1127,6 +1127,19 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('ordm'))o
 /* ---- payments: the browser only STARTS a payment. The server confirms it and creates the order / credit. ---- */
 var payRef=null,mw=null,mwErr='',mwMode=null,mwLoading=false,mwPeople=[],mwBusy=false;
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+/* ---- Buyer ID (one per purchase) ---- */
+function bidCopy(c){var ok=function(){toast('Copied '+c,true)};
+  try{navigator.clipboard.writeText(c).then(ok,function(){bidCopy2(c,ok)})}catch(e){bidCopy2(c,ok)}}
+function bidCopy2(c,ok){try{var t=document.createElement('textarea');t.value=c;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();ok()}catch(e){toast(c,true)}}
+function bidSave(d){try{if(!d||!d.buyer_id)return '';var L=ld('xb-ids')||[];if(!L.some(function(x){return x.id===d.buyer_id}))L.unshift({id:d.buyer_id,qty:d.qty||1,title:d.title||'',t:Date.now()});sv('xb-ids',L.slice(0,20))}catch(e){}return ''}
+function bidBox(d){if(!d||!d.buyer_id)return '';var n=d.qty>1;
+  return '<div style="margin:14px 0 4px;padding:14px;border:3px solid var(--edge);border-radius:16px;background:var(--acc);color:#111;text-align:center"><div style="font-weight:700">Your Buyer ID</div>'+
+  '<div style="font-size:1.45rem;font-weight:800;letter-spacing:1px;word-break:break-all;margin:8px 0">'+esc(d.buyer_id)+'</div>'+
+  '<button class="go" style="width:100%;border-color:#111" onclick="bidCopy(\''+esc(d.buyer_id)+'\')">Copy ID</button>'+
+  '<p style="margin:10px 0 0;font-weight:700">Save this ID now: copy it or take a screenshot. It is the only way to claim your bracelet'+(n?'s':'')+'.</p>'+
+  '<p style="margin:6px 0 0">This ID can activate '+(n?'up to <b>'+esc(d.qty)+'</b> bracelets':'<b>1</b> bracelet')+'. If you buy again, you get a new ID for that purchase.</p></div>'}
+function bidSaved(){var L=ld('xb-ids');if(!L||!L.length)return '';
+  return '<div style="margin-top:12px"><span class="mut">Saved on this phone, tap to use:</span><div class="row" style="margin-top:6px">'+L.slice(0,5).map(function(x){return '<button type="button" style="min-height:40px" onclick="$(\'clm_id\').value=\''+esc(x.id)+'\'">'+esc(x.id)+(x.qty>1?' \u00D7'+esc(x.qty):'')+'</button>'}).join('')+'</div></div>'}
 async function payCall(b){var r,d=null;
   try{r=await fetch(cfg.url.replace(/\/$/,'')+'/functions/v1/xend-pay',{method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.key},body:JSON.stringify(b)})}
   catch(e){throw new Error('Could not reach the payment service. Check your connection.')}
@@ -1166,7 +1179,7 @@ async function payResolve(){var ref=payRef;if(!ref)return;payRef=null;
   var retry='<button class="go" style="width:100%;margin-top:10px" onclick="payRef=\''+ref+'\';payResolve()">Check again</button>';
   if(/^(paid|failed|mismatch|unknown)$/.test(d.status))sv('xc-payref',null);
   if(d.status==='paid'&&d.purpose==='deposit'){mw=null;payShow('<h2>Money added \u2713</h2><p>'+esc(mny(d.net))+' is now in your money wallet'+(d.fee?' (fee '+esc(mny(d.fee))+')':'')+'.</p>');if(wallet&&key&&!me)render()}
-  else if(d.status==='paid'){payShow('<h2>Payment confirmed \u2713</h2><p>Your order'+(d.order_no?' <b>#'+esc(d.order_no)+'</b>':'')+' for <b>'+esc(d.title||'your item')+'</b>'+(d.color?' ('+esc(d.color)+')':'')+(d.qty>1?' \u00D7 '+esc(d.qty):'')+' is placed. We will contact you to arrange delivery.</p>');loadCms().then(function(){if(xStore())render()})}
+  else if(d.status==='paid'){payShow('<h2>Payment confirmed \u2713</h2><p>Your order'+(d.order_no?' <b>#'+esc(d.order_no)+'</b>':'')+' for <b>'+esc(d.title||'your item')+'</b>'+(d.color?' ('+esc(d.color)+')':'')+(d.qty>1?' \u00D7 '+esc(d.qty):'')+' is placed. We will contact you to arrange delivery.</p>'+bidBox(d)+bidSave(d));loadCms().then(function(){if(xStore())render()})}
   else if(d.status==='failed')payShow('<h2>Payment not completed</h2><p>The payment did not go through, so no order was created and nothing was reserved. You can try again.</p>');
   else if(d.status==='mismatch')payShow('<h2>Payment needs review</h2><p>The amount received did not match this order, so nothing was created automatically. Please contact us and quote this reference:</p><p><b>'+esc(ref)+'</b></p>');
   else if(d.status==='unknown')payShow('<h2>Payment not found</h2><p>We could not find this payment.</p>');
@@ -1176,7 +1189,7 @@ async function payResolve(){var ref=payRef;if(!ref)return;payRef=null;
 async function mwLoad(){if(mwLoading||!key||!wpin)return;mwLoading=true;
   try{mw=await rpc('money_wallet',{k:key,pin_:wpin});mwErr=''}catch(e){mw=false;mwErr=e.message}
   mwLoading=false;var ae=document.activeElement;if(!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)))render()}
-var MK={deposit:'Money added',send:'Sent',receive:'Received',withdraw:'Withdrawal',withdraw_refund:'Withdrawal refunded',fee:'Token fee'};
+var MK={to_points:'Converted to points',deposit:'Money added',send:'Sent',receive:'Received',withdraw:'Withdrawal',withdraw_refund:'Withdrawal refunded',fee:'Token fee'};
 function mwRow(t){var tok=t.asset==='token',eff=Number(t.amount)-Number(t.fee||0),who=t.counterparty?' \u00B7 '+esc(t.counterparty):'';
   return '<div class="item row sp"><span>'+esc(MK[t.kind]||t.kind)+who+'<br><span class="mut">'+when(t.created_at)+(t.fee>0&&!tok?' \u00B7 fee '+esc(mny(t.fee)):'')+'</span></span><b>'+(tok?'-'+t.fee+' tokens':(eff>0?'+':'')+esc(mny(eff)))+'</b></div>'}
 function vMoneyBlock(){
@@ -1186,7 +1199,7 @@ function vMoneyBlock(){
     tx=(mw.tx||[]).slice(0,15);
   return '<div class="card xmny"><div class="row sp"><span><b>Money wallet</b></span><span class="tag xm">Real money</span></div><div class="bal" style="margin-top:8px">'+esc(mny(mw.balance))+'</div>'+
   '<p class="mut">Cash you added by MoMo or card. It is kept separate from your event tokens.</p>'+
-  '<div class="row"><button class="go" onclick="mwOpen(\'deposit\')">Add money</button><button onclick="mwOpen(\'send\')">Send</button><button onclick="mwOpen(\'withdraw\')">Withdraw</button></div>'+
+  '<div class="row"><button class="go" onclick="mwOpen(\'deposit\')">Add money</button><button onclick="mwOpen(\'send\')">Send</button><button onclick="mwOpen(\'withdraw\')">Withdraw</button>'+(mw.pts_rate>0?'<button onclick="mwOpen(\'convert\')">Convert to points</button>':'')+'</div>'+
   '<p class="mut" style="margin:10px 0 0">Fee on each add, send or withdrawal: '+esc(feeTxt('money'))+'.</p>'+pend+
   (tx.length?'<details style="margin-top:10px"><summary><b>Money &amp; fee activity</b></summary>'+tx.map(mwRow).join('')+'</details>':'')+'</div>'}
 async function mwOpen(m){mwMode=m;mwErr='';
@@ -1196,15 +1209,25 @@ function mwClose(){mwMode=null;render()}
 function mwHead(t){return '<div class="row sp"><h2 style="margin:0">'+t+'</h2><button onclick="mwClose()">Back</button></div>'}
 function vMoneyFlow(){var m=mwMode,bal='<p class="mut">Money wallet balance: <b>'+esc(mny(mw&&mw.balance))+'</b>. Fee: '+esc(feeTxt('money'))+'.</p>',
   er='<div id="mwe" class="mut" role="status" style="min-height:1.4em;margin:8px 0"></div><div id="mwp" class="mut" style="margin:10px 0"></div>';
+  if(m==='convert')return '<div class="card xmny">'+mwHead('Convert to points')+'<p class="mut">Rate: <b>GH\u20B5 1 = '+Number(mw.pts_rate)+' points</b>. The money leaves this wallet and the points go to your event wallet. This cannot be undone.</p><p class="mut">Money wallet balance: <b>'+esc(mny(mw&&mw.balance))+'</b>.</p><div class="row"><input id="mwa" type="number" inputmode="decimal" min="1" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"><input id="mwpin" type="password" inputmode="numeric" placeholder="Your PIN" autocomplete="off"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwConvert()">Convert to points</button></div>';
   if(m==='deposit')return '<div class="card xmny">'+mwHead('Add money')+'<p class="mut">You pay on a secure payment page (MoMo or card). Money reaches your wallet only after the payment is confirmed. The fee is taken from what you pay.</p><div class="row">'+[10,20,50,100].map(function(x){return '<button onclick="$(\'mwa\').value='+x+';mwPrev()">'+x+'</button>'}).join('')+'</div><div class="row" style="margin-top:10px"><input id="mwa" type="number" inputmode="decimal" min="1" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwDeposit()">Continue to payment</button></div>';
   if(m==='send')return '<div class="card xmny">'+mwHead('Send money')+'<p class="mut">Real money, not event tokens. Sends cannot be undone.</p>'+bal+
     (mwPeople.length?'<select id="mws" style="width:100%"><option value="">Choose a guest</option>'+mwPeople.map(function(p){return '<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>'}).join('')+'</select>':'<p class="mut">'+(mwErr?esc(mwErr):'No other guests available yet.')+'</p>')+
     '<div class="row" style="margin-top:10px"><input id="mwa" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"><input id="mwpin" type="password" inputmode="numeric" placeholder="Your PIN" autocomplete="off"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwSend()">Send money</button></div>';
   return '<div class="card xmny">'+mwHead('Withdraw money')+'<p class="mut">Sent to your MoMo number by the organizers. The amount and fee leave your wallet now; if a request is rejected you get everything back. Minimum GH\u20B5 5.00.</p>'+bal+
     '<div class="row"><select id="mwn"><option>MTN MoMo</option><option>Telecel Cash</option><option>AirtelTigo Money</option></select><input id="mwm" type="tel" inputmode="tel" placeholder="MoMo number" autocomplete="tel"><input id="mwa" type="number" inputmode="decimal" min="5" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"><input id="mwpin" type="password" inputmode="numeric" placeholder="Your PIN" autocomplete="off"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwWithdraw()">Request withdrawal</button></div>'}
-function mwPrev(){var p=$('mwp');if(!p||!mw)return;var a=pes($('mwa').value),f=feeOf('money',a);if(!(a>0)||f==null){p.textContent='';return}
+function mwPrev(){var p=$('mwp');if(!p||!mw)return;
+  if(mwMode==='convert'){var a0=pes($('mwa').value),r0=Number(mw.pts_rate)||0;if(!(a0>0)||!(r0>0)){p.textContent='';return}var pt=Math.floor(a0/100*r0),cost=Math.min(a0,Math.ceil(pt*100/r0));
+    p.innerHTML=pt>=1?'You get <b>'+pt+' points</b> \u00B7 taken from your wallet <b>'+esc(mny(cost))+'</b>'+(cost>mw.balance?'<br><b>Not enough money in your wallet.</b>':''):'That amount is too small to give 1 point.';return}var a=pes($('mwa').value),f=feeOf('money',a);if(!(a>0)||f==null){p.textContent='';return}
   if(mwMode==='deposit'){p.innerHTML=a>f?'You pay <b>'+esc(mny(a))+'</b> \u00B7 fee <b>'+esc(mny(f))+'</b> \u00B7 added to your wallet <b>'+esc(mny(a-f))+'</b>':'Amount is too small to cover the fee.';return}
   p.innerHTML='Recipient gets <b>'+esc(mny(a))+'</b> \u00B7 fee <b>'+esc(mny(f))+'</b> \u00B7 taken from your wallet <b>'+esc(mny(a+f))+'</b>'+(a+f>mw.balance?'<br><b>Not enough money in your wallet.</b>':'')}
+async function mwConvert(){if(mwBusy)return;var a=pes($('mwa').value),p=$('mwpin').value.trim(),er=$('mwe');
+  if(!(a>=100)){er.textContent='Enter at least GH\u20B5 1.00.';return}
+  if(!/^[0-9]{4,6}$/.test(p)){er.textContent='Enter your PIN.';return}
+  mwBusy=true;$('mwgo').disabled=true;er.textContent='Converting\u2026';
+  try{var r=await rpc('money_to_points',{k:key,pin_:p,amt:a});mwMode=null;mw=null;try{wallet=await rpc('wallet',{k:key,pin_:wpin})}catch(e){}render();mwPop('You got',r.points+' points','for '+mny(r.spent),'Money balance now '+mny(r.balance))}
+  catch(e){er.textContent=e.message;var b=$('mwgo');if(b)b.disabled=false}
+  mwBusy=false}
 async function mwDeposit(){if(mwBusy)return;var a=parseFloat($('mwa').value),er=$('mwe');
   if(!(a>=1)){er.textContent='Enter at least GH\u20B5 1.00.';return}
   mwBusy=true;$('mwgo').disabled=true;er.textContent='Opening secure payment\u2026';
@@ -1339,13 +1362,13 @@ function xvOrders(){var d=adm.ordx;if(d===null)return '<div class="card"><p clas
     due=o.filter(function(x){return x.status==='refund_due'}).length,
     US={pending:'Waiting for payment',failed:'Failed',mismatch:'Amount mismatch',expired:'Expired'};
   return '<div class="card"><h2>Orders</h2><p class="mut">Every order here was created by the server after the payment provider confirmed the money. Nothing can be added by hand or by the website.</p><div class="xk"><div><span class="mut">Paid orders</span><b>'+o.length+'</b></div><div><span class="mut">Sales (not wallet money)</span><b>'+esc(mny(rev))+'</b></div></div>'+(due?'<p><span class="tag">'+due+' to refund</span> These were paid after the last unit sold. Refund them and mark Refunded.</p>':'')+
-  (o.length?'<div style="overflow-x:auto;margin-top:10px"><table>'+o.map(function(x){return '<tr><td>'+when(x.paid_at)+'<br><span class="mut">#'+esc(x.order_no)+'</span></td><td><b>'+esc(x.name)+'</b><br><a href="tel:'+esc(String(x.phone).replace(/[^\d+]/g,''))+'">'+esc(x.phone)+'</a><br>'+esc(x.email)+'</td><td>'+esc(x.product_title||'-')+(x.color_name?' \u00B7 '+esc(x.color_name):'')+(x.qty>1?' \u00D7 '+esc(x.qty):'')+'<br><b>'+esc(mny(x.amount))+'</b>'+(x.qty>1&&x.unit_amount?'<br><span class="mut">'+esc(mny(x.unit_amount))+' each</span>':'')+'<br><span class="mut">'+esc(x.payment_method||'')+'</span><br><span class="tag ok">Payment verified</span></td><td><select aria-label="Order status" onchange="xOrdSt(\''+esc(x.id)+'\',this.value)">'+ST.map(function(s){return '<option value="'+s[0]+'"'+(s[0]===x.status?' selected':'')+'>'+s[1]+'</option>'}).join('')+'</select></td></tr>'}).join('')+'</table></div>':'<p class="mut">No paid orders yet.</p>')+'</div>'+
+  (o.length?'<div style="overflow-x:auto;margin-top:10px"><table>'+o.map(function(x){return '<tr><td>'+when(x.paid_at)+'<br><span class="mut">#'+esc(x.order_no)+'</span></td><td><b>'+esc(x.name)+'</b><br><a href="tel:'+esc(String(x.phone).replace(/[^\d+]/g,''))+'">'+esc(x.phone)+'</a><br>'+esc(x.email)+'</td><td>'+esc(x.product_title||'-')+(x.color_name?' \u00B7 '+esc(x.color_name):'')+(x.qty>1?' \u00D7 '+esc(x.qty):'')+'<br><b>'+esc(mny(x.amount))+'</b>'+(x.qty>1&&x.unit_amount?'<br><span class="mut">'+esc(mny(x.unit_amount))+' each</span>':'')+'<br><span class="mut">'+esc(x.payment_method||'')+'</span><br><span class="tag ok">Payment verified</span>'+(x.buyer_code?'<br><span class="mut">Buyer ID <b>'+esc(x.buyer_code)+'</b></span>':'')+'</td><td><select aria-label="Order status" onchange="xOrdSt(\''+esc(x.id)+'\',this.value)">'+ST.map(function(s){return '<option value="'+s[0]+'"'+(s[0]===x.status?' selected':'')+'>'+s[1]+'</option>'}).join('')+'</select></td></tr>'}).join('')+'</table></div>':'<p class="mut">No paid orders yet.</p>')+'</div>'+
   '<div class="card"><details><summary><b>Unpaid checkouts ('+u.length+')</b> \u00B7 no order was created</summary><p class="mut">People who started a checkout but have not paid. Stock is held for 15 minutes, then released.</p>'+(u.length?'<div style="overflow-x:auto"><table>'+u.map(function(x){return '<tr><td>'+when(x.created_at)+'</td><td><b>'+esc(x.name||'')+'</b><br>'+esc(x.phone||'')+'</td><td>'+esc(x.title||'-')+(x.color?' \u00B7 '+esc(x.color):'')+(x.qty>1?' \u00D7 '+esc(x.qty):'')+'<br>'+esc(mny(x.amount))+'</td><td><span class="tag">'+esc(x.status==='pending'&&!x.holding?'Hold expired':US[x.status]||x.status)+'</span></td></tr>'}).join('')+'</table></div>':'<p class="mut">None.</p>')+'</details></div>'+
   (lg.length?'<div class="card"><details><summary><b>Legacy pre-orders ('+lg.length+')</b> \u00B7 unverified</summary><p class="mut">Saved before payment confirmation existed. Their payment status was never checked by the server. Read-only.</p><div style="overflow-x:auto"><table>'+lg.map(function(x){return '<tr><td>'+when(x.created_at)+'</td><td><b>'+esc(x.name)+'</b><br>'+esc(x.phone)+'<br>'+esc(x.email)+'</td><td>'+esc(x.product_title||'-')+'</td><td><span class="tag">'+esc(x.status)+'</span></td></tr>'}).join('')+'</table></div></details></div>':'')}
 async function xOrdSt(id,s){try{await rpc('order_set_status',{p_oid:id,p_st:s});toast('Order marked '+s.replace('_',' ')+'.',true)}catch(e){toast(e.message,false)}await xLoadAdm()}
 /* ---- admin: Money tab (fees, rewards, payouts, reconciliation) ---- */
 async function moneyLoad(){try{adm.mon=await rpc('money_admin');adm.monErr=''}catch(e){adm.mon=null;adm.monErr=e.message}try{adm.wd=await rpc('withdrawals_admin')}catch(e){adm.wd=null}render()}
-var RSRC={'money|deposit':'Money: fees on adding money','money|withdraw':'Money: fees on withdrawals','money|send':'Money: fees on guest-to-guest sends','token|send':'Tokens: fees on guest-to-guest sends'};
+var RSRC={'money|convert':'Money converted to points','money|deposit':'Money: fees on adding money','money|withdraw':'Money: fees on withdrawals','money|send':'Money: fees on guest-to-guest sends','token|send':'Tokens: fees on guest-to-guest sends'};
 function vMoneyAdmin(){var m=adm.mon;
   if(m===undefined)return '<div class="card"><p class="mut">Loading\u2026</p></div>';
   if(m===null)return '<div class="card"><p class="mut">Could not load the money tab'+(adm.monErr?': '+esc(adm.monErr):'')+'. Run xend-payments.sql in Supabase first, then reload.</p></div>';
@@ -1365,7 +1388,11 @@ function vMoneyAdmin(){var m=adm.mon;
   var rec='<div class="card"><h2>Where the money is</h2><p class="mut">Real money, from confirmed payments only.</p><table><tr><td>Confirmed deposits</td><td class="xr"><b>'+esc(mny(rc.deposits))+'</b></td></tr><tr><td>In guest money wallets</td><td class="xr">'+esc(mny(rc.in_wallets))+'</td></tr><tr><td>Held for withdrawal requests</td><td class="xr">'+esc(mny(rc.pending_payouts))+'</td></tr><tr><td>Paid out to guests</td><td class="xr">'+esc(mny(rc.paid_out))+'</td></tr><tr><td>Fees earned (all time)</td><td class="xr">'+esc(mny(rc.fees_earned))+'</td></tr><tr><td>Difference</td><td class="xr"><span class="tag'+(ok?' ok':'')+'">'+(ok?'Balanced':esc(mny(rc.difference))+' \u2013 check')+'</span></td></tr></table></div>'+
     '<div class="card"><h2>Kept separate from wallet money</h2><div class="xk"><div><span class="mut">Event tokens in guest wallets (admin loaded)</span><b>'+m.tokens.in_wallets+'</b></div><div><span class="mut">Pre-order sales ('+m.preorders.count+' orders)</span><b>'+esc(mny(m.preorders.revenue))+'</b></div></div></div>';
   var rl=(m.recent||[]).length?'<div class="card"><h2>Recent reward activity</h2><div style="overflow-x:auto"><table>'+m.recent.map(function(r){return '<tr><td>'+when(r.created_at)+'</td><td>'+esc(r.source==='admin_withdraw'?'Withdrawn'+(r.note?': '+r.note:''):(RSRC[r.asset+'|'+r.source]||r.source))+(r.guest?'<br><span class="mut">'+esc(r.guest)+'</span>':'')+'</td><td class="xr"><b>'+(r.delta>0?'+':'')+(r.asset==='money'?esc(mny(r.delta)):r.delta+' tokens')+'</b></td></tr>'}).join('')+'</table></div></div>':'';
-  return rw+po+fs+src+rec+'' +rl.replace(/^$/,'')}
+  return rw+po+fs+ptsCard(m)+src+rec+'' +rl.replace(/^$/,'')}
+function ptsCard(m){var r=Number(m.pts_rate)||0;
+  return '<div class="card"><h2>Money to points</h2><p class="mut">Lets guests turn money from their money wallet into event points. The money they spend counts as your earnings. Set how many points GH\u20B5 1 buys. Set 0 to switch it off (the button is then hidden).</p><div class="row"><input id="ptr" type="number" min="0" step="any" placeholder="Points for GH\u20B5 1" value="'+(r>0?esc(r):'')+'"><button class="go" onclick="ptsSave()">Save</button></div><p class="mut">'+(r>0?'Now: GH\u20B5 1 = '+r+' points.':'Now: switched off.')+'</p></div>'}
+async function ptsSave(){var v=parseFloat($('ptr').value);if(!isFinite(v))v=0;if(v<0||v>100000){toast('Enter a rate from 0 to 100000.',false);return}
+  try{await rpc('pts_rate_set',{p_rate:v});toast(v>0?'Saved. GH\u20B5 1 = '+v+' points.':'Conversion switched off.',true);await moneyLoad()}catch(e){toast(e.message,false)}}
 async function rewardWd(asset){var el=$(asset==='money'?'rwm':'rwt'),a=asset==='money'?pes(el.value):parseInt(el.value,10);
   if(!(a>0)){toast('Enter an amount.',false);return}
   if(!confirm('Withdraw '+(asset==='money'?mny(a):a+' tokens')+' from the reward pool?'))return;
@@ -1647,6 +1674,26 @@ vBuyers=function(){var adm_=me&&me.role==='admin',ex=(xndCfg&&xndCfg.extra)||'',
   (adm_?'<div class="row" style="margin-top:10px"><input id="xnd_x" maxlength="6" placeholder="Extra characters in codes (optional)" autocapitalize="characters" value="'+esc(ex)+'" style="flex:1;min-width:180px"><button onclick="xndSaveExtra()">Save</button></div>':'')+
   (bad.length?'<div style="overflow-x:auto;margin-top:10px"><p class="mut" style="margin:0 0 4px"><b>'+bad.length+' not added</b></p><table>'+bad.map(function(x){return '<tr><td><b>'+esc(x.name||'-')+'</b></td><td>'+esc(x.text)+'</td></tr>'}).join('')+'</table></div>':'')+'</div>'+
   buyerFindCard()};
+
+
+/* ---- online buyers: one Buyer ID per purchase, claim allowance ---- */
+var obQ='';
+function obRows(){var L=adm.ob||[],q=sParse(obQ);
+  var R=L.filter(function(b){return !q.toks.length||sHit(sHay([b.code,b.name,b.phone,b.email,b.product_title]),q.toks)});
+  if(!R.length)return '<p class="mut">'+(L.length?'No buyer matches that search.':'No online purchases yet. A Buyer ID appears here the moment a payment is confirmed.')+'</p>';
+  return '<div style="overflow-x:auto"><table>'+R.map(function(b){var left=b.qty-b.claimed,rep=!b.active&&left>0&&L.some(function(n){return n.reissued_from===b.id}),st=b.active?(left>0?'<span class="tag ok">'+left+' left</span>':'<span class="tag">All claimed</span>'):'<span class="tag">'+(rep?'Replaced':'Cancelled')+'</span>';
+    return '<tr><td><b>'+sMark(b.name,q.toks)+'</b><br><span class="mut">'+esc(b.phone||'')+'<br>'+esc(b.email||'')+'</span></td><td><b>'+sMark(b.code,q.toks)+'</b><br><span class="mut">'+esc(b.product_title||'')+'<br>Bought '+b.qty+' \u00B7 claimed '+b.claimed+'</span><br>'+st+'</td><td><button type="button" style="min-height:38px" onclick="bidCopy(\''+esc(b.code)+'\')">Copy</button>'+(b.active&&left>0&&me&&me.role==='admin'?'<br><button type="button" class="bad" style="min-height:38px;margin-top:6px" onclick="obReissue(\''+esc(b.id)+'\')">Replace ID</button>':'')+'</td></tr>'}).join('')+'</table></div>'}
+function obType(v){obQ=v;var e=$('ob_list');if(e)e.innerHTML=obRows()}
+async function obReissue(id){if(!confirm('Replace this Buyer ID? The old ID stops working and a new one is made with the bracelets still unclaimed. Use this if the ID was shared by mistake.'))return;
+  try{var r=await rpc('buyer_reissue',{p_id:id});adm.ob=await rpc('buyers_admin');render();setTimeout(function(){prompt('New Buyer ID (good for '+r.qty+' bracelet'+(r.qty>1?'s':'')+'). Copy it and send it to the buyer:',r.code)},50)}catch(e){toast(e.message,false)}}
+function obCard(){var L=adm.ob;if(L===undefined)return '';
+  if(L===null)return '<div class="card"><h2>Online buyers</h2><p class="mut">Run xend-buyers-money.sql in Supabase first, then reload.</p></div>';
+  var act=L.filter(function(b){return b.active}),bought=act.reduce(function(a,b){return a+b.qty},0),cl=act.reduce(function(a,b){return a+b.claimed},0);
+  return '<div class="card"><h2>Online buyers</h2><p class="mut">Every confirmed payment creates one Buyer ID here automatically. The ID can activate as many bracelets as that purchase bought, and nothing more. The buyer sees it on screen after paying.</p>'+
+  '<div class="xk"><div><span class="mut">Bracelets sold online</span><b>'+bought+'</b></div><div><span class="mut">Activated</span><b>'+cl+'</b></div><div><span class="mut">Not yet activated</span><b>'+(bought-cl)+'</b></div></div>'+
+  '<input id="ob_q" placeholder="Search name, phone, email or ID" autocomplete="off" value="'+esc(obQ)+'" oninput="obType(this.value)" style="width:100%;margin:10px 0"><div id="ob_list">'+obRows()+'</div></div>'}
+var vBuyers2=vBuyers;vBuyers=function(){return obCard()+vBuyers2()};
+var loadAdm2=loadAdm;loadAdm=async function(){var r=await loadAdm2();try{adm.ob=await rpc('buyers_admin')}catch(e){adm.ob=null}render();return r};
 
 /* ---- smart search (shared): every word must match, accents / case / dashes in codes are ignored, is:keyword filters ---- */
 function sNorm(s){s=String(s==null?'':s).toLowerCase();try{s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}catch(e){}return s}
