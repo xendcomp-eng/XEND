@@ -102,6 +102,26 @@ textarea:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 #ordm{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px}
 #ordm .card{width:100%;max-width:420px;max-height:92vh;overflow:auto;margin:0}
 #ordm input,#ordm select{width:100%}
+input[type=radio]{width:26px;height:26px;min-height:0;padding:0;accent-color:#ffc400}
+.xr2{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.xsw{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 6px}
+.xsw button{width:38px;height:38px;min-height:38px;padding:0;border-radius:50%;border:2px solid var(--fld);box-shadow:inset 0 0 0 2px var(--card)}
+.xsw button.sel{outline:3px solid var(--ink);outline-offset:2px;border-color:var(--ink)}
+.xcn{font-size:.95rem;min-height:1.4em}
+.xq{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.xq button{width:46px;padding:0;font-size:1.3rem}
+.xq .xqn{min-width:44px;text-align:center;font-size:1.4rem;font-weight:800}
+#ordm .xqi{width:110px}
+.xtot{font-size:1.5rem;font-weight:800}
+#cmpm{position:fixed;inset:0;z-index:25;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:12px}
+#cmpm .card{width:100%;max-width:780px;max-height:92vh;overflow:auto;margin:0}
+.xcmp{border-collapse:separate;border-spacing:0;min-width:100%}
+.xcmp th,.xcmp td{padding:10px 8px;border-top:1px solid var(--line);text-align:center;min-width:112px;vertical-align:middle;background:var(--card)}
+.xcmp th:first-child,.xcmp td:first-child{position:sticky;left:0;text-align:left;min-width:104px;font-weight:700;z-index:1;border-right:2px solid var(--line)}
+.xcmp th.hl,.xcmp td.hl{background:#fff3c4;color:#111}
+.xcmp .xsw{justify-content:center;gap:5px;margin:0}
+.xcmp .xsw span{width:16px;height:16px;border-radius:50%;border:1px solid var(--fld);display:inline-block}
+
 
 .card.xmny{background:#0f2e22;color:#fff;border-color:#0f2e22}
 .card.xmny .mut{color:#b9d8c9}
@@ -1007,10 +1027,25 @@ function xBrand(){var n=xStore()?xv('site_name','XEND'):xv('cash_app_name','XEND
 render=function(){render0();xBrand();themeApply((me&&me.role==='admin'&&tab==='theme'&&themeDraft)?themeDraft:FX.theme)};
 /* public storefront */
 function xStat(p){var n=Number(p.stock_count)||0;return (n<=0||p.status==='sold_out')?'sold_out':(p.status==='low_stock'?'low_stock':'in_stock')}
-function xProd(p){var st=xStat(p),n=Number(p.stock_count)||0,img=xurl(p.image_url),
+var xsel={},ordC='',ordQ=1,ordBulk=false,cmpDiff=false,cmpFirst='';
+function xFind(id){return ((xcms&&xcms.products)||[]).filter(function(x){return x.id===id})[0]}
+function xHex(h){return /^#[0-9a-fA-F]{6}$/.test(h||'')?h:'#999999'}
+function xCols(p){var a=p&&p.colors;return Array.isArray(a)?a.filter(function(c){return c&&c.enabled&&c.id&&c.name}):[]}
+function xColX(c){return (c&&!c.std)?Math.max(0,Number(c.extra)||0):0}
+function xColSel(p,id){var L=xCols(p);if(!L.length)return null;id=id||xsel[p.id];return L.filter(function(x){return x.id===id})[0]||L.filter(function(x){return x.std})[0]||L[0]}
+function xUnit(p,c){return (Number(p.price)||0)+xColX(c)}
+function xMax(p){var n=Math.max(0,Number(p.stock_count)||0),m=Number(p.max_per_order)||0;return m>0?Math.min(n,m):n}
+function xBulkMin(p){return Math.max(2,Number(p.bulk_min)||10)}
+function xSw(p,sel,pre){return '<div class="xsw" role="radiogroup" aria-label="Colour">'+xCols(p).map(function(c){var on=sel&&sel.id===c.id;return '<button type="button" role="radio" aria-checked="'+(on?'true':'false')+'" class="'+(on?'sel':'')+'" style="background:'+xHex(c.hex)+'" aria-label="'+esc(c.name)+'" title="'+esc(c.name)+'" onclick="'+pre+'\''+esc(c.id)+'\')"></button>'}).join('')+'</div>'}
+function xCn(p,c){return c?'<b>'+esc(c.name)+'</b>'+(xColX(c)>0?' <span class="mut">+'+esc(xMoney(xColX(c)))+'</span>':''):''}
+function xPick(pid,cid){xsel[pid]=cid;var p=xFind(pid),el=$('xp_'+pid);if(p&&el)el.outerHTML=xProd(p)}
+function xProd(p){var st=xStat(p),n=Number(p.stock_count)||0,sc=xColSel(p),img=xurl((sc&&sc.image_url)||p.image_url),multi=((xcms&&xcms.products)||[]).length>1,
   tag=st==='sold_out'?'<span class="tag" style="background:var(--ink);color:var(--bg)">Sold out</span>':st==='low_stock'?'<span class="tag">Only '+n+' left</span>':'<span class="tag ok">In stock</span>';
-  return '<div class="card xp">'+(img?'<img src="'+esc(img)+'" alt="'+esc(p.title)+'" loading="lazy">':'')+'<div class="row sp"><h2 style="margin:0">'+esc(p.title)+'</h2>'+tag+'</div>'+(p.description?'<p class="mut">'+xhtml(p.description)+'</p>':'')+
-  '<div class="row sp"><span style="font-size:1.4rem;font-weight:800">'+esc(xMoney(p.price))+'</span>'+(st==='sold_out'?'<button disabled>'+esc(xBL('p_sold','Sold Out'))+'</button>':'<button class="go" onclick="ordOpen(\''+esc(p.id)+'\')">'+esc(xBL('p_order','Pre-order'))+'</button>')+'</div></div>'}
+  return '<div class="card xp" id="xp_'+esc(p.id)+'">'+(img?'<img src="'+esc(img)+'" alt="'+esc(p.title)+(sc?' - '+esc(sc.name):'')+'" loading="lazy">':'')+'<div class="row sp"><h2 style="margin:0">'+esc(p.title)+'</h2>'+tag+'</div>'+
+  (p.tier_name?'<p style="margin:0 0 6px"><span class="tag">'+esc(p.tier_name)+'</span></p>':'')+(p.description?'<p class="mut">'+xhtml(p.description)+'</p>':'')+
+  (sc?'<div class="xcn">'+xCn(p,sc)+'</div>'+xSw(p,sc,'xPick(\''+esc(p.id)+'\','):'')+
+  '<div class="row sp"><span style="font-size:1.4rem;font-weight:800">'+esc(xMoney(xUnit(p,sc)))+'</span>'+(st==='sold_out'?'<button disabled>'+esc(xBL('p_sold','Sold Out'))+'</button>':'<button class="go" onclick="ordOpen(\''+esc(p.id)+'\')">'+esc(xBL('p_order','Pre-order'))+'</button>')+'</div>'+
+  (multi?'<div style="margin-top:8px"><button type="button" style="width:100%;min-height:40px" onclick="cmpOpen(\''+esc(p.id)+'\')">Compare</button></div>':'')+'</div>'}
 function xSec(s){var al=/^(left|center|right)$/.test(s.alignment)?s.alignment:'center',an=/^(fade-in|slide-up|pulse)$/.test(s.animation)?' anim-'+s.animation:'';
   return '<div class="card'+an+'" style="text-align:'+al+'"><h2>'+esc(s.title)+'</h2>'+(s.content?'<div>'+xhtml(s.content)+'</div>':'')+'</div>'}
 vLanding=function(){
@@ -1028,16 +1063,64 @@ function xShop(){var e=$('xshop');if(e)e.scrollIntoView({behavior:'smooth'})}
 function xFoot(){xclk++;clearTimeout(xclt);xclt=setTimeout(function(){xclk=0},2500);
   if(xclk>=5){xclk=0;lmode='staff';showLogin=true;render();setTimeout(function(){window.scrollTo(0,document.body.scrollHeight)},0)}}
 /* pre-order modal: lead is saved first (server decrements stock), then the guest is sent to the live payment link */
-function ordOpen(id){var p=((xcms&&xcms.products)||[]).filter(function(x){return x.id===id})[0];if(!p)return;
+function ordOpen(id){var p=xFind(id);if(!p)return;
   if(xStat(p)==='sold_out'){toast('Sorry, this item is sold out.',false);return}
-  ordP=p;ordLink='';var d=$('ordm');if(!d){d=document.createElement('div');d.id='ordm';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');document.body.appendChild(d)}
-  d.innerHTML='<div class="card"><div class="row sp"><h2 style="margin:0">Pre-order</h2><button onclick="ordClose()" aria-label="Close">\u2715</button></div><p class="mut">'+esc(p.title)+' \u00B7 <b>'+esc(xMoney(p.price))+'</b></p><div class="xf">'+
+  var cm=$('cmpm');if(cm)cm.remove();
+  var sc=xColSel(p);ordP=p;ordLink='';ordQ=1;ordBulk=false;ordC=sc?sc.id:'';var d=$('ordm');if(!d){d=document.createElement('div');d.id='ordm';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');document.body.appendChild(d)}
+  d.innerHTML='<div class="card"><div class="row sp"><h2 style="margin:0">Pre-order</h2><button onclick="ordClose()" aria-label="Close">\u2715</button></div>'+
+  '<img id="o_img" alt="" style="display:none;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;border:2px solid var(--edge);margin:10px 0 0">'+
+  '<p class="mut" style="margin:10px 0 8px">'+esc(p.title)+(p.tier_name?' \u00B7 '+esc(p.tier_name):'')+'</p><div class="xf">'+
+  (sc?'<div><label>Colour</label><div id="o_sw"></div><div class="xcn" id="o_cn"></div></div>':'')+
+  '<div><label>Quantity</label><div id="o_qb"></div><div class="mut" id="o_qe" role="status" style="min-height:1.3em"></div></div>'+
+  '<div class="row sp"><span class="mut" id="o_u"></span><span class="xtot" id="o_tot"></span></div>'+
   '<div><label for="o_n">Full name</label><input id="o_n" autocomplete="name" maxlength="120"></div>'+
   '<div><label for="o_p">Phone number (MoMo)</label><input id="o_p" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="024 000 0000"></div>'+
   '<div><label for="o_e">Email address</label><input id="o_e" type="email" autocomplete="email" maxlength="160" autocapitalize="none"></div>'+
   '<div><label for="o_m">Pay with</label><select id="o_m"><option value="momo">Mobile Money (MoMo)</option><option value="card">Card</option><option value="bank">Other (bank transfer)</option></select></div>'+
-  '<div id="o_err" role="alert" style="min-height:1.4em;font-weight:700"></div><button class="go" id="o_go" onclick="ordSubmit()">Pay '+esc(xMoney(p.price))+'</button></div><p class="mut" style="margin:10px 0 0">You pay on a secure payment page. Your order is created only after the payment is confirmed. If you do not pay, nothing is ordered. We hold the item for 15 minutes while you pay.</p></div>';
-  document.body.style.overflow='hidden';setTimeout(function(){var i=$('o_n');if(i)i.focus()},50)}
+  '<div id="o_err" role="alert" style="min-height:1.4em;font-weight:700"></div><button class="go" id="o_go" onclick="ordSubmit()"></button></div><p class="mut" style="margin:10px 0 0">You pay on a secure payment page. Your order is created only after the payment is confirmed. If you do not pay, nothing is ordered. We hold the items for 15 minutes while you pay.</p></div>';
+  ordQb();ordSwap();document.body.style.overflow='hidden';setTimeout(function(){var i=$('o_n');if(i)i.focus()},50)}
+function ordCol(){return ordP?xColSel(ordP,ordC):null}
+function ordPick(cid){ordC=cid;ordSwap()}
+function ordSwap(){var p=ordP;if(!p)return;var sc=ordCol(),url=xurl((sc&&sc.image_url)||p.image_url),im=$('o_img');
+  if(im){if(url){im.src=url;im.style.display='block'}else{im.removeAttribute('src');im.style.display='none'}}
+  var sw=$('o_sw');if(sw)sw.innerHTML=xSw(p,sc,'ordPick(');var cn=$('o_cn');if(cn)cn.innerHTML=xCn(p,sc);ordTot()}
+function ordQb(){var p=ordP,b=$('o_qb');if(!p||!b)return;var mx=xMax(p),bm=xBulkMin(p),q=parseInt(ordQ,10)||1;
+  if(!ordBulk){b.innerHTML='<div class="xq"><button type="button" aria-label="One fewer" onclick="ordStep(-1)"'+(q<=1?' disabled':'')+'>\u2212</button><span class="xqn" id="o_q" aria-live="polite">'+q+'</span><button type="button" aria-label="One more" onclick="ordStep(1)"'+(q>=mx?' disabled':'')+'>+</button>'+(mx>=bm?'<button type="button" style="width:auto;padding:0 14px;font-size:.95rem" onclick="ordMode(true)">Bulk order</button>':'')+'</div>'}
+  else{b.innerHTML='<div class="xq"><input id="o_bq" class="xqi" type="number" inputmode="numeric" min="'+bm+'" max="'+mx+'" step="1" value="'+q+'" oninput="ordBulkIn(this.value)" aria-label="Bulk quantity"><button type="button" style="width:auto;padding:0 14px;font-size:.95rem" onclick="ordMode(false)">Back to normal</button></div><p class="mut" style="margin:6px 0 0">Bulk order: '+bm+' to '+mx+' items.</p>'}}
+function ordStep(d){var p=ordP;if(!p)return;ordQ=Math.min(xMax(p),Math.max(1,(parseInt(ordQ,10)||1)+d));ordQb();ordTot()}
+function ordMode(on){var p=ordP;if(!p)return;ordBulk=on;if(on)ordQ=Math.min(xMax(p),Math.max(xBulkMin(p),parseInt(ordQ,10)||1));else ordQ=1;ordQb();ordTot();if(on){var i=$('o_bq');if(i)i.focus()}}
+function ordBulkIn(v){ordQ=parseInt(v,10)||0;ordTot()}
+function ordOk(){var p=ordP,q=parseInt(ordQ,10);if(!p||!(q>=1))return 'Enter how many you want.';var mx=xMax(p);if(q>mx)return 'Only '+mx+' available for one order.';if(ordBulk&&q<xBulkMin(p))return 'Bulk orders start at '+xBulkMin(p)+'.';return ''}
+function ordTot(){var p=ordP;if(!p)return;var sc=ordCol(),u=xUnit(p,sc),q=parseInt(ordQ,10)||0,er=ordOk(),t=u*Math.max(q,0);
+  var e=$('o_qe');if(e)e.textContent=er;var a=$('o_u');if(a)a.textContent=q>1?xMoney(u)+' each \u00D7 '+q:'';var o=$('o_tot');if(o)o.textContent=xMoney(t);var g=$('o_go');if(g){g.textContent='Pay '+xMoney(t);if(!xbusy)g.disabled=!!er}}
+/* ---- compare tiers ---- */
+function cmpFeats(){try{var a=JSON.parse(xv('compare_features','[]'));return Array.isArray(a)?a.filter(function(f){return f&&f.id&&f.name}):[]}catch(e){return []}}
+function cmpVal(p,f){var v=String(((p.features||{})[f.id])||'').trim(),l=v.toLowerCase();
+  if(/^(yes|y|true|included|\u2713|\u2714)$/.test(l))return {k:'y'};
+  if(v===''||/^(no|n|false|none|x|-|\u2717|\u2718|\u2715)$/.test(l))return {k:'n'};
+  return {k:'t',t:v}}
+function cmpCell(v){return v.k==='y'?'<span role="img" aria-label="Included" style="font-weight:800;font-size:1.25rem">\u2713</span>':v.k==='n'?'<span role="img" aria-label="Not included" class="mut" style="font-size:1.25rem">\u2717</span>':esc(v.t)}
+function cmpOpen(id){var o=$('ordm');if(o)o.remove();cmpFirst=id;cmpDiff=false;var d=$('cmpm');if(!d){d=document.createElement('div');d.id='cmpm';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');document.body.appendChild(d)}
+  document.body.style.overflow='hidden';cmpPaint()}
+function cmpClose(){var d=$('cmpm');if(d)d.remove();if(!snapView&&!cam&&!$('ordm'))document.body.style.overflow=''}
+function cmpOrder(id){cmpClose();ordOpen(id)}
+function cmpPaint(){var d=$('cmpm');if(!d)return;var oc=d.querySelector('.card'),ot=oc?oc.scrollTop:0,ow=d.querySelector('.xw'),ol=ow?ow.scrollLeft:0;
+  var P=((xcms&&xcms.products)||[]).slice().sort(function(a,b){return (Number(a.tier_order)||0)-(Number(b.tier_order)||0)}),f=P.filter(function(x){return x.id===cmpFirst})[0];
+  if(f)P=[f].concat(P.filter(function(x){return x.id!==cmpFirst}));
+  var rows=[{n:'Price',keep:1,h:P.map(function(p){return esc(xMoney(p.price))}),s:P.map(function(p){return String(p.price)})},
+    {n:'Tier',keep:1,h:P.map(function(p){return p.tier_name?esc(p.tier_name):'<span class="mut">\u2014</span>'}),s:P.map(function(p){return p.tier_name||''})}];
+  if(P.some(function(p){return xCols(p).length}))rows.push({n:'Colours',h:P.map(function(p){var L=xCols(p);return L.length?'<div class="xsw">'+L.map(function(c){return '<span title="'+esc(c.name)+'" style="background:'+xHex(c.hex)+'"></span>'}).join('')+'</div>':'<span class="mut">\u2014</span>'}),s:P.map(function(p){return xCols(p).map(function(c){return c.id}).sort().join(',')})});
+  cmpFeats().forEach(function(ft){var V=P.map(function(p){return cmpVal(p,ft)});rows.push({n:esc(ft.name),h:V.map(cmpCell),s:V.map(function(v){return v.k+(v.t||'')})})});
+  var vis=rows.filter(function(r){return !cmpDiff||r.keep||r.s.some(function(x){return x!==r.s[0]})}),
+    hc=function(p){return p.id===cmpFirst?' class="hl"':''};
+  d.innerHTML='<div class="card"><div class="row sp"><h2 style="margin:0">Compare</h2><button onclick="cmpClose()" aria-label="Close">\u2715</button></div>'+
+   '<label class="tg" style="justify-content:flex-start;gap:10px;margin:12px 0"><input type="checkbox"'+(cmpDiff?' checked':'')+' onchange="cmpDiff=this.checked;cmpPaint()"><span>Show differences only</span></label>'+
+   '<div class="xw" style="overflow-x:auto"><table class="xcmp"><thead><tr><th></th>'+P.map(function(p){return '<th'+hc(p)+'>'+esc(p.title)+(p.id===cmpFirst?'<br><span class="tag">Selected</span>':'')+'</th>'}).join('')+'</tr></thead><tbody>'+
+   vis.map(function(r){return '<tr><td>'+r.n+'</td>'+r.h.map(function(h,i){return '<td'+hc(P[i])+'>'+h+'</td>'}).join('')+'</tr>'}).join('')+
+   (vis.length<=2&&cmpDiff?'<tr><td colspan="'+(P.length+1)+'" class="mut" style="text-align:center">No other differences.</td></tr>':'')+
+   '</tbody><tfoot><tr><td></td>'+P.map(function(p){return '<td'+hc(p)+'>'+(xStat(p)==='sold_out'?'<button disabled>'+esc(xBL('p_sold','Sold Out'))+'</button>':'<button class="go" onclick="cmpOrder(\''+esc(p.id)+'\')">'+esc(xBL('p_order','Pre-order'))+'</button>')+'</td>'}).join('')+'</tr></tfoot></table></div></div>';
+  var nc=d.querySelector('.card'),nw=d.querySelector('.xw');if(nc)nc.scrollTop=ot;if(nw)nw.scrollLeft=ol}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('cmpm'))cmpClose()});
 function ordClose(){var d=$('ordm');if(d)d.remove();ordP=null;ordLink='';if(!snapView&&!cam)document.body.style.overflow=''}
 function ordPay(){if(ordLink)location.assign(ordLink)}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('ordm'))ordClose()});
@@ -1062,8 +1145,9 @@ async function ordSubmit(){if(xbusy||!ordP)return;
   if(!n||!ph||!em){er.textContent='Please fill in your name, phone and email.';return}
   if(!/^[^\s@]+@[^\s@]+$/.test(em)){er.textContent='Enter a valid email address.';return}
   if(ph.replace(/\D/g,'').length<9){er.textContent='Enter a valid phone number.';return}
+  var qe=ordOk();if(qe){er.textContent=qe;return}
   xbusy=true;b.disabled=true;er.textContent='Opening secure payment\u2026';
-  try{var r=await payCall({action:'preorder',name:n,phone:ph,email:em,method:m,product_id:ordP.id});
+  try{var r=await payCall({action:'preorder',name:n,phone:ph,email:em,method:m,product_id:ordP.id,color_id:ordC||'',qty:parseInt(ordQ,10)||1});
     sv('xc-payref',{ref:r.reference,t:Date.now(),kind:'preorder'});ordLink=r.url;
     var d=$('ordm');if(d)d.innerHTML='<div class="card" style="text-align:center"><h2>Taking you to payment\u2026</h2><p class="mut">Your order is created only after the payment is confirmed.</p><button class="go" style="width:100%" onclick="ordPay()">Continue to payment</button></div>';
     location.assign(r.url);return}
@@ -1082,7 +1166,7 @@ async function payResolve(){var ref=payRef;if(!ref)return;payRef=null;
   var retry='<button class="go" style="width:100%;margin-top:10px" onclick="payRef=\''+ref+'\';payResolve()">Check again</button>';
   if(/^(paid|failed|mismatch|unknown)$/.test(d.status))sv('xc-payref',null);
   if(d.status==='paid'&&d.purpose==='deposit'){mw=null;payShow('<h2>Money added \u2713</h2><p>'+esc(mny(d.net))+' is now in your money wallet'+(d.fee?' (fee '+esc(mny(d.fee))+')':'')+'.</p>');if(wallet&&key&&!me)render()}
-  else if(d.status==='paid'){payShow('<h2>Payment confirmed \u2713</h2><p>Your order'+(d.order_no?' <b>#'+esc(d.order_no)+'</b>':'')+' for <b>'+esc(d.title||'your item')+'</b> is placed. We will contact you to arrange delivery.</p>');loadCms().then(function(){if(xStore())render()})}
+  else if(d.status==='paid'){payShow('<h2>Payment confirmed \u2713</h2><p>Your order'+(d.order_no?' <b>#'+esc(d.order_no)+'</b>':'')+' for <b>'+esc(d.title||'your item')+'</b>'+(d.color?' ('+esc(d.color)+')':'')+(d.qty>1?' \u00D7 '+esc(d.qty):'')+' is placed. We will contact you to arrange delivery.</p>');loadCms().then(function(){if(xStore())render()})}
   else if(d.status==='failed')payShow('<h2>Payment not completed</h2><p>The payment did not go through, so no order was created and nothing was reserved. You can try again.</p>');
   else if(d.status==='mismatch')payShow('<h2>Payment needs review</h2><p>The amount received did not match this order, so nothing was created automatically. Please contact us and quote this reference:</p><p><b>'+esc(ref)+'</b></p>');
   else if(d.status==='unknown')payShow('<h2>Payment not found</h2><p>We could not find this payment.</p>');
@@ -1169,18 +1253,73 @@ async function xSaveSite(){var v={};XCFG.forEach(function(x){v[x[0]]=$('xc_'+x[0
   if(v.site_logo_url&&!xurl(v.site_logo_url)){toast('Logo URL must start with https://',false);return}
   XALL.forEach(function(t){v['label_'+t[0]]=$('xl_'+t[0]).value.trim()});
   try{await rpc('cms_save_config',{v:v});await loadCms();toast('Saved.',true);render()}catch(e){toast(e.message,false)}}
+/* ---- admin: colours, tiers, compare features ---- */
+var XPAL=[['black','Black','#111111'],['navy','Navy Blue','#14285a'],['gray','Gray','#6b6b6b'],['red','Red','#d4202a'],['green','Green','#4a5a2a'],['blue','Blue','#1f4fd8'],['white','White','#ffffff'],['orange','Orange','#f26a1b'],['purple','Purple','#4b1d8a']],pcDraft={},cfDraft=[];
+function xNewId(p){return p+Date.now().toString(36)+Math.floor(Math.random()*1296).toString(36)}
+function pcBuild(p){var cur=(p&&Array.isArray(p.colors))?p.colors:[],by={};cur.forEach(function(c){if(c&&c.id)by[c.id]=c});
+  var out=XPAL.map(function(x){var c=by[x[0]];return {id:x[0],name:x[1],hex:x[2],pal:1,enabled:!!(c&&c.enabled),extra:c?(Number(c.extra)||0):0,std:!!(c&&c.std),image_url:(c&&c.image_url)||''}});
+  cur.forEach(function(c){if(c&&c.id&&!XPAL.some(function(x){return x[0]===c.id}))out.push({id:c.id,name:c.name||'Colour',hex:c.hex||'#999999',pal:0,enabled:!!c.enabled,extra:Number(c.extra)||0,std:!!c.std,image_url:c.image_url||''})});
+  return out}
+function pcHtml(pid){return (pcDraft[pid]||[]).map(function(c){var b='pc_'+pid+'_'+c.id,u=xurl(c.image_url);
+  return '<div class="item"><div class="xr2" style="justify-content:space-between"><label class="tg" style="gap:10px;justify-content:flex-start"><input type="checkbox" id="'+b+'_on"'+(c.enabled?' checked':'')+'><span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:'+xHex(c.hex)+';border:2px solid var(--fld)"></span><b>'+esc(c.name)+'</b></label>'+(c.pal?'':'<button type="button" class="bad" style="min-height:38px" onclick="pcDel(\''+pid+'\',\''+c.id+'\')">Remove colour</button>')+'</div>'+
+  '<div class="xr2" style="margin-top:8px"><div id="'+b+'_pv" style="width:96px;height:72px;border:2px solid var(--edge);border-radius:10px;overflow:hidden;flex:none;background:var(--line)">'+(u?'<img src="'+esc(u)+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block">':'')+'</div><button type="button" onclick="$(\''+b+'_f\').click()">Upload image</button><button type="button" class="bad" onclick="pcImgSet(\''+pid+'\',\''+c.id+'\',\'\')">Remove image</button><input type="file" id="'+b+'_f" accept="image/*" hidden onchange="pcImgPick(\''+pid+'\',\''+c.id+'\',this)"><input type="hidden" id="'+b+'_i" value="'+esc(c.image_url||'')+'"></div>'+
+  '<div class="xr2" style="margin-top:8px"><label for="'+b+'_x" class="mut">Extra price</label><input id="'+b+'_x" type="number" min="0" step="any" placeholder="0" value="'+(c.extra>0?esc(c.extra):'')+'" style="width:110px"><label class="tg" style="gap:8px"><input type="radio" name="pc_'+pid+'_std" value="'+c.id+'"'+(c.std?' checked':'')+'><span>Standard colour</span></label></div></div>'}).join('')}
+function pcSync(pid){var L=pcDraft[pid];if(!L)return;var r=document.querySelector('input[name="pc_'+pid+'_std"]:checked'),sid=r?r.value:null;
+  L.forEach(function(c){var b='pc_'+pid+'_'+c.id,on=$(b+'_on');if(!on)return;c.enabled=on.checked;c.extra=Math.max(0,parseFloat($(b+'_x').value)||0);c.image_url=$(b+'_i').value;c.std=(sid===c.id)})}
+function pcPaint(pid){var bx=$('pc_'+pid+'_box');if(bx)bx.innerHTML=pcHtml(pid)}
+function pcAdd(pid){pcSync(pid);var n=$('pc_'+pid+'_nn'),h=$('pc_'+pid+'_nh'),nm=n.value.trim();
+  if(!nm){toast('Type a name for the new colour.',false);return}
+  (pcDraft[pid]=pcDraft[pid]||[]).push({id:xNewId('c'),name:nm.slice(0,30),hex:h.value,pal:0,enabled:true,extra:0,std:false,image_url:''});n.value='';pcPaint(pid)}
+function pcDel(pid,cid){if(!confirm('Remove this colour?'))return;pcSync(pid);pcDraft[pid]=(pcDraft[pid]||[]).filter(function(c){return c.id!==cid});pcPaint(pid)}
+function pcImgSet(pid,cid,url){var b='pc_'+pid+'_'+cid,h=$(b+'_i'),pv=$(b+'_pv');if(h)h.value=url;if(pv)pv.innerHTML=url?'<img src="'+esc(url)+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block">':''}
+async function pcImgPick(pid,cid,inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  if(!/^image\//.test(f.type)){toast('Choose an image file.',false);return}
+  try{toast('Uploading image\u2026',true);var d=await imgCrop(f,1200,4/3,500000),url=await brandUp('product',d);pcImgSet(pid,cid,url);toast('Image uploaded. Press Save on the product to keep it.',true)}
+  catch(e){toast(upErr(e),false)}}
+function xProdExtra(p,id){pcDraft[id]=pcBuild(p);var g=function(k,d){return p&&p[k]!=null&&p[k]!==''?p[k]:d},F=cmpFeats(),fv=(p&&p.features)||{};
+  return '<div style="border-top:2px solid var(--line);padding-top:12px"><b>Tier &amp; order limits</b></div>'+
+  '<div><label for="pp_'+id+'_tn">Tier name</label><input id="pp_'+id+'_tn" placeholder="e.g. Zen Base, Zen Pro" maxlength="40" value="'+esc(g('tier_name',''))+'"></div>'+
+  '<div><label for="pp_'+id+'_to">Tier order (1 = lowest tier, shown first when comparing)</label><input id="pp_'+id+'_to" type="number" step="1" value="'+esc(g('tier_order',0))+'" style="width:140px"></div>'+
+  '<div><label for="pp_'+id+'_bm">Bulk order starts at (items)</label><input id="pp_'+id+'_bm" type="number" min="2" step="1" value="'+esc(g('bulk_min',10))+'" style="width:140px"></div>'+
+  '<div><label for="pp_'+id+'_mx">Max items per order (0 = no limit)</label><input id="pp_'+id+'_mx" type="number" min="0" step="1" value="'+esc(g('max_per_order',0))+'" style="width:140px"></div>'+
+  '<div style="border-top:2px solid var(--line);padding-top:12px"><b>Colour options</b></div>'+
+  '<p class="mut" style="margin:0">Tick the colours customers can choose. Unticked colours are never shown. Upload a photo of the bracelet in that colour: it replaces the product image when a customer taps the colour. The <b>Standard colour</b> costs the normal price; every other colour adds its extra price.</p>'+
+  '<div id="pc_'+id+'_box">'+pcHtml(id)+'</div>'+
+  '<div class="xr2"><input id="pc_'+id+'_nn" placeholder="Add your own colour, e.g. Gold" maxlength="30" style="flex:1;min-width:150px"><input id="pc_'+id+'_nh" type="color" value="#d4af37" aria-label="Colour" style="width:56px;padding:2px"><button type="button" onclick="pcAdd(\''+id+'\')">Add colour</button></div>'+
+  '<div style="border-top:2px solid var(--line);padding-top:12px"><b>Compare features</b></div>'+
+  (F.length?'<p class="mut" style="margin:0">Type <b>yes</b> or <b>no</b>, or any text such as 8 KB. Empty counts as not included.</p>'+F.map(function(f){return '<div><label for="pf_'+id+'_'+f.id+'">'+esc(f.name)+'</label><input id="pf_'+id+'_'+f.id+'" maxlength="60" placeholder="yes / no / text" value="'+esc(fv[f.id]||'')+'"></div>'}).join(''):'<p class="mut" style="margin:0">Add feature rows in the Compare features card at the top of this tab first.</p>')}
+function xProdRead(id){pcSync(id);var L=pcDraft[id]||[],p=xFind(id),oldI=[];
+  if(p&&Array.isArray(p.colors))p.colors.forEach(function(c){if(c&&c.image_url)oldI.push(c.image_url)});
+  var en=L.filter(function(c){return c.enabled});
+  if(en.length&&!en.some(function(c){return c.std}))return {err:'Choose which ticked colour is the Standard colour (it costs the normal price).'};
+  var cols=L.filter(function(c){return c.enabled||c.image_url||!c.pal}).map(function(c){var sd=!!(c.enabled&&c.std);return {id:c.id,name:c.name,hex:c.hex,enabled:!!c.enabled,std:sd,extra:sd?0:c.extra,image_url:c.image_url}}),keep={};
+  cols.forEach(function(c){if(c.image_url)keep[c.image_url]=1});
+  var feats={};cmpFeats().forEach(function(f){var e=$('pf_'+id+'_'+f.id);if(e&&e.value.trim())feats[f.id]=e.value.trim()});
+  var to=parseInt($('pp_'+id+'_to').value,10),bm=parseInt($('pp_'+id+'_bm').value,10),mx=parseInt($('pp_'+id+'_mx').value,10);
+  return {tn:$('pp_'+id+'_tn').value.trim(),to:isFinite(to)?to:0,bm:bm>=2?bm:10,mx:mx>0?mx:0,colors:cols,features:feats,drop:oldI.filter(function(u){return !keep[u]})}}
+function cfSync(){cfDraft.forEach(function(f,i){var e=$('cf_n_'+i);if(e)f.name=e.value})}
+function cfRows(){return cfDraft.length?cfDraft.map(function(f,i){return '<div class="xr2" style="margin-bottom:8px"><input id="cf_n_'+i+'" value="'+esc(f.name)+'" maxlength="60" aria-label="Feature name" style="flex:1;min-width:140px"><button type="button" aria-label="Move up" style="width:46px;padding:0" onclick="cfMove('+i+',-1)">\u2191</button><button type="button" aria-label="Move down" style="width:46px;padding:0" onclick="cfMove('+i+',1)">\u2193</button><button type="button" class="bad" onclick="cfDel('+i+')">Delete</button></div>'}).join(''):'<p class="mut">No feature rows yet.</p>'}
+function cfPaint(){var b=$('cf_box');if(b)b.innerHTML=cfRows()}
+function cfAdd(){cfSync();var e=$('cf_new'),n=e.value.trim();if(!n){toast('Type a feature name, e.g. Storage.',false);return}cfDraft.push({id:xNewId('f'),name:n.slice(0,60)});e.value='';cfPaint()}
+function cfDel(i){cfSync();cfDraft.splice(i,1);cfPaint()}
+function cfMove(i,d){cfSync();var j=i+d;if(j<0||j>=cfDraft.length)return;var t=cfDraft[i];cfDraft[i]=cfDraft[j];cfDraft[j]=t;cfPaint()}
+async function cfSave(){cfSync();var L=cfDraft.map(function(f){return {id:f.id,name:String(f.name).trim()}}).filter(function(f){return f.name});
+  try{await rpc('cms_save_config',{v:{compare_features:JSON.stringify(L)}});await loadCms();toast('Compare features saved.',true);render()}catch(e){toast(e.message,false)}}
+function cfCard(){cfDraft=cmpFeats().map(function(f){return {id:f.id,name:f.name}});
+  return '<div class="card"><h2>Compare features</h2><p class="mut">One shared list of rows for the Compare table on the landing page (for example Storage, Waterproof, Safety info). After you save, each product below gets a box for every row. Save this card first, then fill in the products.</p><div id="cf_box">'+cfRows()+'</div><div class="xr2" style="margin-top:6px"><input id="cf_new" placeholder="New feature, e.g. Storage" maxlength="60" style="flex:1;min-width:150px" onkeydown="if(event.key===\'Enter\')cfAdd()"><button type="button" onclick="cfAdd()">Add row</button></div><div class="xr2" style="margin-top:10px"><button class="go" type="button" onclick="cfSave()">Save compare features</button></div></div>'}
 function xProdForm(p){var id=p?p.id:'new',g=function(k){return p&&p[k]!=null?p[k]:''};
   return '<div class="item"><div class="xf"><input id="pp_'+id+'_t" placeholder="Product title" value="'+esc(g('title'))+'" maxlength="120"><textarea id="pp_'+id+'_d" placeholder="Description" maxlength="500">'+esc(g('description'))+'</textarea><p class="mut" style="margin:0"><b>Product image:</b> upload a landscape photo with a <b>4:3 ratio</b> (best size 1200 × 900 px). Other shapes are cropped from the centre to 4:3. PNG, JPG or WebP.</p><div class="row" style="align-items:center"><div id="pp_'+id+'_pv" style="width:120px;height:90px;border:2px solid var(--edge);border-radius:10px;overflow:hidden;flex:none;background:var(--line)">'+(xurl(g('image_url'))?'<img src="'+esc(xurl(g('image_url')))+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block">':'')+'</div><button type="button" onclick="$(\'pp_'+id+'_f\').click()">Upload image</button><button type="button" class="bad" onclick="prodImgSet(\''+id+'\',\'\')">Remove</button><input type="file" id="pp_'+id+'_f" accept="image/*" hidden onchange="prodImgPick(\''+id+'\',this)"><input type="hidden" id="pp_'+id+'_i" value="'+esc(g('image_url'))+'"></div>'+
   '<div class="row"><input id="pp_'+id+'_p" type="number" min="0" step="any" placeholder="Price" aria-label="Price" value="'+esc(g('price'))+'" style="width:120px"><input id="pp_'+id+'_s" type="number" min="0" step="1" placeholder="Stock" aria-label="Stock" value="'+esc(g('stock_count'))+'" style="width:120px">'+(p?'<span class="tag">'+esc(xStat(p).replace('_',' '))+'</span>':'')+'</div>'+
-  '<div class="row"><button class="go" onclick="xProdSave(\''+id+'\')">'+(p?'Save':'Add product')+'</button>'+(p?'<button class="bad" onclick="xProdDel(\''+id+'\')">Delete</button>':'')+'</div></div></div>'}
+  xProdExtra(p,id)+'<div class="row"><button class="go" onclick="xProdSave(\''+id+'\')">'+(p?'Save':'Add product')+'</button>'+(p?'<button class="bad" onclick="xProdDel(\''+id+'\')">Delete</button>':'')+'</div></div></div>'}
 function xvShop(){if(!xcms)return xNeed();var L=xcms.products||[];
-  return '<div class="card"><h2>New product</h2>'+xProdForm(null)+'</div><div class="card"><h2>Inventory</h2><p class="mut">Stock drops by 1 only when a payment is confirmed. Unpaid checkouts hold a unit for 15 minutes, then release it. At 0 the item shows Sold Out until you restock here.</p>'+(L.length?L.map(xProdForm).join(''):'<p class="mut">No products yet.</p>')+'</div>'}
+  return cfCard()+'<div class="card"><h2>New product</h2>'+xProdForm(null)+'</div><div class="card"><h2>Inventory</h2><p class="mut">Stock drops by 1 only when a payment is confirmed. Unpaid checkouts hold a unit for 15 minutes, then release it. At 0 the item shows Sold Out until you restock here.</p>'+(L.length?L.map(xProdForm).join(''):'<p class="mut">No products yet.</p>')+'</div>'}
 async function xProdSave(id){var old=((((xcms&&xcms.products)||[]).filter(function(x){return x.id===id})[0])||{}).image_url;var q=function(s){return $('pp_'+id+'_'+s).value.trim()},price=parseFloat(q('p')),stock=parseInt(q('s'),10);
   if(!q('t')){toast('Enter a product title.',false);return}
   if(!(price>=0)){toast('Enter a valid price.',false);return}
   if(!(stock>=0)){toast('Enter the stock quantity (0 or more).',false);return}
   if(q('i')&&!xurl(q('i'))){toast('Image URL must start with https://',false);return}
-  try{await rpc('product_save',{p:{id:id==='new'?null:id,title:q('t'),description:q('d'),image_url:q('i'),price:price,stock_count:stock}});assetDrop(old,q('i'));await loadCms();toast(id==='new'?'Product added.':'Product saved.',true);render()}catch(e){toast(e.message,false)}}
+  var ex=xProdRead(id);if(ex.err){toast(ex.err,false);return}
+  try{await rpc('product_save',{p:{id:id==='new'?null:id,title:q('t'),description:q('d'),image_url:q('i'),price:price,stock_count:stock,tier_name:ex.tn,tier_order:ex.to,bulk_min:ex.bm,max_per_order:ex.mx,colors:ex.colors,features:ex.features}});assetDrop(old,q('i'));ex.drop.forEach(function(u){assetDrop(u,'')});await loadCms();toast(id==='new'?'Product added.':'Product saved.',true);render()}catch(e){toast(e.message,false)}}
 async function xProdDel(id){if(!confirm('Delete this product?'))return;
   try{var op=((((xcms&&xcms.products)||[]).filter(function(x){return x.id===id})[0])||{}).image_url;await rpc('product_delete',{pid:id});assetDrop(op,'');await loadCms();toast('Product deleted.',true);render()}catch(e){toast(e.message,false)}}
 function xSecForm(s){var id=s?s.id:'new',g=function(k,d){return s&&s[k]!=null?s[k]:d};
@@ -1200,8 +1339,8 @@ function xvOrders(){var d=adm.ordx;if(d===null)return '<div class="card"><p clas
     due=o.filter(function(x){return x.status==='refund_due'}).length,
     US={pending:'Waiting for payment',failed:'Failed',mismatch:'Amount mismatch',expired:'Expired'};
   return '<div class="card"><h2>Orders</h2><p class="mut">Every order here was created by the server after the payment provider confirmed the money. Nothing can be added by hand or by the website.</p><div class="xk"><div><span class="mut">Paid orders</span><b>'+o.length+'</b></div><div><span class="mut">Sales (not wallet money)</span><b>'+esc(mny(rev))+'</b></div></div>'+(due?'<p><span class="tag">'+due+' to refund</span> These were paid after the last unit sold. Refund them and mark Refunded.</p>':'')+
-  (o.length?'<div style="overflow-x:auto;margin-top:10px"><table>'+o.map(function(x){return '<tr><td>'+when(x.paid_at)+'<br><span class="mut">#'+esc(x.order_no)+'</span></td><td><b>'+esc(x.name)+'</b><br><a href="tel:'+esc(String(x.phone).replace(/[^\d+]/g,''))+'">'+esc(x.phone)+'</a><br>'+esc(x.email)+'</td><td>'+esc(x.product_title||'-')+'<br><b>'+esc(mny(x.amount))+'</b><br><span class="mut">'+esc(x.payment_method||'')+'</span><br><span class="tag ok">Payment verified</span></td><td><select aria-label="Order status" onchange="xOrdSt(\''+esc(x.id)+'\',this.value)">'+ST.map(function(s){return '<option value="'+s[0]+'"'+(s[0]===x.status?' selected':'')+'>'+s[1]+'</option>'}).join('')+'</select></td></tr>'}).join('')+'</table></div>':'<p class="mut">No paid orders yet.</p>')+'</div>'+
-  '<div class="card"><details><summary><b>Unpaid checkouts ('+u.length+')</b> \u00B7 no order was created</summary><p class="mut">People who started a checkout but have not paid. Stock is held for 15 minutes, then released.</p>'+(u.length?'<div style="overflow-x:auto"><table>'+u.map(function(x){return '<tr><td>'+when(x.created_at)+'</td><td><b>'+esc(x.name||'')+'</b><br>'+esc(x.phone||'')+'</td><td>'+esc(x.title||'-')+'<br>'+esc(mny(x.amount))+'</td><td><span class="tag">'+esc(x.status==='pending'&&!x.holding?'Hold expired':US[x.status]||x.status)+'</span></td></tr>'}).join('')+'</table></div>':'<p class="mut">None.</p>')+'</details></div>'+
+  (o.length?'<div style="overflow-x:auto;margin-top:10px"><table>'+o.map(function(x){return '<tr><td>'+when(x.paid_at)+'<br><span class="mut">#'+esc(x.order_no)+'</span></td><td><b>'+esc(x.name)+'</b><br><a href="tel:'+esc(String(x.phone).replace(/[^\d+]/g,''))+'">'+esc(x.phone)+'</a><br>'+esc(x.email)+'</td><td>'+esc(x.product_title||'-')+(x.color_name?' \u00B7 '+esc(x.color_name):'')+(x.qty>1?' \u00D7 '+esc(x.qty):'')+'<br><b>'+esc(mny(x.amount))+'</b>'+(x.qty>1&&x.unit_amount?'<br><span class="mut">'+esc(mny(x.unit_amount))+' each</span>':'')+'<br><span class="mut">'+esc(x.payment_method||'')+'</span><br><span class="tag ok">Payment verified</span></td><td><select aria-label="Order status" onchange="xOrdSt(\''+esc(x.id)+'\',this.value)">'+ST.map(function(s){return '<option value="'+s[0]+'"'+(s[0]===x.status?' selected':'')+'>'+s[1]+'</option>'}).join('')+'</select></td></tr>'}).join('')+'</table></div>':'<p class="mut">No paid orders yet.</p>')+'</div>'+
+  '<div class="card"><details><summary><b>Unpaid checkouts ('+u.length+')</b> \u00B7 no order was created</summary><p class="mut">People who started a checkout but have not paid. Stock is held for 15 minutes, then released.</p>'+(u.length?'<div style="overflow-x:auto"><table>'+u.map(function(x){return '<tr><td>'+when(x.created_at)+'</td><td><b>'+esc(x.name||'')+'</b><br>'+esc(x.phone||'')+'</td><td>'+esc(x.title||'-')+(x.color?' \u00B7 '+esc(x.color):'')+(x.qty>1?' \u00D7 '+esc(x.qty):'')+'<br>'+esc(mny(x.amount))+'</td><td><span class="tag">'+esc(x.status==='pending'&&!x.holding?'Hold expired':US[x.status]||x.status)+'</span></td></tr>'}).join('')+'</table></div>':'<p class="mut">None.</p>')+'</details></div>'+
   (lg.length?'<div class="card"><details><summary><b>Legacy pre-orders ('+lg.length+')</b> \u00B7 unverified</summary><p class="mut">Saved before payment confirmation existed. Their payment status was never checked by the server. Read-only.</p><div style="overflow-x:auto"><table>'+lg.map(function(x){return '<tr><td>'+when(x.created_at)+'</td><td><b>'+esc(x.name)+'</b><br>'+esc(x.phone)+'<br>'+esc(x.email)+'</td><td>'+esc(x.product_title||'-')+'</td><td><span class="tag">'+esc(x.status)+'</span></td></tr>'}).join('')+'</table></div></details></div>':'')}
 async function xOrdSt(id,s){try{await rpc('order_set_status',{p_oid:id,p_st:s});toast('Order marked '+s.replace('_',' ')+'.',true)}catch(e){toast(e.message,false)}await xLoadAdm()}
 /* ---- admin: Money tab (fees, rewards, payouts, reconciliation) ---- */
