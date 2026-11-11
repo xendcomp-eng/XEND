@@ -141,7 +141,7 @@ td.xr,th.xr{text-align:right;white-space:nowrap}
 <main>
 <div id="msg"></div><div id="view"></div>
 </main>
-<p class="mut" style="text-align:center;font-size:.75rem;margin:0 0 24px">Version: 10 Nov 2026 · buyers, guest cards + smart search</p>
+<p class="mut" style="text-align:center;font-size:.75rem;margin:0 0 24px">Version: 11 Nov 2026 · token sources + Paystack payouts</p>
 <div id="pop"></div><div id="toast" role="status"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
@@ -573,7 +573,7 @@ function vPublic(){
 function vWallet(){var w=wallet;
   if(mwMode)return vMoneyFlow();
   if(w.live===false)return vMoneyBlock()+'<div class="card"><h2>Hi '+esc(w.name.split(' ')[0])+'</h2><p class="mut">The event is not active, so your event tokens are hidden for now. Your money wallet above is not affected. You can still edit your card below.</p></div>'+chatCard()+cardEditBlock(w)+'<button onclick="guestOut()">Log out</button>';
-  return vMoneyBlock()+'<div class="card"><div class="row sp"><span class="mut">Hi '+esc(w.name.split(' ')[0])+', your event tokens</span><span class="tag">Not cash</span></div><div class="bal">'+w.balance+' tokens</div><p class="mut">Loaded by organizers for the event. Spend them at stalls or send them to friends. They cannot be withdrawn or turned into money.</p><div class="row"><button onclick="refreshWallet()">Refresh</button><button onclick="freeze()">'+(w.frozen?'Unfreeze':'Freeze')+' bracelet</button></div></div>'+chatCard()+
+  return vMoneyBlock()+'<div class="card"><div class="row sp"><span class="mut">Hi '+esc(w.name.split(' ')[0])+', your event tokens</span><span class="tag">\uD83C\uDFAB EVENT TOKENS \u00B7 not cash</span></div><div class="bal">'+w.balance+' tokens</div>'+tokSplit(w)+'<div class="row"><button onclick="refreshWallet()">Refresh</button><button onclick="freeze()">'+(w.frozen?'Unfreeze':'Freeze')+' bracelet</button></div></div>'+chatCard()+
   cardEditBlock(w)+
   pinEditBlock()+
   (w.acts.length?'<div class="card"><h2>Activities</h2>'+w.acts.map(function(a){return '<div class="item row sp"><span>'+esc(a.name)+'</span><span class="tag '+(a.done?'ok':'')+'">'+(a.done?'Done':'Not done')+'</span></div>'}).join('')+'</div>':'')+
@@ -1012,7 +1012,7 @@ var xcms=null,xerr=false,xbusy=false,xclk=0,xclt=null,ordP=null,ordLink='',
     ['hero_title','Hero title',''],['hero_subtitle','Hero subtitle','',1],['banner_text','Promo banner (empty = hidden)',''],
     ['about_title','About heading',''],['about_text','About text','',1],['shop_title','Shop heading',''],['wallet_title','Wallet button label','My wallet'],
     ['low_stock_at','Low-stock threshold (units)','3']],
-  XALL=[['home','Home'],['top','Top-up'],['till','Charge'],['cards','Cards'],['events','Events'],['vendors','Owed'],['buys','Purchases'],['team','Team'],['groups','Groups'],['import','Import'],['set','Settings'],['site','Site'],['brand','Logo & Banner'],['shop','Shop'],['secs','Sections'],['btns','Buttons'],['orders','Orders'],['money','Money'],['theme','Colors'],['ledger','Ledger']];
+  XALL=[['home','Home'],['top','Top-up'],['till','Charge'],['cards','Cards'],['events','Events'],['vendors','Owed'],['buys','Purchases'],['team','Team'],['groups','Groups'],['import','Import'],['set','Settings'],['site','Site'],['brand','Logo & Banner'],['shop','Shop'],['secs','Sections'],['btns','Buttons'],['orders','Orders'],['money','Money'],['tokens','Tokens'],['theme','Colors'],['ledger','Ledger']];
 function xv(k,d){var c=xcms&&xcms.config,v=c&&c[k];return (v!=null&&String(v).trim()!=='')?String(v):(d==null?'':d)}
 function xurl(u){u=String(u||'').trim();return /^(https?:\/\/|data:image\/(png|jpe?g|webp|gif);base64,)/i.test(u)?u:''}
 function xhtml(s){return esc(s).replace(/\n/g,'<br>')}
@@ -1189,7 +1189,7 @@ async function payResolve(){var ref=payRef;if(!ref)return;payRef=null;
 async function mwLoad(){if(mwLoading||!key||!wpin)return;mwLoading=true;
   try{mw=await rpc('money_wallet',{k:key,pin_:wpin});mwErr=''}catch(e){mw=false;mwErr=e.message}
   mwLoading=false;var ae=document.activeElement;if(!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)))render()}
-var MK={to_points:'Converted to points',deposit:'Money added',send:'Sent',receive:'Received',withdraw:'Withdrawal',withdraw_refund:'Withdrawal refunded',fee:'Token fee'};
+var MK={tokens_back:'Tokens turned into money',redeem:'Leftover tokens redeemed',to_points:'Converted to event tokens',deposit:'Money added',send:'Sent',receive:'Received',withdraw:'Withdrawal',withdraw_refund:'Withdrawal refunded',fee:'Token fee'};
 function mwRow(t){var tok=t.asset==='token',eff=Number(t.amount)-Number(t.fee||0),who=t.counterparty?' \u00B7 '+esc(t.counterparty):'';
   return '<div class="item row sp"><span>'+esc(MK[t.kind]||t.kind)+who+'<br><span class="mut">'+when(t.created_at)+(t.fee>0&&!tok?' \u00B7 fee '+esc(mny(t.fee)):'')+'</span></span><b>'+(tok?'-'+t.fee+' tokens':(eff>0?'+':'')+esc(mny(eff)))+'</b></div>'}
 function vMoneyBlock(){
@@ -1384,8 +1384,8 @@ function vMoneyAdmin(){var m=adm.mon;
   var pend=wd.filter(function(w){return w.status==='pending'}),done=wd.filter(function(w){return w.status!=='pending'}).slice(0,15);
   var po='<div class="card"><h2>Withdrawal requests ('+pend.length+' waiting)</h2><p class="mut">Pay the guest by MoMo, then mark it paid. Reject to refund the guest in full, fee included.</p>'+
     (pend.length?pend.map(function(w){return '<div class="item"><div class="row sp"><b>'+esc(w.guest_name||'Guest')+'</b><b>'+esc(mny(w.amount))+'</b></div><div class="mut">'+esc(w.network||'')+' '+esc(w.momo_number)+' \u00B7 fee '+esc(mny(w.fee))+' \u00B7 '+when(w.created_at)+'</div><div class="row" style="margin-top:6px"><button class="go" onclick="wdResolve(\''+esc(w.id)+'\',\'paid\')">Mark paid</button><button class="bad" onclick="wdResolve(\''+esc(w.id)+'\',\'rejected\')">Reject &amp; refund</button></div></div>'}).join(''):'<p class="mut">Nothing waiting.</p>')+
-    (done.length?'<details style="margin-top:10px"><summary>Recent</summary>'+done.map(function(w){return '<div class="item row sp"><span>'+esc(w.guest_name||'Guest')+' \u00B7 '+esc(mny(w.amount))+'<br><span class="mut">'+when(w.resolved_at||w.created_at)+(w.payout_ref?' \u00B7 '+esc(w.payout_ref):'')+'</span></span><span class="tag">'+esc(w.status)+'</span></div>'}).join('')+'</details>':'')+'</div>';
-  var rec='<div class="card"><h2>Where the money is</h2><p class="mut">Real money, from confirmed payments only.</p><table><tr><td>Confirmed deposits</td><td class="xr"><b>'+esc(mny(rc.deposits))+'</b></td></tr><tr><td>In guest money wallets</td><td class="xr">'+esc(mny(rc.in_wallets))+'</td></tr><tr><td>Held for withdrawal requests</td><td class="xr">'+esc(mny(rc.pending_payouts))+'</td></tr><tr><td>Paid out to guests</td><td class="xr">'+esc(mny(rc.paid_out))+'</td></tr><tr><td>Fees earned (all time)</td><td class="xr">'+esc(mny(rc.fees_earned))+'</td></tr><tr><td>Difference</td><td class="xr"><span class="tag'+(ok?' ok':'')+'">'+(ok?'Balanced':esc(mny(rc.difference))+' \u2013 check')+'</span></td></tr></table></div>'+
+    (done.length?'<details style="margin-top:10px"><summary>Recent</summary>'+done.map(function(w){return '<div class="item row sp"><span>'+esc(w.guest_name||'Guest')+' \u00B7 '+esc(mny(w.amount))+'<br><span class="mut">'+when(w.resolved_at||w.created_at)+(w.payout_ref?' \u00B7 '+esc(w.payout_ref):'')+'</span></span><span class="tag">'+esc(w.status)+'</span>'+(w.status==='queued'||w.status==='processing'?'<button style="min-height:38px" onclick="tokSend(\'guest\',\''+esc(w.id)+'\')">Send now</button>':'')+'</div>'}).join('')+'</details>':'')+'</div>';
+  var rec='<div class="card"><h2>Where the money is</h2><p class="mut">Real money, from confirmed payments only.</p><table><tr><td>Confirmed deposits</td><td class="xr"><b>'+esc(mny(rc.deposits))+'</b></td></tr><tr><td>In guest money wallets</td><td class="xr">'+esc(mny(rc.in_wallets))+'</td></tr><tr><td>Backing event tokens (converted, net)</td><td class="xr">'+esc(mny(rc.tokens_backed))+'</td></tr><tr><td>Held for withdrawal requests</td><td class="xr">'+esc(mny(rc.pending_payouts))+'</td></tr><tr><td>Paid out to guests</td><td class="xr">'+esc(mny(rc.paid_out))+'</td></tr><tr><td>Fees earned (all time)</td><td class="xr">'+esc(mny(rc.fees_earned))+'</td></tr><tr><td>Difference</td><td class="xr"><span class="tag'+(ok?' ok':'')+'">'+(ok?'Balanced':esc(mny(rc.difference))+' \u2013 check')+'</span></td></tr></table></div>'+
     '<div class="card"><h2>Kept separate from wallet money</h2><div class="xk"><div><span class="mut">Event tokens in guest wallets (admin loaded)</span><b>'+m.tokens.in_wallets+'</b></div><div><span class="mut">Pre-order sales ('+m.preorders.count+' orders)</span><b>'+esc(mny(m.preorders.revenue))+'</b></div></div></div>';
   var rl=(m.recent||[]).length?'<div class="card"><h2>Recent reward activity</h2><div style="overflow-x:auto"><table>'+m.recent.map(function(r){return '<tr><td>'+when(r.created_at)+'</td><td>'+esc(r.source==='admin_withdraw'?'Withdrawn'+(r.note?': '+r.note:''):(RSRC[r.asset+'|'+r.source]||r.source))+(r.guest?'<br><span class="mut">'+esc(r.guest)+'</span>':'')+'</td><td class="xr"><b>'+(r.delta>0?'+':'')+(r.asset==='money'?esc(mny(r.delta)):r.delta+' tokens')+'</b></td></tr>'}).join('')+'</table></div></div>':'';
   return rw+po+fs+ptsCard(m)+src+rec+'' +rl.replace(/^$/,'')}
@@ -1403,10 +1403,10 @@ async function feesSave(){var mf=pes($('fmf').value),mp=Math.round(parseFloat($(
 async function wdResolve(id,st){var note=prompt(st==='paid'?'Payout reference (MoMo transaction ID):':'Reason for rejecting (the guest is refunded in full):','');if(note===null)return;
   try{await rpc('withdrawal_resolve',{p_wid:id,p_st:st,p_note:note});toast(st==='paid'?'Marked paid.':'Rejected and refunded.',true);await moneyLoad()}catch(e){toast(e.message,false)}}
 /* tab bar: admins get the new tabs; every tab name can be overridden from the Site tab */
-setTab=function(t){if(tab==='brand'&&t!=='brand')brandDraft=null;if(tab==='theme'&&t!=='theme'&&themeDraft){themeDraft=null;themeApply(FX.theme)}if(t==='money'){tab=t;render();moneyLoad();return}if(XPAGES.indexOf(t)>-1){tab=t;render();xLoadAdm()}else setTab0(t)};
+setTab=function(t){if(tab==='brand'&&t!=='brand')brandDraft=null;if(tab==='theme'&&t!=='theme'&&themeDraft){themeDraft=null;themeApply(FX.theme)}if(t==='money'){tab=t;render();moneyLoad();return}if(t==='tokens'){tab=t;render();tokLoad();return}if(XPAGES.indexOf(t)>-1){tab=t;render();xLoadAdm()}else setTab0(t)};
 vStaff=function(){
   if(!me||me.role!=='admin'){var h=vStaff0();if(me&&me.role!=='vendor')XALL.forEach(function(t){var l=xv('label_'+t[0]);if(l)h=h.replace(new RegExp('(onclick="setTab\\(\''+t[0]+'\'\\)">)[^<]*(</button>)'),function(m,a,b){return a+esc(l)+b})});return h}
-  var T=XALL,map={home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,vendors:vVendors,buys:vBuys,team:vTeam,groups:vGroups,import:vImport,set:vSet,site:xvSite,brand:xvBrand,shop:xvShop,secs:xvSecs,btns:xvBtns,orders:xvOrders,money:vMoneyAdmin,theme:xvTheme,ledger:vLedger};
+  var T=XALL,map={home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,vendors:vVendors,buys:vBuys,team:vTeam,groups:vGroups,import:vImport,set:vSet,site:xvSite,brand:xvBrand,shop:xvShop,secs:xvSecs,btns:xvBtns,orders:xvOrders,money:vMoneyAdmin,tokens:vTokAdmin,theme:xvTheme,ledger:vLedger};
   return '<div class="row tabs" style="margin-bottom:14px">'+T.map(function(t){return '<button class="'+(tab===t[0]?'on':'')+'" onclick="setTab(\''+t[0]+'\')">'+esc(xv('label_'+t[0],t[1]))+'</button>'}).join('')+'</div>'+(map[tab]||vHome)()};
 /* ================= admin-editable buttons, colours, points counters, guest edit toggles ================= */
 var gEdit=null,themeDraft=null,themeLast='';
@@ -1807,6 +1807,165 @@ async function swWrite(force){if(!sw)return;if(!HAS){say('Writing tags needs Chr
     rpc('serial_register',{s:sr}).catch(function(){})}
   catch(e){if(e.name==='AbortError'){if(writeCtl!==ctl)return;say('Write cancelled.',false)}else say('Write failed: '+e.message,false)}
   if(writeCtl===ctl)writeCtl=null;render()}
+
+/* ================= v2: token sources, Paystack payouts, vendor close + payout, leftovers ================= */
+var tsp=null,vdat,tkd,tkErr='',bankList=null,vBusy=false,tkBusy=false;
+var PST={pending:'Waiting for approval',queued:'Queued',processing:'On its way',paid:'Paid',failed:'Failed',rejected:'Rejected'};
+function tokVal(pts,rate){return mny(Math.floor(Number(pts||0)*100/(Number(rate)||1)))}
+function uiIdle(){var ae=document.activeElement;return !(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName))}
+async function payoutCall(b){var r,d=null;
+  try{r=await fetch(cfg.url.replace(/\/$/,'')+'/functions/v1/xend-payout',{method:'POST',headers:{'Content-Type':'application/json',apikey:cfg.key},body:JSON.stringify(b)})}
+  catch(e){throw new Error('Could not reach the payout service. Check your connection.')}
+  try{d=await r.json()}catch(e){}
+  if(!r.ok||!d||d.error)throw new Error((d&&d.error)||'The payout service is not available yet.');return d}
+
+/* ---- where to send money: MoMo or bank account (Paystack cannot pay out to a debit card) ---- */
+function acctFields(p){var st='style="width:100%"';
+  return '<select id="'+p+'t" '+st+' onchange="acctSwitch(\''+p+'\')"><option value="momo">Mobile Money</option><option value="bank">Bank account</option></select>'+
+  '<select id="'+p+'n" '+st+'><option value="MTN">MTN MoMo</option><option value="VOD">Telecel Cash</option><option value="ATL">AirtelTigo Money</option></select>'+
+  '<select id="'+p+'b" '+st+' hidden><option value="">Loading banks\u2026</option></select>'+
+  '<input id="'+p+'a" '+st+' type="tel" inputmode="tel" placeholder="MoMo number" autocomplete="off">'+
+  '<input id="'+p+'h" '+st+' placeholder="Account name" maxlength="80" hidden autocomplete="off">'}
+function bankFill(p){var s=$(p+'b');if(!s)return;s.innerHTML='<option value="">Choose your bank</option>'+(bankList||[]).map(function(x){return '<option value="'+esc(x.code)+'">'+esc(x.name)+'</option>'}).join('')}
+async function acctSwitch(p){var bank=$(p+'t').value==='bank';$(p+'n').hidden=bank;$(p+'b').hidden=!bank;$(p+'h').hidden=!bank;$(p+'a').placeholder=bank?'Account number':'MoMo number';
+  if(!bank)return;
+  if(!bankList){try{var d=await payoutCall({action:'banks'});bankList=d.banks||[]}catch(e){bankList=null;toast(e.message,false);return}}
+  bankFill(p)}
+function acctRead(p){var bank=$(p+'t').value==='bank',dg=$(p+'a').value.replace(/\D/g,'');
+  if(bank){var bc=$(p+'b').value,nm=$(p+'h').value.trim();
+    if(!bc)return {err:'Choose your bank.'};if(dg.length<8)return {err:'Enter a valid account number.'};if(nm.length<2)return {err:'Enter the account name.'};
+    return {type:'bank',number:dg,network:null,bank:bc,name:nm}}
+  if(dg.length<9)return {err:'Enter a valid MoMo number.'};
+  if(dg.indexOf('233')===0&&dg.length===12)dg='0'+dg.slice(3);
+  return {type:'momo',number:dg,network:$(p+'n').value,bank:null,name:null}}
+
+/* ---- guest: MONEY wallet (green, real GH\u20B5) ---- */
+function vMoneyBlock(){
+  if(mw===null){setTimeout(mwLoad,0);return '<div class="card xmny"><div class="mut"><b>Money wallet</b></div><p class="mut">Loading\u2026</p></div>'}
+  if(mw===false)return '<div class="card"><h2>Money wallet</h2><p class="mut">Not available yet'+(mwErr?': '+esc(mwErr):'')+'.</p><button onclick="mw=null;render()">Try again</button></div>';
+  var pend=(mw.pending||[]).map(function(p){return '<p class="mut" style="margin:8px 0 0"><span class="tag xm">'+esc(PST[p.status]||p.status)+'</span> '+esc(mny(p.amount))+' to '+esc(p.momo_number)+'</p>'}).join(''),
+    tx=(mw.tx||[]).slice(0,15);
+  return '<div class="card xmny"><div class="row sp"><span><b>\uD83D\uDCB5 MONEY WALLET</b></span><span class="tag xm">Real GH\u20B5 \u00B7 withdrawable</span></div><div class="bal" style="margin-top:8px">'+esc(mny(mw.balance))+'</div>'+
+  '<p class="mut">Real cash you added with Paystack. Withdraw it to your MoMo or bank account any time. To spend at stalls, turn it into event tokens first.</p>'+
+  '<div class="row"><button class="go" onclick="mwOpen(\'deposit\')">Add money</button><button onclick="mwOpen(\'send\')">Send</button><button onclick="mwOpen(\'withdraw\')">Withdraw</button>'+(mw.pts_rate>0?'<button onclick="mwOpen(\'convert\')">Convert to event tokens</button>':'')+'</div>'+
+  '<p class="mut" style="margin:10px 0 0">Fee on each add, send or withdrawal: '+esc(feeTxt('money'))+'. You can never send or withdraw more than this wallet holds.</p>'+pend+
+  (tx.length?'<details style="margin-top:10px"><summary><b>Money &amp; fee activity</b></summary>'+tx.map(mwRow).join('')+'</details>':'')+'</div>'}
+function vMoneyFlow(){var m=mwMode,bal='<p class="mut">Money wallet balance: <b>'+esc(mny(mw&&mw.balance))+'</b>. Fee: '+esc(feeTxt('money'))+'.</p>',
+  er='<div id="mwe" class="mut" role="status" style="min-height:1.4em;margin:8px 0"></div><div id="mwp" class="mut" style="margin:10px 0"></div>';
+  if(m==='convert')return '<div class="card xmny">'+mwHead('Convert to event tokens')+'<p class="mut">Rate: <b>GH\u20B5 1 = '+Number(mw.pts_rate)+' tokens</b>. These become <b>paid tokens</b>: spent after your admin-loaded tokens, and the vendor who receives them is paid in real money. The money leaves this wallet now and cannot be undone. After your event ends you can turn unused paid tokens back into money.</p><p class="mut">Money wallet balance: <b>'+esc(mny(mw&&mw.balance))+'</b>.</p><div class="row"><input id="mwa" type="number" inputmode="decimal" min="1" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"><input id="mwpin" type="password" inputmode="numeric" placeholder="Your PIN" autocomplete="off"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwConvert()">Convert to event tokens</button></div>';
+  if(m==='deposit')return '<div class="card xmny">'+mwHead('Add money')+'<p class="mut">You pay on a secure Paystack page (MoMo or card). Money reaches your wallet only after Paystack confirms the payment. The fee is taken from what you pay.</p><div class="row">'+[10,20,50,100].map(function(x){return '<button onclick="$(\'mwa\').value='+x+';mwPrev()">'+x+'</button>'}).join('')+'</div><div class="row" style="margin-top:10px"><input id="mwa" type="number" inputmode="decimal" min="1" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwDeposit()">Continue to Paystack</button></div>';
+  if(m==='send')return '<div class="card xmny">'+mwHead('Send money')+'<p class="mut">Real money, not event tokens. Sends cannot be undone and can never be more than your wallet holds.</p>'+bal+
+    (mwPeople.length?'<select id="mws" style="width:100%"><option value="">Choose a guest</option>'+mwPeople.map(function(p){return '<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>'}).join('')+'</select>':'<p class="mut">'+(mwErr?esc(mwErr):'No other guests available yet.')+'</p>')+
+    '<div class="row" style="margin-top:10px"><input id="mwa" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"><input id="mwpin" type="password" inputmode="numeric" placeholder="Your PIN" autocomplete="off"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwSend()">Send money</button></div>';
+  return '<div class="card xmny">'+mwHead('Withdraw money')+'<p class="mut">Paystack sends it to your account, usually within minutes. The amount and fee leave your wallet now; if the transfer fails, everything is returned automatically. Minimum GH\u20B5 5.00. Paystack pays to MoMo or bank accounts, not debit cards.</p>'+bal+
+    '<div class="xf">'+acctFields('w')+'<input id="mwa" type="number" inputmode="decimal" min="5" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()" style="width:100%"><input id="mwpin" type="password" inputmode="numeric" placeholder="Your PIN" autocomplete="off" style="width:100%"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwWithdraw()">Withdraw to my account</button></div>'}
+/* the button switches off when the amount is more than the wallet holds */
+var mwPrev0=mwPrev;
+mwPrev=function(){mwPrev0();var g=$('mwgo'),a=$('mwa');if(!g||!a||!mw)return;var v=pes(a.value),f=feeOf('money',v)||0,over=false;
+  if(mwMode==='convert'){var r=Number(mw.pts_rate)||0,pt=Math.floor(v/100*r),c=r>0?Math.min(v,Math.ceil(pt*100/r)):0;over=c>mw.balance}
+  else if(mwMode==='send'||mwMode==='withdraw')over=v+f>mw.balance;
+  g.disabled=!!over}
+async function mwWithdraw(){if(mwBusy)return;var a=pes($('mwa').value),p=$('mwpin').value.trim(),er=$('mwe'),ac=acctRead('w');
+  if(!(a>=500)||!p){er.textContent='Enter at least GH\u20B5 5.00 and your PIN.';return}
+  if(ac.err){er.textContent=ac.err;return}
+  var f=feeOf('money',a);if(f==null){er.textContent='Fees are not loaded yet. Go back and try again.';return}
+  if(a+f>mw.balance){er.textContent='You only have '+mny(mw.balance)+'. You need '+mny(a+f)+' (amount + fee).';return}
+  if(!confirm('Withdraw '+mny(a)+' to '+(ac.type==='bank'?'bank account ':'')+ac.number+'?\nFee: '+mny(f)+'. Total taken from your wallet: '+mny(a+f)+'.'))return;
+  mwBusy=true;ownAt=Date.now();
+  try{var r=await rpc('money_withdraw',{k:key,pin_:p,amt:a,momo:ac.number,network:ac.network,expect_fee:f,p_type:ac.type,p_bank:ac.bank,p_name:ac.name});
+    mwMode=null;mw=null;render();mwPop('Withdrawal on its way',mny(r.amount),'to '+ac.number,'Fee '+mny(r.fee)+'. Paystack is sending it now.');
+    payoutCall({action:'send',kind:'guest',id:r.id}).then(function(){setTimeout(function(){payoutCall({action:'check',kind:'guest',id:r.id}).catch(function(){})},9000)}).catch(function(){})}
+  catch(e){er.textContent=e.message}
+  mwBusy=false}
+async function mwConvert(){if(mwBusy)return;var a=pes($('mwa').value),p=$('mwpin').value.trim(),er=$('mwe');
+  if(!(a>=100)){er.textContent='Enter at least GH\u20B5 1.00.';return}
+  if(!/^[0-9]{4,6}$/.test(p)){er.textContent='Enter your PIN.';return}
+  mwBusy=true;$('mwgo').disabled=true;er.textContent='Converting\u2026';
+  try{var r=await rpc('money_to_points',{k:key,pin_:p,amt:a});mwMode=null;mw=null;tsp=null;try{wallet=await rpc('wallet',{k:key,pin_:wpin})}catch(e){}render();mwPop('You got',r.points+' paid tokens','for '+mny(r.spent),'Money balance now '+mny(r.balance))}
+  catch(e){er.textContent=e.message;var b=$('mwgo');if(b)b.disabled=false}
+  mwBusy=false}
+
+/* ---- guest: EVENT TOKENS (yellow) with the admin-loaded / paid split ---- */
+async function tsLoad(){try{tsp=await rpc('token_split',{k:key,pin_:wpin})||false}catch(e){tsp=false}if(uiIdle()&&!chatOpen&&!giftOpen&&!mwMode)render()}
+function tokSplit(w){if(tsp===null){setTimeout(tsLoad,0);return ''}if(!tsp)return '';var a=tsp.admin,p=tsp.paid,can=tsp.can_cashout&&p>0;
+  return '<div class="xk" style="margin:10px 0"><div><span class="mut">Admin-loaded<br>(spent first)</span><b>'+a+'</b></div><div><span class="mut">Paid with your money<br>(spent second)</span><b>'+p+'</b></div></div>'+
+  '<p class="mut">Spend them at stalls or send them to friends. Tokens cannot be withdrawn directly. '+(can?'Your event has ended, so your paid tokens can go back into your money wallet.':'After your event ends, unused paid tokens can be turned back into money.')+'</p>'+
+  (can?'<button class="go" style="width:100%;margin-bottom:10px" onclick="tokCash('+p+')">Turn '+p+' paid tokens into money ('+tokVal(p,tsp.rate)+')</button>':'')}
+async function tokCash(n){if(!confirm('Turn '+n+' paid tokens into money? It goes into your money wallet and cannot be undone.'))return;
+  try{var r=await rpc('tokens_to_money',{k:key,pin_:wpin,pts:n});mw=null;tsp=null;try{wallet=await rpc('wallet',{k:key,pin_:wpin})}catch(e){}render();mwPop('Added to your money wallet',mny(r.money),'from '+r.tokens+' paid tokens','Money balance now '+mny(r.balance))}
+  catch(e){toast(e.message,false)}}
+var gPrev0=gPrev;
+gPrev=function(){gPrev0();var p=$('gprev');if(!p||!wallet)return;var a=parseInt($('gam').value,10),f=feeOf('token',a)||0;if(a>0&&a+f>wallet.balance)p.innerHTML+='<br><b>You only have '+wallet.balance+' tokens.</b>'}
+setInterval(async function(){if(me||!wallet||!key||wmode!=='open'||document.hidden||mwMode)return;
+  try{var d=await rpc('token_split',{k:key,pin_:wpin});if(d&&JSON.stringify(d)!==JSON.stringify(tsp)){tsp=d;if(uiIdle()&&!chatOpen&&!giftOpen)render()}}catch(e){}},12000);
+
+/* ---- vendor: sales by source, close my section, request payout ---- */
+async function vdLoad(){try{var d=await rpc('my_vendor');if(JSON.stringify(d)!==JSON.stringify(vdat)){vdat=d;if(uiIdle())render()}}
+  catch(e){if(!vdat){vdat=false;render()}}}
+function vVendor(){if(vdat&&vdat.sid&&me&&vdat.sid!==me.id)vdat=undefined;
+  if(vdat===undefined){vdat=null;setTimeout(vdLoad,0)}
+  return '<div id="vsum"></div>'+vTill()+vdCard()+'<div id="vrec"></div>'}
+var vTill0=vTill;
+vTill=function(){if(me&&me.role==='vendor'&&vdat&&vdat.closed)return lastCard()+'<div class="card"><h2>Section closed</h2><p class="mut">You cannot charge guests any more. Request your payout below.</p></div>';return vTill0()};
+function vdCard(){var d=vdat;
+  if(d===null||d===undefined)return '<div class="card"><p class="mut">Loading payout details\u2026</p></div>';
+  if(d===false)return '<div class="card"><h2>Payouts</h2><p class="mut">Not available yet. Ask an admin to run xend-tokens-v2.sql.</p></div>';
+  var r=d.rate,pt=d.paid_avail,at=d.admin_avail,
+    h='<div class="card"><h2>Your earnings to be paid out</h2><div class="xk"><div><span class="mut">Paid tokens<br>(real money)</span><b>'+pt+' pts</b><span class="mut">'+tokVal(pt,r)+' \u00B7 paid automatically</span></div>'+
+    '<div><span class="mut">Admin-loaded tokens<br>(event tokens)</span><b>'+at+' pts</b><span class="mut">'+tokVal(at,r)+' \u00B7 needs admin approval</span></div></div>';
+  if(!d.closed)h+=d.event_closed?'<p class="mut">The event is closed. Close your section when you have finished selling. After that you cannot charge any more guests.</p><button class="go" style="width:100%" onclick="vdClose()">Close my section</button>':'<p class="mut">You can close your section after an admin closes the event'+(d.event_name?' ('+esc(d.event_name)+')':'')+'. Then you can request your payout.</p>';
+  else if(pt+at>0)h+='<p class="mut">Your section is closed. Enter where to send the money. Paid tokens are sent straight away. Admin-loaded tokens are sent after an admin approves them. It can take between 1 and 24 hours to reflect.</p><div class="xf">'+acctFields('vp')+'</div><div id="vde" class="mut" role="status" style="min-height:1.4em;margin:8px 0"></div><button class="go" style="width:100%" onclick="vdRequest()">Request payout \u00B7 '+tokVal(pt+at,r)+'</button>';
+  else h+='<p class="mut">Your section is closed and there is nothing left to pay out.</p>';
+  h+='</div>';
+  if((d.payouts||[]).length)h+='<div class="card"><h2>Payout requests</h2>'+d.payouts.map(function(x){return '<div class="item row sp"><span>'+esc(mny(x.amount))+' \u00B7 '+(x.bucket==='paid'?'paid tokens':'admin-loaded tokens')+'<br><span class="mut">'+when(x.created_at)+(x.note?' \u00B7 '+esc(x.note):'')+'</span></span><span class="tag">'+esc(PST[x.status]||x.status)+'</span></div>'}).join('')+'<p class="mut">Usually reflects within 1 to 24 hours.</p></div>';
+  return h}
+async function vdClose(){if(vBusy)return;if(!confirm('Close your section? You will not be able to charge any more guests. Only an admin can reopen it.'))return;
+  vBusy=true;try{await rpc('vendor_close');toast('Your section is closed.',true);vdat=undefined}catch(e){toast(e.message,false)}vBusy=false;render()}
+async function vdRequest(){if(vBusy)return;var ac=acctRead('vp'),er=$('vde');if(ac.err){er.textContent=ac.err;return}
+  var d=vdat;if(!confirm('Request a payout of '+tokVal(d.paid_avail+d.admin_avail,d.rate)+' to '+(ac.type==='bank'?'bank account ':'')+ac.number+'?'))return;
+  vBusy=true;er.textContent='Requesting\u2026';
+  try{var r=await rpc('vendor_request_payout',{p_type:ac.type,p_number:ac.number,p_network:ac.network,p_bank:ac.bank,p_name:ac.name});
+    (r.send||[]).forEach(function(id){payoutCall({action:'send',kind:'vendor',id:id}).catch(function(){})});
+    toast(r.waiting?'Requested. Admin-loaded earnings wait for approval.':'Requested. Paystack is sending it now.',true);vdat=undefined}
+  catch(e){er.textContent=e.message}
+  vBusy=false;if(vdat===undefined)render()}
+setInterval(function(){if(me&&me.role==='vendor'&&!document.hidden)vdLoad()},20000);
+
+/* ---- admin: Tokens tab (sources, vendor payouts, leftovers by event) ---- */
+async function tokLoad(){try{tkd=await rpc('tokens_admin');tkErr='';payoutCall({action:'sweep'}).catch(function(){})}catch(e){tkd=null;tkErr=e.message}if(uiIdle())render()}
+function vTokAdmin(){var d=tkd;
+  if(d===undefined)return '<div class="card"><p class="mut">Loading\u2026</p></div>';
+  if(d===null)return '<div class="card"><p class="mut">Could not load'+(tkErr?': '+esc(tkErr):'')+'. Run xend-tokens-v2.sql in Supabase first.</p></div>';
+  var r=d.rate,P=d.payouts||[],V=d.vendors||[],E=d.events||[],btn='min-height:38px';
+  var h='<div class="card"><h2>Tokens by source</h2><p class="mut">Both kinds are worth the same, but they are kept apart so you know where the money is. 1 token = '+tokVal(1,r)+'. Stalls take admin-loaded tokens first.</p>'+
+    '<div class="xk"><div><span class="mut">Admin-loaded<br>(cash taken at the desk)</span><b>'+d.guest_admin+'</b><span class="mut">'+tokVal(d.guest_admin,r)+' in guest wallets</span></div><div><span class="mut">Paid<br>(converted from Paystack money)</span><b>'+d.guest_paid+'</b><span class="mut">'+tokVal(d.guest_paid,r)+' in guest wallets</span></div></div></div>';
+  var wait=P.filter(function(x){return x.status==='pending'}),rest=P.filter(function(x){return x.status!=='pending'}).slice(0,25),who=function(x){return esc(x.vendor)+'<br><span class="mut">'+(x.acct_type==='bank'?'Bank ':esc(x.network||'')+' ')+esc(x.account)+' \u00B7 '+when(x.created_at)+'</span>'};
+  h+='<div class="card"><h2>Vendor payouts waiting for approval ('+wait.length+')</h2><p class="mut">These come from admin-loaded tokens, so the cash is with you, not in Paystack. Approve to send it through Paystack. Make sure your Paystack balance can cover it.</p>'+
+    (wait.length?wait.map(function(x){return '<div class="item"><div class="row sp"><span>'+who(x)+'</span><b>'+esc(mny(x.amount))+'</b></div><div class="mut">'+x.points+' admin-loaded tokens</div><div class="row" style="margin-top:6px"><button class="go" style="'+btn+'" onclick="tokApprove(\''+esc(x.id)+'\')">Approve &amp; send</button><button class="bad" style="'+btn+'" onclick="tokReject(\''+esc(x.id)+'\')">Reject</button></div></div>'}).join(''):'<p class="mut">Nothing waiting.</p>')+
+    (rest.length?'<details style="margin-top:10px"><summary><b>Other payouts</b></summary>'+rest.map(function(x){return '<div class="item row sp"><span>'+who(x)+'<br><span class="mut">'+(x.bucket==='paid'?'paid tokens (automatic)':'admin-loaded (approved)')+(x.note?' \u00B7 '+esc(x.note):'')+'</span></span><span><b>'+esc(mny(x.amount))+'</b><br><span class="tag">'+esc(PST[x.status]||x.status)+'</span>'+(x.status==='queued'?'<br><button style="'+btn+';margin-top:6px" onclick="tokSend(\'vendor\',\''+esc(x.id)+'\')">Send now</button>':'')+'</span></div>'}).join('')+'</details>':'')+'</div>';
+  h+='<div class="card"><h2>Vendors</h2>'+(V.length?'<div style="overflow-x:auto"><table><tr><td><b>Vendor</b></td><td class="xr"><b>Paid tokens</b></td><td class="xr"><b>Admin-loaded</b></td><td></td></tr>'+V.map(function(v){var b=v.bal;
+    return '<tr><td><b>'+esc(v.name)+'</b><br><span class="mut">'+esc(v.event_name||'No event')+' \u00B7 '+(v.closed?'closed':'open')+'</span></td><td class="xr">'+b.paid_earned+' earned<br><span class="mut">'+b.paid_avail+' unpaid</span></td><td class="xr">'+b.admin_earned+' earned<br><span class="mut">'+b.admin_avail+' unpaid</span></td><td>'+(v.closed?'<button style="'+btn+'" onclick="tokReopen(\''+esc(v.id)+'\')">Reopen</button>':'')+'</td></tr>'}).join('')+'</table></div>':'<p class="mut">No vendors yet.</p>')+'</div>';
+  h+='<div class="card"><h2>Leftover tokens by event</h2><p class="mut">What guests still hold when an event is over. <b>Redeem</b> puts the value into the guests\u2019 money wallets (they can then withdraw it). <b>Keep</b> leaves it with the company. You choose once per event.</p>'+
+    (E.length?E.map(function(e){var left=e.admin_left+e.paid_left,st=e.decision?'<span class="tag ok">'+(e.decision==='redeemed'?'Redeemed':'Kept by company')+'</span>':(e.closed?'<span class="tag">Decision needed</span>':'<span class="tag">Event open</span>');
+      return '<div class="item"><div class="row sp"><b>'+esc(e.name)+'</b>'+st+'</div><div class="mut">'+e.guests+' guests \u00B7 sales: '+e.sales_paid+' paid + '+e.sales_admin+' admin-loaded tokens</div>'+
+      (e.decision?'<div class="mut">Decided '+when(e.decided_at)+': '+e.l_admin+' admin-loaded + '+e.l_paid+' paid tokens ('+esc(mny(e.l_value))+')</div>':
+        '<div class="xk" style="margin-top:6px"><div><span class="mut">Admin-loaded left</span><b>'+e.admin_left+'</b></div><div><span class="mut">Paid left</span><b>'+e.paid_left+'</b></div></div><div class="mut" style="margin-top:4px">Worth '+tokVal(left,r)+'</div>'+
+        (e.closed?'<div class="row" style="margin-top:6px"><button class="go" style="'+btn+'" onclick="tokLeft(\''+esc(e.id)+'\',\'redeemed\')">Redeem to guests</button><button style="'+btn+'" onclick="tokLeft(\''+esc(e.id)+'\',\'kept\')">Keep in company</button></div>':'<p class="mut" style="margin:6px 0 0">Close the event in the Events tab first.</p>'))+'</div>'}).join(''):'<p class="mut">No events yet.</p>')+'</div>';
+  return h}
+async function tokApprove(id){if(tkBusy)return;tkBusy=true;
+  try{await rpc('admin_payout_approve',{pid:id});toast('Approved. Sending through Paystack\u2026',true);await payoutCall({action:'send',kind:'vendor',id:id})}catch(e){toast(e.message,false)}
+  tkBusy=false;await tokLoad()}
+async function tokReject(id){var n=prompt('Reason for rejecting (the vendor sees this):','');if(n===null)return;
+  try{await rpc('admin_payout_reject',{pid:id,p_note:n});toast('Rejected.',true)}catch(e){toast(e.message,false)}await tokLoad()}
+async function tokSend(kind,id){try{var r=await payoutCall({action:'send',kind:kind,id:id});toast('Payout status: '+(r.status||'sent')+(r.error?'. '+r.error:''),!r.error)}catch(e){toast(e.message,false)}
+  if(tab==='money')await moneyLoad();else await tokLoad()}
+async function tokLeft(eid,dec){
+  if(!confirm(dec==='redeemed'?'Redeem every guest\u2019s leftover tokens into their money wallets? Guests can then withdraw it, so make sure your Paystack balance can cover it. This cannot be undone.':'Keep every guest\u2019s leftover tokens in the company? Their balances go to zero. This cannot be undone.'))return;
+  try{var r=await rpc('admin_leftover',{eid:eid,p_dec:dec,p_note:null});toast((dec==='redeemed'?'Redeemed ':'Kept ')+(r.admin_tokens+r.paid_tokens)+' tokens for '+r.guests+' guests.',true)}catch(e){toast(e.message,false)}
+  await tokLoad()}
+async function tokReopen(sid){if(!confirm('Reopen this vendor\u2019s section so they can charge guests again?'))return;
+  try{await rpc('vendor_reopen',{sid:sid});toast('Section reopened.',true)}catch(e){toast(e.message,false)}await tokLoad()}
+
 
 themeApply(FX.theme);
 
