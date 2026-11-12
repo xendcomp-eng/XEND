@@ -3526,12 +3526,25 @@ lgGet=function(c){return LGX[c]||LG.filter(function(x){return x.code===c})[0]};
 lgIdx=function(b){return b.idx||[1,1]};
 async function lgList(){try{LG=(await rpc('lg_list'))||[]}catch(e){toast(e.message,false)}render()}
 async function lgLoad(c,pin){LGB[c]=1;try{var r=await rpc('lg_card',{p_code:c,p_pin:pin||LGPIN[c]||null});LGXM[c]=!!me;
-  if(!r.found)LGX[c]=null;else{LGX[c]=r.bag;if(r.role==='owner'){LGU[c]=1;if(pin)LGPIN[c]=pin}else delete LGU[c];if(r.err)toast(r.err,false)}}
+  if(!r.found)LGX[c]=null;else{LGX[c]=r.bag;if(r.role==='owner'){LGU[c]=1;if(pin)LGPIN[c]=pin;var mm=ld('lg-mine')||[];if(mm.indexOf(c)<0){mm.push(c);sv('lg-mine',mm)}}else delete LGU[c];if(r.err)toast(r.err,false)}}
   catch(e){LGX[c]=null;LGXM[c]=!!me;toast(e.message,false)}LGB[c]=0;render()}
-var vBagPublic1=vBagPublic;
-vBagPublic=function(){if(LB&&(LGX[LB]===undefined||LGXM[LB]!==!!me)){if(!LGB[LB])lgLoad(LB);return '<div class="card"><p class="mut">Loading\u2026</p></div>'}return vBagPublic1()};
+var vBagPublic1=vBagPublic,LGAF=0;
+vBagPublic=function(){if(LB&&(LGX[LB]===undefined||LGXM[LB]!==!!me)){if(!LGB[LB])lgLoad(LB);return '<div class="card"><p class="mut">Loading\u2026</p></div>'}
+  var h=vBagPublic1(),b=lgGet(LB);
+  if(!me)h='<p><button onclick="lgBack()">\u2190 Home</button></p>'+h;
+  if(b&&!b.owner&&(b.for||wallet)){var nm=(wallet&&wallet.name)||b.for;h=h.replace('<input id="lgn" placeholder="Your name"','<input id="lgn" value="'+esc(nm)+'" placeholder="Your name"').replace('<h2>Claim this bag</h2>','<h2>Claim this bag</h2>'+(b.for?'<p class="mut">Reserved for '+esc(b.for)+'.</p>':''))}
+  if(me&&me.role!=='vendor'&&b)h+=lgAssignCard(b);
+  return h};
+function lgAssignCard(b){if(!(adm.guests||[]).length&&!LGAF){LGAF=1;loadAdm()}
+  return '<div class="card"><h3>Linked guest</h3><p class="mut">'+(b.guest_id?'Linked to '+esc(b.guest_name||'a guest')+'.':'Not linked to a wallet guest.')+'</p><div class="row"><select id="lgga"><option value="">No guest</option>'+(adm.guests||[]).map(function(g){return '<option value="'+esc(g.id)+'"'+(String(g.id)===String(b.guest_id)?' selected':'')+'>'+esc(g.name)+'</option>'}).join('')+'</select><button onclick="lgAssign(\''+b.code+'\')">Link</button></div></div>'}
+async function lgAssign(c){var v=$('lgga').value,g=(adm.guests||[]).filter(function(x){return String(x.id)===v})[0];
+  try{await rpc('lg_assign',{p_code:c,p_guest_id:v||null,p_guest_name:g?g.name:null});toast(v?'Linked.':'Link removed.',true);await lgLoad(c)}catch(e){toast(e.message,false)}}
+function lgMine(){var L=ld('lg-mine')||[];return '<div class="card"><h2>My bag</h2><p class="mut">Type the code printed on your bag tag, or tap the tag with your phone.</p><div class="row"><input id="lgmc" placeholder="Chip code, e.g. XB-0432" autocapitalize="characters" style="flex:1;min-width:160px"><button class="go" onclick="lgGo()">Open</button></div>'+(L.length?'<p class="mut" style="margin:10px 0 4px">Your bags on this phone</p><div class="row">'+L.map(function(c){return '<button onclick="lgGo(\''+c+'\')">\uD83E\uDDF3 '+c+'</button>'}).join('')+'</div>':'')+'</div>'}
+function lgGo(c){c=(c||$('lgmc').value).trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');if(!c)return toast('Enter the chip code.',false);lgOpen(c)}
+var vPublic1=vPublic;vPublic=function(){return vPublic1()+(wallet||wmode==='pin'?'':lgMine())};
+var vWallet2=vWallet;vWallet=function(){var h=vWallet2.apply(this,arguments);if(mwMode)return h;var i=h.lastIndexOf('<button onclick="guestOut()">Log out</button>');return i<0?h+lgMine():h.slice(0,i)+lgMine()+h.slice(i)};
 var setTab1=setTab;setTab=function(t){if(t==='bags')lgList();return setTab1.apply(this,arguments)};
-var lgBack1=lgBack;lgBack=function(){lgBack1();lgList()};
+var lgBack1=lgBack;lgBack=function(){lgBack1();if(me)lgList()};
 lgOpen=function(c){LB=c;LGX[c]=undefined;try{history.replaceState(null,'','#l='+c)}catch(e){}render();scrollTo(0,0)};
 lgReg=async function(){var c=$('lgc').value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');if(!c)return toast('Enter a chip code.',false);
   try{await rpc('lg_register',{p_code:c,p_label:$('lgl').value.trim(),p_trip:$('lgt').value.trim(),p_group:$('lgg').value,p_seat:$('lgs').value.trim(),p_photo:LGP});LGP=null;toast(c+' registered.',true);await lgList()}catch(e){toast(e.message,false)}};
