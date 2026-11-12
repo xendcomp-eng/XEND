@@ -1240,7 +1240,7 @@ html, body { overflow-x: clip; }
 <div id="msg"></div><div id="view"></div>
 </main>
 <p class="mut" style="text-align:center;font-size:.75rem;margin:0 0 24px">Version: 11 Nov 2026 · token sources + Paystack payouts</p>
-<div id="pop"></div><div id="toast" role="status"></div><div id="ver" style="display:none;text-align:center;font-size:.7rem;opacity:.5;padding:10px 0 18px">Version 2026-11-12 03:11</div>
+<div id="pop"></div><div id="toast" role="status"></div><div id="ver" style="display:none;text-align:center;font-size:.7rem;opacity:.5;padding:10px 0 18px">Version 2026-11-12 08:59</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
@@ -2200,7 +2200,7 @@ vBlank=function(){return vBlank0()+vBuyers()};
 var vBlank1=vBlank;vBlank=function(){return vWrite()+vBlank1()};
 function vBuyers(){var s=blankSt;
   return '<div class="card"><h2>Buyer list</h2><p class="mut">Only people on this list can activate a bracelet. Columns: <b>user ID, name, room</b>. Only the name is required; a blank user ID is generated. The buyer enters the user ID on the bracelet, then chooses their own username and PIN.'+(s?' Waiting: <b>'+(s.ids_pending||0)+'</b> · Used: <b>'+(s.ids_used||0)+'</b>':'')+'</p>'+
-  '<select id="bie" style="width:100%;margin-bottom:10px">'+evOpts('')+'</select><div class="row"><button onclick="$(\'buyf\').click()">Choose file</button><input type="file" id="buyf" accept=".csv,.xlsx,.xls,.txt" hidden onchange="buyFile(this)"><button class="go" onclick="buyImport()">Import '+(buyRows.length?buyRows.length+' buyers':'')+'</button></div></div>'+
+  planImportSel()+'<select id="bie" style="width:100%;margin-bottom:10px">'+evOpts('')+'</select><div class="row"><button onclick="$(\'buyf\').click()">Choose file</button><input type="file" id="buyf" accept=".csv,.xlsx,.xls,.txt" hidden onchange="buyFile(this)"><button class="go" onclick="buyImport()">Import '+(buyRows.length?buyRows.length+' buyers':'')+'</button></div></div>'+
   (buyOut?'<div class="card"><h2>Import results</h2><p class="mut">'+buyOut.filter(function(x){return x.ok}).length+' of '+buyOut.length+' imported. Download this and give each buyer their user ID.</p><div class="row"><button class="go" onclick="buyCsv()">Download results (CSV)</button></div>'+
   (buyOut.some(function(x){return !x.ok})?'<div style="overflow-x:auto;margin-top:10px"><table>'+buyOut.filter(function(x){return !x.ok}).map(function(x){return '<tr><td><b>'+esc(x.name||'-')+'</b></td><td>'+esc(x.text)+'</td></tr>'}).join('')+'</table></div>':'')+'</div>':'')}
 async function buyFile(inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
@@ -2516,8 +2516,11 @@ async function pcImgPick(pid,cid,inp){var f=inp.files&&inp.files[0];inp.value=''
   catch(e){toast(upErr(e),false)}}
 function xProdExtra(p,id){pcDraft[id]=pcBuild(p);var g=function(k,d){return p&&p[k]!=null&&p[k]!==''?p[k]:d},F=cmpFeats(),fv=(p&&p.features)||{};
   return '<div style="border-top:2px solid var(--line);padding-top:12px"><b>Tier &amp; order limits</b></div>'+
-  '<div><label for="pp_'+id+'_tn">Tier name</label><input id="pp_'+id+'_tn" placeholder="e.g. Zen Base, Zen Pro" maxlength="40" value="'+esc(g('tier_name',''))+'"></div>'+
+  '<div><label for="pp_'+id+'_tn">Tier name</label><input id="pp_'+id+'_tn" placeholder="e.g. XEND Base, XEND Pro 1" maxlength="40" value="'+esc(g('tier_name',''))+'"></div>'+
   '<div><label for="pp_'+id+'_to">Tier order (1 = lowest tier, shown first when comparing)</label><input id="pp_'+id+'_to" type="number" step="1" value="'+esc(g('tier_order',0))+'" style="width:140px"></div>'+
+  '<div style="border-top:2px solid var(--line);padding-top:12px"><b>Plan</b></div>'+
+  '<div><label for="pp_'+id+'_pl">Plan this product gives the buyer</label><select id="pp_'+id+'_pl" onchange="planTouch(\''+id+'\')"><option value="pro"'+(g('plan','pro')!=='base'?' selected':'')+'>XEND Pro 1 (no limits)</option><option value="base"'+(g('plan','pro')==='base'?' selected':'')+'>XEND Base (limited features)</option></select></div>'+
+  '<div><label for="pp_'+id+'_uf">Price to upgrade a Base user to Pro 1 (GH\u20B5). Set this on the Base product.</label><input id="pp_'+id+'_uf" type="number" min="0" step="0.01" value="'+esc(g('upgrade_fee',0))+'" style="width:140px" oninput="planTouch(\''+id+'\')"></div>'+
   '<div><label for="pp_'+id+'_bm">Bulk order starts at (items)</label><input id="pp_'+id+'_bm" type="number" min="2" step="1" value="'+esc(g('bulk_min',10))+'" style="width:140px"></div>'+
   '<div><label for="pp_'+id+'_mx">Max items per order (0 = no limit)</label><input id="pp_'+id+'_mx" type="number" min="0" step="1" value="'+esc(g('max_per_order',0))+'" style="width:140px"></div>'+
   '<div style="border-top:2px solid var(--line);padding-top:12px"><b>Colour options</b></div>'+
@@ -2557,7 +2560,7 @@ async function xProdSave(id){var old=((((xcms&&xcms.products)||[]).filter(functi
   if(!(stock>=0)){toast('Enter the stock quantity (0 or more).',false);return}
   if(q('i')&&!xurl(q('i'))){toast('Image URL must start with https://',false);return}
   var ex=xProdRead(id);if(ex.err){toast(ex.err,false);return}
-  try{await rpc('product_save',{p:{id:id==='new'?null:id,title:q('t'),description:q('d'),image_url:q('i'),price:price,stock_count:stock,tier_name:ex.tn,tier_order:ex.to,bulk_min:ex.bm,max_per_order:ex.mx,colors:ex.colors,features:ex.features}});assetDrop(old,q('i'));ex.drop.forEach(function(u){assetDrop(u,'')});await loadCms();toast(id==='new'?'Product added.':'Product saved.',true);render()}catch(e){toast(e.message,false)}}
+  try{await rpc('product_save',{p:{id:id==='new'?null:id,title:q('t'),description:q('d'),image_url:q('i'),price:price,stock_count:stock,tier_name:ex.tn,tier_order:ex.to,bulk_min:ex.bm,max_per_order:ex.mx,colors:ex.colors,features:ex.features,plan:planProdVal(id,'pl'),upgrade_fee:planProdVal(id,'uf')}});assetDrop(old,q('i'));ex.drop.forEach(function(u){assetDrop(u,'')});await loadCms();toast(id==='new'?'Product added.':'Product saved.',true);render()}catch(e){toast(e.message,false)}}
 async function xProdDel(id){if(!confirm('Delete this product?'))return;
   try{var op=((((xcms&&xcms.products)||[]).filter(function(x){return x.id===id})[0])||{}).image_url;await rpc('product_delete',{pid:id});assetDrop(op,'');await loadCms();toast('Product deleted.',true);render()}catch(e){toast(e.message,false)}}
 function xSecForm(s){var id=s?s.id:'new',g=function(k,d){return s&&s[k]!=null?s[k]:d};
@@ -2605,26 +2608,28 @@ function vMoneyAdmin(){var m=adm.mon;
   var rl=(m.recent||[]).length?'<div class="card"><h2>Recent reward activity</h2><div style="overflow-x:auto"><table>'+m.recent.map(function(r){return '<tr><td>'+when(r.created_at)+'</td><td>'+esc(r.source==='admin_withdraw'?'Withdrawn'+(r.note?': '+r.note:''):(RSRC[r.asset+'|'+r.source]||r.source))+(r.guest?'<br><span class="mut">'+esc(r.guest)+'</span>':'')+'</td><td class="xr"><b>'+(r.delta>0?'+':'')+(r.asset==='money'?esc(mny(r.delta)):r.delta+' tokens')+'</b></td></tr>'}).join('')+'</table></div></div>':'';
   return msumCard(m)+rw+po+fs+ptsCard(m)+src+rec+'' +rl.replace(/^$/,'')}
 /* real-money summary at the top of the Money tab, with a date filter */
-var msum={from:'',to:'',data:null,err:'',busy:false};
+var msum={from:'',to:'',data:null,err:'',busy:false,tried:false};
 function msumCard(m){var rc=m.recon||{},d=msum.data,ranged=!!(d&&d.ranged),
   v=d||{received:rc.deposits,sent:rc.paid_out,held:rc.in_wallets,pending:rc.pending_payouts,profit:rc.fees_earned},
   row=function(a,b,c){return '<tr><td>'+a+(c?'<br><span class="mut">'+c+'</span>':'')+'</td><td class="xr"><b>'+esc(mny(b))+'</b></td></tr>'};
+  if(!msum.tried&&!msum.busy){msum.tried=true;setTimeout(function(){msumFetch(null,null,false)},0)}
+  var bp=(d&&d.by_purpose&&d.by_purpose.length)?'<p class="mut" style="margin:8px 0 0">Received by type: '+d.by_purpose.map(function(x){return esc(String(x.purpose))+' '+esc(mny(x.total))+' ('+(+x.n||0)+')'}).join(' \u00B7 ')+'</p>':'';
   return '<div class="card xmny"><div class="row sp"><h2 style="margin:0">Real money summary</h2><span class="tag xm">'+(ranged?'Date range':'All time')+'</span></div>'+
   '<div class="row" style="margin-top:10px;align-items:center"><label class="mut">From <input type="date" id="ms_f" value="'+esc(msum.from)+'"></label><label class="mut">To <input type="date" id="ms_t" value="'+esc(msum.to)+'"></label><button class="go" onclick="msumApply()"'+(msum.busy?' disabled':'')+'>Apply</button><button onclick="msumClear()">All time</button></div>'+
   (msum.err?'<p class="mut" role="status" style="margin:8px 0 0">'+esc(msum.err)+'</p>':'')+
-  '<table style="margin-top:10px">'+row('Received through Paystack',v.received,'confirmed deposits')+row('Sent out',v.sent,'paid out to guests and vendors')+row('Held by guests',v.held,'in guest money wallets right now')+row('Pending payouts',v.pending,'waiting to be sent')+row('House profit from fees',v.profit,'fees earned')+'</table>'+
-  '<p class="mut" style="margin:8px 0 0">'+(ranged?'Held and pending are shown as they are now; the other figures cover the chosen dates.':'Figures from your current report. Choose dates and press Apply to filter.')+'</p></div>'}
-async function msumApply(){var f=$('ms_f').value,t=$('ms_t').value;msum.from=f;msum.to=t;
+  '<table style="margin-top:10px">'+row('Received through Paystack',v.received,'all confirmed Paystack payments')+row('Sent out',v.sent,'payouts marked paid')+row('Held by guests',v.held,'in guest money wallets right now')+row('Pending payouts',v.pending,'waiting to be sent, right now')+row('House profit from fees',v.profit,'fees and upgrade charges earned by the house')+'</table>'+bp+((d&&d.pbs&&d.pbs.length)?'<p class="mut" style="margin:8px 0 0">Profit by source: '+d.pbs.map(function(x){return esc(String(x.source))+' '+esc(mny(x.total))}).join(' \u00B7 ')+'</p>':'')+
+  '<p class="mut" style="margin:8px 0 0">'+(ranged?'Held and pending are always as of now; the other figures cover the chosen dates.':'All-time figures.')+'</p></div>'}
+async function msumFetch(a,b,ranged){msum.busy=true;msum.err='';if(ranged)render();
+  try{var r=await rpc('money_summary',{p_from:a,p_to:b});
+    msum.data={received:r.received,sent:r.sent,held:r.held,pending:r.pending,profit:r.profit,by_purpose:r.by_purpose||[],pbs:r.profit_by_source||[],ranged:ranged}}
+  catch(e){msum.data=null;msum.err=/money_summary|schema cache|Could not find the function/i.test(e.message)?'Run the step 1 SQL file to switch on the exact figures and the date filter. Showing the older report numbers meanwhile.':e.message}
+  msum.busy=false;render()}
+function msumApply(){var f=$('ms_f').value,t=$('ms_t').value;msum.from=f;msum.to=t;
   if(!f&&!t){msumClear();return}
   if(f&&t&&f>t){msum.err='The start date is after the end date.';render();return}
-  msum.busy=true;msum.err='';render();
-  try{var a=new Date(f||'2000-01-01'+'T00:00:00'),b=t?new Date(t+'T00:00:00'):new Date();
-    if(f)a=new Date(f+'T00:00:00');b=new Date(b.getTime()+(t?86400000:0));
-    var r=await rpc('money_summary',{p_from:a.toISOString(),p_to:b.toISOString()});
-    msum.data={received:r.received,sent:r.sent,held:r.held,pending:r.pending,profit:r.profit,ranged:true}}
-  catch(e){msum.data=null;msum.err=/money_summary|schema cache|Could not find the function/i.test(e.message)?'Date filtering needs a small database function (money_summary) that is not installed yet, so the all-time figures are shown.':e.message}
-  msum.busy=false;render()}
-function msumClear(){msum.from='';msum.to='';msum.data=null;msum.err='';render()}
+  var a=f?new Date(f+'T00:00:00').toISOString():null,b=t?new Date(new Date(t+'T00:00:00').getTime()+86400000).toISOString():null;
+  msumFetch(a,b,true)}
+function msumClear(){msum.from='';msum.to='';msum.data=null;msum.err='';msum.tried=false;render()}
 function ptsCard(m){var r=Number(m.pts_rate)||0;
   return '<div class="card"><h2>Money to points</h2><p class="mut">Lets guests turn money from their money wallet into event points. The money they spend counts as your earnings. Set how many points GH\u20B5 1 buys. Set 0 to switch it off (the button is then hidden).</p><div class="row"><input id="ptr" type="number" min="0" step="any" placeholder="Points for GH\u20B5 1" value="'+(r>0?esc(r):'')+'"><button class="go" onclick="ptsSave()">Save</button></div><p class="mut">'+(r>0?'Now: GH\u20B5 1 = '+r+' points.':'Now: switched off.')+'</p></div>'}
 async function ptsSave(){var v=parseFloat($('ptr').value);if(!isFinite(v))v=0;if(v<0||v>100000){toast('Enter a rate from 0 to 100000.',false);return}
@@ -2934,17 +2939,18 @@ function xndType(v){xq=v.trim();xLim=50;clearTimeout(xT);xT=setTimeout(xndSearch
 function xndCopy(c){try{navigator.clipboard.writeText(c).then(function(){toast('Copied '+c,true)},function(){toast(c,true)})}catch(e){toast(c,true)}}
 async function xndAddOne(){var n=(($('xa_n')||{}).value||'').trim(),r=(($('xa_r')||{}).value||'').trim();if(!n){toast('Enter the buyer\u2019s name.',false);return}await xndRun([{id:'',name:n,room:r}])}
 buyImport=async function(){if(!buyRows.length){say('Choose a file first.',false);return render()}await xndRun(buyRows)};
-async function xndRun(rows){var ev=$('bie')?$('bie').value:'',out=[];
+async function xndRun(rows){var ev=$('bie')?$('bie').value:'',out=[],bpl0=($('bpl')||{}).value||'';
   try{for(var i=0;i<rows.length;i+=500){var part=await xndFill(rows.slice(i,i+500));out=out.concat(await rpc('claim_ids_import',{rows:part,p_event:ev||null}))}
     var ok=out.filter(function(x){return x.ok}),bad=out.filter(function(x){return !x.ok});
     if(ok.length){try{await rpc('xnd_record',{rows:ok.map(function(x){return {id:x.id,name:x.name,room:x.room}})})}catch(e){}}
+    if(bpl0==='base'&&ok.length){try{await rpc('buyer_plan_set',{p_ids:ok.map(function(x){return x.id}),p_plan:'base'})}catch(e){toast('Buyers added, but the Base plan could not be set: '+e.message,false)}}
     buyOut=bad.length?out:null;buyRows=[];xq=(rows.length===1&&ok.length===1)?(ok[0].name||''):'';xf='all';xLim=50;
     say(ok.length+' of '+out.length+' buyers added.'+(bad.length?' See below for the ones that failed.':''),ok.length>0)}
   catch(e){buyOut=out.length?out:null;say(e.message,false)}
   await loadAdm()}
 vBuyers=function(){var adm_=me&&me.role==='admin',ex=(xndCfg&&xndCfg.extra)||'',s=blankSt,bad=buyOut?buyOut.filter(function(x){return !x.ok}):[];
   return '<div class="card"><h2>Buyers &amp; user codes</h2><p class="mut">Add a buyer and a unique code is made for them automatically, like <b>XND'+(ex?'-'+esc(ex):'')+'-K7M4-Q92X</b>. Send that code to the buyer so they can activate their bracelet. Once they do, they show as Guest already and the ID moves onto their guest card.'+(s?' Waiting: <b>'+(s.ids_pending||0)+'</b> \u00b7 Used: <b>'+(s.ids_used||0)+'</b>':'')+'</p>'+
-  '<select id="bie" style="width:100%;margin-bottom:10px">'+evOpts('')+'</select>'+
+  planImportSel()+'<select id="bie" style="width:100%;margin-bottom:10px">'+evOpts('')+'</select>'+
   '<div class="row"><input id="xa_n" placeholder="Buyer name" autocomplete="off" style="flex:2;min-width:160px"><input id="xa_r" placeholder="Room (optional)" autocomplete="off" style="flex:1;min-width:100px"><button class="go" onclick="xndAddOne()">Add buyer</button></div>'+
   '<div class="row" style="margin-top:10px"><button onclick="$(\'buyf\').click()">Import a list (Excel or CSV)</button><input type="file" id="buyf" accept=".csv,.xlsx,.xls,.txt" hidden onchange="buyFile(this)">'+(buyRows.length?'<button class="go" onclick="buyImport()">Add '+buyRows.length+' buyers</button>':'')+'</div>'+
   (adm_?'<div class="row" style="margin-top:10px"><input id="xnd_x" maxlength="6" placeholder="Extra characters in codes (optional)" autocapitalize="characters" value="'+esc(ex)+'" style="flex:1;min-width:180px"><button onclick="xndSaveExtra()">Save</button></div>':'')+
@@ -3310,6 +3316,43 @@ if(window.visualViewport)window.visualViewport.addEventListener('resize',fit);
 if(typeof render==='function'){var r0=render;render=function(){var x=r0.apply(this,arguments);setTimeout(guard,80);return x}}
 if(window.MutationObserver)['pop','ordm','cmpm'].forEach(function(id){var el=document.getElementById(id);if(el)new MutationObserver(function(){setTimeout(guard,30)}).observe(el,{childList:true,subtree:true})});
 })();
+</script>
+<script>
+/* ===== plans: XEND Base / XEND Pro 1 ===== */
+var planMap={},planFee=null,planTouched={};
+function planName(p){return p==='base'?'XEND Base':'XEND Pro 1'}
+function curPlan(pfx){if(pfx==='a')return planMap[editG]||'pro';return (wallet&&wallet.plan)||'pro'}
+function planTouch(id){planTouched[id]=true}
+function planProdVal(id,f){if(id!=='new'&&!planTouched[id])return undefined;var e=$('pp_'+id+'_'+f);if(!e)return undefined;return f==='uf'?(parseFloat(e.value)||0):e.value}
+function planImportSel(){return '<label class="mut" for="bpl">Plan for these buyers</label><select id="bpl" style="width:100%;margin-bottom:10px"><option value="pro">XEND Pro 1 (no limits)</option><option value="base">XEND Base (limited features)</option></select>'}
+var SOCK=['whatsapp','instagram','tiktok','facebook','x','snapchat','linkedin','youtube','telegram'];
+function planCheck(pfx,sent){if(curPlan(pfx)!=='base')return '';
+  if(sent.some(function(l){return l.t==='cbtn'}))return 'Custom buttons are part of XEND Pro 1.';
+  if(sent.filter(function(l){return SOCK.indexOf(l.t)>=0&&l.on}).length>4)return 'XEND Base allows 4 social media buttons. Switch some off, or upgrade to Pro 1.';
+  return ''}
+function planUpgradeBtn(){var f=wallet&&wallet.upgrade_fee;return f?'<button class="go" style="width:100%;margin-top:8px" onclick="planUpgrade()">Upgrade to XEND Pro 1 \u00B7 '+esc(mny(f))+'</button><p class="mut" style="margin:6px 0 0">Paid from your money wallet.</p>':'<p class="mut" style="margin:8px 0 0">Ask the team about upgrading.</p>'}
+function planCard(w){if(!w||w.plan!=='base')return '';
+  return '<div class="card"><div class="row sp"><h2 style="margin:0">XEND Base</h2><span class="tag">Your plan</span></div><p class="mut" style="margin:8px 0 0">Includes instant contact share, emergency safety, 4 social media buttons and your website link. XEND Pro 1 adds unlimited social buttons, custom buttons and priority support.</p>'+planUpgradeBtn()+'</div>'}
+async function planUpgrade(){var f=wallet&&wallet.upgrade_fee;if(!f)return;
+  if(!confirm('Upgrade to XEND Pro 1 for '+mny(f)+'? The amount is taken from your money wallet.'))return;
+  try{await rpc('plan_upgrade',{k:key,pin_:wpin});wallet=await rpc('wallet',{k:key,pin_:wpin});say('You are now on XEND Pro 1.',true)}catch(e){say(e.message,false)}render()}
+async function adminSetPlan(){var p=$('a_plan').value;
+  if(cdirty&&!confirm('You have unsaved card changes. Setting the plan reloads the form. Continue?'))return;
+  try{await rpc('admin_set_plan',{gid:editG,p:p});planMap[editG]=p;toast('Plan set to '+planName(p)+'.',true)}catch(e){toast(e.message,false)}render()}
+/* Base users cannot add custom buttons */
+var cbSection1=cbSection;cbSection=function(pfx,links,ident){
+  if(curPlan(pfx)==='base')return '<div class="lk"><b>Custom buttons</b><p class="mut" style="margin:4px 0 0">Custom buttons are part of XEND Pro 1.</p>'+(pfx==='g'?planUpgradeBtn():'')+'</div>';
+  return cbSection1(pfx,links,ident)};
+/* admin: plan control on each card */
+var linksForm1=linksForm;linksForm=function(pfx,links,ident){var h=linksForm1(pfx,links,ident);if(pfx!=='a')return h;var p=curPlan('a');
+  return '<div class="lk"><div class="row sp" style="align-items:center"><b>Plan</b><span class="tag xm">'+planName(p)+'</span></div><div class="row" style="margin-top:8px;align-items:center"><select id="a_plan"><option value="pro"'+(p==='pro'?' selected':'')+'>XEND Pro 1 (no limits)</option><option value="base"'+(p==='base'?' selected':'')+'>XEND Base (limited)</option></select><button type="button" onclick="adminSetPlan()">Set plan</button></div></div>'+h};
+/* check limits before sending a save */
+var saveCard1=saveCard;saveCard=async function(){var m=planCheck('g',readLinks('g'));if(m){toast(m,false);return}return saveCard1()};
+var saveGuestCard1=saveGuestCard;saveGuestCard=async function(){var m=planCheck('a',readLinks('a'));if(m){toast(m,false);return}return saveGuestCard1()};
+/* plan card on the guest home */
+var vWallet1=vWallet;vWallet=function(){return planCard(wallet)+vWallet1.apply(this,arguments)};
+/* admin: load plans with the guest list */
+var loadAdm9=loadAdm;loadAdm=async function(){var r=await loadAdm9.apply(this,arguments);try{var d=await rpc('plans_admin');planMap=d.plans||{};planFee=d.upgrade_fee}catch(e){}return r};
 </script>
 </body>
 </html>
