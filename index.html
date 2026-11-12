@@ -1240,7 +1240,7 @@ html, body { overflow-x: clip; }
 <div id="msg"></div><div id="view"></div>
 </main>
 <p class="mut" style="text-align:center;font-size:.75rem;margin:0 0 24px">Version: 11 Nov 2026 · token sources + Paystack payouts</p>
-<div id="pop"></div><div id="toast" role="status"></div><div id="ver" style="display:none;text-align:center;font-size:.7rem;opacity:.5;padding:10px 0 18px">Version 2026-11-12 08:59</div>
+<div id="pop"></div><div id="toast" role="status"></div><div id="ver" style="display:none;text-align:center;font-size:.7rem;opacity:.5;padding:10px 0 18px">Version 2026-11-12 09:05</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
@@ -3331,8 +3331,9 @@ function planCheck(pfx,sent){if(curPlan(pfx)!=='base')return '';
   if(sent.filter(function(l){return SOCK.indexOf(l.t)>=0&&l.on}).length>4)return 'XEND Base allows 4 social media buttons. Switch some off, or upgrade to Pro 1.';
   return ''}
 function planUpgradeBtn(){var f=wallet&&wallet.upgrade_fee;return f?'<button class="go" style="width:100%;margin-top:8px" onclick="planUpgrade()">Upgrade to XEND Pro 1 \u00B7 '+esc(mny(f))+'</button><p class="mut" style="margin:6px 0 0">Paid from your money wallet.</p>':'<p class="mut" style="margin:8px 0 0">Ask the team about upgrading.</p>'}
-function planCard(w){if(!w||w.plan!=='base')return '';
-  return '<div class="card"><div class="row sp"><h2 style="margin:0">XEND Base</h2><span class="tag">Your plan</span></div><p class="mut" style="margin:8px 0 0">Includes instant contact share, emergency safety, 4 social media buttons and your website link. XEND Pro 1 adds unlimited social buttons, custom buttons and priority support.</p>'+planUpgradeBtn()+'</div>'}
+function planCard(w){if(!w)return '';
+  if(w.plan!=='base')return '<div class="card"><div class="row sp" style="align-items:center"><h2 style="margin:0">XEND Pro 1</h2><span class="tag xm">Your plan</span></div><p class="mut" style="margin:8px 0 0">Everything is unlocked: unlimited social media buttons, custom buttons and priority support.</p></div>';
+  return '<div class="card"><div class="row sp"><h2 style="margin:0">XEND Base</h2><span class="tag xm">Your plan</span></div><p class="mut" style="margin:8px 0 0">Includes instant contact share, emergency safety, any 4 social media buttons and your website link. XEND Pro 1 adds unlimited social buttons, custom buttons and priority support.</p>'+planUpgradeBtn()+'</div>'}
 async function planUpgrade(){var f=wallet&&wallet.upgrade_fee;if(!f)return;
   if(!confirm('Upgrade to XEND Pro 1 for '+mny(f)+'? The amount is taken from your money wallet.'))return;
   try{await rpc('plan_upgrade',{k:key,pin_:wpin});wallet=await rpc('wallet',{k:key,pin_:wpin});say('You are now on XEND Pro 1.',true)}catch(e){say(e.message,false)}render()}
@@ -3344,8 +3345,14 @@ var cbSection1=cbSection;cbSection=function(pfx,links,ident){
   if(curPlan(pfx)==='base')return '<div class="lk"><b>Custom buttons</b><p class="mut" style="margin:4px 0 0">Custom buttons are part of XEND Pro 1.</p>'+(pfx==='g'?planUpgradeBtn():'')+'</div>';
   return cbSection1(pfx,links,ident)};
 /* admin: plan control on each card */
-var linksForm1=linksForm;linksForm=function(pfx,links,ident){var h=linksForm1(pfx,links,ident);if(pfx!=='a')return h;var p=curPlan('a');
-  return '<div class="lk"><div class="row sp" style="align-items:center"><b>Plan</b><span class="tag xm">'+planName(p)+'</span></div><div class="row" style="margin-top:8px;align-items:center"><select id="a_plan"><option value="pro"'+(p==='pro'?' selected':'')+'>XEND Pro 1 (no limits)</option><option value="base"'+(p==='base'?' selected':'')+'>XEND Base (limited)</option></select><button type="button" onclick="adminSetPlan()">Set plan</button></div></div>'+h};
+function planCnt(pfx){return SOCK.filter(function(t){var e=$(pfx+'_on_'+t);return e&&e.checked}).length}
+function planLine(pfx){var p=curPlan(pfx);
+  return '<div class="lk"><div class="row sp" style="align-items:center"><b>Your plan</b><span class="tag xm">'+planName(p)+'</span></div>'+
+  (p==='base'?'<p class="mut" style="margin:8px 0 0">You can switch on any 4 social buttons. <b id="plc_'+pfx+'">'+planCntInit(pfx)+'</b> of 4 on.</p>':'<p class="mut" style="margin:8px 0 0">No limits on social buttons.</p>')+'</div>'}
+function planCntInit(pfx){var L=pfx==='a'?(((adm.guests||[]).filter(function(x){return x.id===editG})[0])||{}).links:(wallet&&wallet.links);return (L||[]).filter(function(l){return SOCK.indexOf(l.t)>=0&&l.on}).length}
+document.addEventListener('change',function(ev){var id=(ev.target&&ev.target.id)||'',m=/^([ga])_on_/.exec(id);if(!m)return;var e=$('plc_'+m[1]);if(e)e.textContent=planCnt(m[1])});
+var linksForm1=linksForm;linksForm=function(pfx,links,ident){var h=linksForm1(pfx,links,ident);if(pfx!=='a')return planLine(pfx)+h;var p=curPlan('a');
+  return planLine('a')+'<div class="lk"><div class="row sp" style="align-items:center"><b>Change plan</b></div><div class="row" style="margin-top:8px;align-items:center"><select id="a_plan"><option value="pro"'+(p==='pro'?' selected':'')+'>XEND Pro 1 (no limits)</option><option value="base"'+(p==='base'?' selected':'')+'>XEND Base (limited)</option></select><button type="button" onclick="adminSetPlan()">Set plan</button></div></div>'+h};
 /* check limits before sending a save */
 var saveCard1=saveCard;saveCard=async function(){var m=planCheck('g',readLinks('g'));if(m){toast(m,false);return}return saveCard1()};
 var saveGuestCard1=saveGuestCard;saveGuestCard=async function(){var m=planCheck('a',readLinks('a'));if(m){toast(m,false);return}return saveGuestCard1()};
