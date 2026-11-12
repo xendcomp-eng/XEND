@@ -862,8 +862,8 @@ button.frow:hover {
 }
 .xp img {
   width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
   border-radius: var(--radius-md);
   border: 1px solid var(--edge);
   margin-bottom: 12px;
@@ -1192,6 +1192,23 @@ input,select,textarea{background:var(--field);border-color:var(--field-edge);-we
 @supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
   .card{background:var(--card)} #ordm .card,#cmpm .card{background:var(--card)}
 }
+
+/* ===== square image cropper (admin) + 1:1 product photos ===== */
+#sqm{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px;
+  background:rgba(9,9,11,.65);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);animation:fadeBg .24s var(--ease) both}
+.sqc{width:100%;max-width:520px;max-height:94vh;overflow:auto;display:grid;gap:12px;padding:20px;
+  background:var(--sheet);border:1px solid var(--glass-edge);border-radius:var(--radius-xl);
+  -webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);
+  box-shadow:var(--shadow-lg),inset 0 1px 0 var(--glass-hi);animation:sheetUp .32s var(--ease) both}
+.sqrow{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+#sqv{width:min(100%,340px);aspect-ratio:1/1;display:block;border-radius:var(--radius-md);border:2px solid var(--edge);cursor:grab;touch-action:none;background:#fff}
+#sqv:active{cursor:grabbing}
+.sqprev{display:grid;gap:6px;font-size:.8rem}
+#sqp{width:120px;height:120px;border-radius:var(--radius-md);border:1px solid var(--glass-edge);box-shadow:var(--glass-sh)}
+#sqm .row input[type=color]{width:44px!important;flex:none!important;min-height:36px;padding:2px}
+@media (max-width:560px){#sqm{align-items:flex-end;padding:0}.sqc{max-width:100%;border-bottom-left-radius:0;border-bottom-right-radius:0;padding-bottom:calc(20px + env(safe-area-inset-bottom))}}
+.xp img{aspect-ratio:1/1;object-fit:contain;background:rgba(148,163,184,.12)}
+.xph{aspect-ratio:1/1}
 </style>
 </head>
 <body>
@@ -2140,7 +2157,7 @@ function xCn(p,c){return c?'<b>'+esc(c.name)+'</b>'+(xColX(c)>0?' <span class="m
 function xPick(pid,cid){xsel[pid]=cid;var p=xFind(pid),el=$('xp_'+pid);if(p&&el)el.outerHTML=xProd(p)}
 function xProd(p){var st=xStat(p),n=Number(p.stock_count)||0,sc=xColSel(p),img=xurl((sc&&sc.image_url)||p.image_url),multi=((xcms&&xcms.products)||[]).length>1,
   tag=st==='sold_out'?'<span class="tag" style="background:var(--ink);color:var(--bg)">Sold out</span>':st==='low_stock'?'<span class="tag">Only '+n+' left</span>':'<span class="tag ok">In stock</span>';
-  return '<div class="card xp" id="xp_'+esc(p.id)+'">'+(img?'<img src="'+esc(img)+'" alt="'+esc(p.title)+(sc?' - '+esc(sc.name):'')+'" loading="lazy">':'<div class="xph">Product photo (4:3)</div>')+'<div class="row sp"><h2 style="margin:0">'+esc(p.title)+'</h2>'+tag+'</div>'+
+  return '<div class="card xp" id="xp_'+esc(p.id)+'">'+(img?'<img src="'+esc(img)+'" alt="'+esc(p.title)+(sc?' - '+esc(sc.name):'')+'" loading="lazy">':'<div class="xph">Product photo (1:1)</div>')+'<div class="row sp"><h2 style="margin:0">'+esc(p.title)+'</h2>'+tag+'</div>'+
   (p.tier_name?'<p style="margin:0 0 6px"><span class="tag">'+esc(p.tier_name)+'</span></p>':'')+(p.description?'<p class="mut">'+xhtml(p.description)+'</p>':'')+
   (sc?'<div class="xcn">'+xCn(p,sc)+'</div>'+xSw(p,sc,'xPick(\''+esc(p.id)+'\','):'')+
   '<div class="row sp"><span style="font-size:1.4rem;font-weight:800">'+esc(xMoney(xUnit(p,sc)))+'</span>'+(st==='sold_out'?'<button disabled>'+esc(xBL('p_sold','Sold Out'))+'</button>':'<button class="go" onclick="ordOpen(\''+esc(p.id)+'\')">'+esc(xBL('p_order','Pre-order'))+'</button>')+'</div>'+
@@ -2167,7 +2184,7 @@ function ordOpen(id){var p=xFind(id);if(!p)return;
   var cm=$('cmpm');if(cm)cm.remove();
   var sc=xColSel(p);ordP=p;ordLink='';ordQ=1;ordBulk=false;ordC=sc?sc.id:'';var d=$('ordm');if(!d){d=document.createElement('div');d.id='ordm';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');document.body.appendChild(d)}
   d.innerHTML='<div class="card"><div class="row sp"><h2 style="margin:0">Pre-order</h2><button onclick="ordClose()" aria-label="Close">\u2715</button></div>'+
-  '<img id="o_img" alt="" style="display:none;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;border:2px solid var(--edge);margin:10px 0 0">'+
+  '<img id="o_img" alt="" style="display:none;width:100%;aspect-ratio:1/1;object-fit:contain;border-radius:12px;border:2px solid var(--edge);margin:10px 0 0">'+
   '<p class="mut" style="margin:10px 0 8px">'+esc(p.title)+(p.tier_name?' \u00B7 '+esc(p.tier_name):'')+'</p><div class="xf">'+
   (sc?'<div><label>Colour</label><div id="o_sw"></div><div class="xcn" id="o_cn"></div></div>':'')+
   '<div><label>Quantity</label><div id="o_qb"></div><div class="mut" id="o_qe" role="status" style="min-height:1.3em"></div></div>'+
@@ -2384,7 +2401,7 @@ function pcBuild(p){var cur=(p&&Array.isArray(p.colors))?p.colors:[],by={};cur.f
   return out}
 function pcHtml(pid){return (pcDraft[pid]||[]).map(function(c){var b='pc_'+pid+'_'+c.id,u=xurl(c.image_url);
   return '<div class="item"><div class="xr2" style="justify-content:space-between"><label class="tg" style="gap:10px;justify-content:flex-start"><input type="checkbox" id="'+b+'_on"'+(c.enabled?' checked':'')+'><span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:'+xHex(c.hex)+';border:2px solid var(--fld)"></span><b>'+esc(c.name)+'</b></label>'+(c.pal?'':'<button type="button" class="bad" style="min-height:38px" onclick="pcDel(\''+pid+'\',\''+c.id+'\')">Remove colour</button>')+'</div>'+
-  '<div class="xr2" style="margin-top:8px"><div id="'+b+'_pv" style="width:96px;height:72px;border:2px solid var(--edge);border-radius:10px;overflow:hidden;flex:none;background:var(--line)">'+(u?'<img src="'+esc(u)+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block">':'')+'</div><button type="button" onclick="$(\''+b+'_f\').click()">Upload image</button><button type="button" class="bad" onclick="pcImgSet(\''+pid+'\',\''+c.id+'\',\'\')">Remove image</button><input type="file" id="'+b+'_f" accept="image/*" hidden onchange="pcImgPick(\''+pid+'\',\''+c.id+'\',this)"><input type="hidden" id="'+b+'_i" value="'+esc(c.image_url||'')+'"></div>'+
+  '<div class="xr2" style="margin-top:8px"><div id="'+b+'_pv" style="width:96px;height:96px;border:2px solid var(--edge);border-radius:10px;overflow:hidden;flex:none;background:var(--line)">'+(u?'<img src="'+esc(u)+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block">':'')+'</div><button type="button" onclick="$(\''+b+'_f\').click()">Upload image</button><button type="button" class="bad" onclick="pcImgSet(\''+pid+'\',\''+c.id+'\',\'\')">Remove image</button><input type="file" id="'+b+'_f" accept="image/*" hidden onchange="pcImgPick(\''+pid+'\',\''+c.id+'\',this)"><input type="hidden" id="'+b+'_i" value="'+esc(c.image_url||'')+'"></div>'+
   '<div class="xr2" style="margin-top:8px"><label for="'+b+'_x" class="mut">Extra price</label><input id="'+b+'_x" type="number" min="0" step="any" placeholder="0" value="'+(c.extra>0?esc(c.extra):'')+'" style="width:110px"><label class="tg" style="gap:8px"><input type="radio" name="pc_'+pid+'_std" value="'+c.id+'"'+(c.std?' checked':'')+'><span>Standard colour</span></label></div></div>'}).join('')}
 function pcSync(pid){var L=pcDraft[pid];if(!L)return;var r=document.querySelector('input[name="pc_'+pid+'_std"]:checked'),sid=r?r.value:null;
   L.forEach(function(c){var b='pc_'+pid+'_'+c.id,on=$(b+'_on');if(!on)return;c.enabled=on.checked;c.extra=Math.max(0,parseFloat($(b+'_x').value)||0);c.image_url=$(b+'_i').value;c.std=(sid===c.id)})}
@@ -2396,7 +2413,7 @@ function pcDel(pid,cid){if(!confirm('Remove this colour?'))return;pcSync(pid);pc
 function pcImgSet(pid,cid,url){var b='pc_'+pid+'_'+cid,h=$(b+'_i'),pv=$(b+'_pv');if(h)h.value=url;if(pv)pv.innerHTML=url?'<img src="'+esc(url)+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block">':''}
 async function pcImgPick(pid,cid,inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
   if(!/^image\//.test(f.type)){toast('Choose an image file.',false);return}
-  try{toast('Uploading image\u2026',true);var d=await imgCrop(f,1200,4/3,500000),url=await brandUp('product',d);pcImgSet(pid,cid,url);toast('Image uploaded. Press Save on the product to keep it.',true)}
+  try{var d=await sqCrop(f,1200,500000);if(!d)return;toast('Uploading image\u2026',true);var url=await brandUp('product',d);pcImgSet(pid,cid,url);toast('Square image uploaded. Press Save on the product to keep it.',true)}
   catch(e){toast(upErr(e),false)}}
 function xProdExtra(p,id){pcDraft[id]=pcBuild(p);var g=function(k,d){return p&&p[k]!=null&&p[k]!==''?p[k]:d},F=cmpFeats(),fv=(p&&p.features)||{};
   return '<div style="border-top:2px solid var(--line);padding-top:12px"><b>Tier &amp; order limits</b></div>'+
@@ -2430,7 +2447,7 @@ async function cfSave(){cfSync();var L=cfDraft.map(function(f){return {id:f.id,n
 function cfCard(){cfDraft=cmpFeats().map(function(f){return {id:f.id,name:f.name}});
   return '<div class="card"><h2>Compare features</h2><p class="mut">One shared list of rows for the Compare table on the landing page (for example Storage, Waterproof, Safety info). After you save, each product below gets a box for every row. Save this card first, then fill in the products.</p><div id="cf_box">'+cfRows()+'</div><div class="xr2" style="margin-top:6px"><input id="cf_new" placeholder="New feature, e.g. Storage" maxlength="60" style="flex:1;min-width:150px" onkeydown="if(event.key===\'Enter\')cfAdd()"><button type="button" onclick="cfAdd()">Add row</button></div><div class="xr2" style="margin-top:10px"><button class="go" type="button" onclick="cfSave()">Save compare features</button></div></div>'}
 function xProdForm(p){var id=p?p.id:'new',g=function(k){return p&&p[k]!=null?p[k]:''};
-  return '<div class="item"><div class="xf"><input id="pp_'+id+'_t" placeholder="Product title" value="'+esc(g('title'))+'" maxlength="120"><textarea id="pp_'+id+'_d" placeholder="Description" maxlength="500">'+esc(g('description'))+'</textarea><p class="mut" style="margin:0"><b>Product image:</b> upload a landscape photo with a <b>4:3 ratio</b> (best size 1200 × 900 px). Other shapes are cropped from the centre to 4:3. PNG, JPG or WebP.</p><div class="row" style="align-items:center"><div id="pp_'+id+'_pv" style="width:120px;height:90px;border:2px solid var(--edge);border-radius:10px;overflow:hidden;flex:none;background:var(--line)">'+(xurl(g('image_url'))?'<img src="'+esc(xurl(g('image_url')))+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block">':'')+'</div><button type="button" onclick="$(\'pp_'+id+'_f\').click()">Upload image</button><button type="button" class="bad" onclick="prodImgSet(\''+id+'\',\'\')">Remove</button><input type="file" id="pp_'+id+'_f" accept="image/*" hidden onchange="prodImgPick(\''+id+'\',this)"><input type="hidden" id="pp_'+id+'_i" value="'+esc(g('image_url'))+'"></div>'+
+  return '<div class="item"><div class="xf"><input id="pp_'+id+'_t" placeholder="Product title" value="'+esc(g('title'))+'" maxlength="120"><textarea id="pp_'+id+'_d" placeholder="Description" maxlength="500">'+esc(g('description'))+'</textarea><p class="mut" style="margin:0"><b>Product image:</b> choose any photo. A crop window opens so you can fit it into a <b>square (1:1)</b>, exactly as it will look on the landing page. PNG, JPG or WebP.</p><div class="row" style="align-items:center"><div id="pp_'+id+'_pv" style="width:120px;height:120px;border:2px solid var(--edge);border-radius:10px;overflow:hidden;flex:none;background:var(--line)">'+(xurl(g('image_url'))?'<img src="'+esc(xurl(g('image_url')))+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block">':'')+'</div><button type="button" onclick="$(\'pp_'+id+'_f\').click()">Upload image</button><button type="button" class="bad" onclick="prodImgSet(\''+id+'\',\'\')">Remove</button><input type="file" id="pp_'+id+'_f" accept="image/*" hidden onchange="prodImgPick(\''+id+'\',this)"><input type="hidden" id="pp_'+id+'_i" value="'+esc(g('image_url'))+'"></div>'+
   '<div class="row"><input id="pp_'+id+'_p" type="number" min="0" step="any" placeholder="Price" aria-label="Price" value="'+esc(g('price'))+'" style="width:120px"><input id="pp_'+id+'_s" type="number" min="0" step="1" placeholder="Stock" aria-label="Stock" value="'+esc(g('stock_count'))+'" style="width:120px">'+(p?'<span class="tag">'+esc(xStat(p).replace('_',' '))+'</span>':'')+'</div>'+
   xProdExtra(p,id)+'<div class="row"><button class="go" onclick="xProdSave(\''+id+'\')">'+(p?'Save':'Add product')+'</button>'+(p?'<button class="bad" onclick="xProdDel(\''+id+'\')">Delete</button>':'')+'</div></div></div>'}
 function xvShop(){if(!xcms)return xNeed();var L=xcms.products||[];
@@ -2703,7 +2720,7 @@ function imgResize(f,mx,lim){return new Promise(function(ok,no){var img=new Imag
 function prodImgSet(id,url){var h=$('pp_'+id+'_i'),pv=$('pp_'+id+'_pv');if(h)h.value=url;if(pv)pv.innerHTML=url?'<img src="'+esc(url)+'" alt="" style="width:100%;height:100%;object-fit:cover;display:block">':''}
 async function prodImgPick(id,inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
   if(!/^image\//.test(f.type)){toast('Choose an image file.',false);return}
-  try{toast('Uploading image\u2026',true);var d=await imgCrop(f,1200,4/3,500000),url=await brandUp('product',d);prodImgSet(id,url);toast('Image uploaded. Press Save on the product to keep it.',true)}
+  try{var d=await sqCrop(f,1200,500000);if(!d)return;toast('Uploading image\u2026',true);var url=await brandUp('product',d);prodImgSet(id,url);toast('Square image uploaded. Press Save on the product to keep it.',true)}
   catch(e){toast(upErr(e),false)}}
 /* centre-crop to a fixed ratio (width/height), at most mx px wide, JPEG under lim characters */
 function imgCrop(f,mx,ratio,lim){return new Promise(function(ok,no){var img=new Image(),u=URL.createObjectURL(f);
@@ -2712,6 +2729,46 @@ function imgCrop(f,mx,ratio,lim){return new Promise(function(ok,no){var img=new 
     for(var i=0;i<8;i++){var c=document.createElement('canvas');c.width=Math.max(1,Math.round(ow));c.height=Math.max(1,Math.round(ow/ratio));var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,sx,sy,sw,sh,0,0,c.width,c.height);out=c.toDataURL('image/jpeg',q);if(out.length<=lim)break;ow*=.8;q=Math.max(.5,q-.08)}
     URL.revokeObjectURL(u);ok(out)};
   img.onerror=function(){URL.revokeObjectURL(u);no(new Error('Could not read that image.'))};img.src=u})}
+/* square (1:1) crop dialog: drag to move, slider / pinch / wheel to zoom. The square you see is exactly what the landing page shows. Resolves a JPEG data URL, or null if cancelled. */
+function sqCrop(f,mx,lim){return new Promise(function(done){
+  var img=new Image(),u=URL.createObjectURL(f);
+  img.onerror=function(){URL.revokeObjectURL(u);toast('Could not read that image.',false);done(null)};
+  img.onload=function(){
+    var w=img.naturalWidth,h=img.naturalHeight;if(!w||!h){img.onerror();return}
+    var fc=1/Math.max(w,h),fv=1/Math.min(w,h),fmax=fv*4,fz=fc,cx=.5,cy=.5,ov=document.createElement('div');
+    ov.id='sqm';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');ov.setAttribute('aria-label','Crop image to a square');
+    ov.innerHTML='<div class="sqc"><h2 style="margin:0">Crop to a square</h2><p class="mut" style="margin:0">Drag to move and use the slider to zoom. This square is exactly how the image will look on the landing page.</p>'+
+      '<div class="sqrow"><canvas id="sqv" width="720" height="720" aria-label="Crop preview"></canvas><div class="sqprev"><span class="mut">On the landing page</span><canvas id="sqp" width="160" height="160"></canvas></div></div>'+
+      '<input type="range" id="sqz" aria-label="Zoom" min="0" max="1" step="0.001" value="0" style="width:100%;min-height:32px;padding:0">'+
+      '<div class="row"><button type="button" id="sqfit">Fit whole image</button><button type="button" id="sqfill">Fill square</button><label class="mut" style="display:flex;align-items:center;gap:6px">Background <input type="color" id="sqbg" value="#ffffff"></label></div>'+
+      '<div class="row"><button type="button" id="sqno">Cancel</button><button type="button" class="go" id="sqok">Use this crop</button></div></div>';
+    document.body.appendChild(ov);
+    var $q=function(i){return ov.querySelector('#'+i)},cv=$q('sqv'),pv=$q('sqp'),sl=$q('sqz'),bg=$q('sqbg'),P={},pd=0,L=Math.log(fmax/fc);
+    function clamp(){var dw=w*fz,dh=h*fz;cx=dw>=1?Math.min(dw/2,Math.max(1-dw/2,cx)):.5;cy=dh>=1?Math.min(dh/2,Math.max(1-dh/2,cy)):.5}
+    function draw(c){var S=c.width,x=c.getContext('2d');x.fillStyle=bg.value;x.fillRect(0,0,S,S);x.imageSmoothingQuality='high';x.drawImage(img,0,0,w,h,(cx-w*fz/2)*S,(cy-h*fz/2)*S,w*fz*S,h*fz*S)}
+    function upd(){clamp();sl.value=L>0?Math.log(fz/fc)/L:0;draw(cv);draw(pv)}
+    function setF(v){fz=Math.min(fmax,Math.max(fc,v))}
+    function pinch(){var k=Object.keys(P);if(k.length<2)return 0;var a=P[k[0]],b=P[k[1]];return Math.hypot(a[0]-b[0],a[1]-b[1])}
+    function close(){document.removeEventListener('keydown',key);URL.revokeObjectURL(u);ov.remove()}
+    function key(e){if(e.key==='Escape'){close();done(null)}}
+    document.addEventListener('keydown',key);
+    cv.onpointerdown=function(e){cv.setPointerCapture(e.pointerId);P[e.pointerId]=[e.clientX,e.clientY];pd=pinch()};
+    cv.onpointermove=function(e){if(!P[e.pointerId])return;var r=cv.getBoundingClientRect();
+      if(Object.keys(P).length===1){cx+=(e.clientX-P[e.pointerId][0])/r.width;cy+=(e.clientY-P[e.pointerId][1])/r.height;P[e.pointerId]=[e.clientX,e.clientY]}
+      else{P[e.pointerId]=[e.clientX,e.clientY];var d=pinch();if(pd&&d)setF(fz*d/pd);pd=d}
+      upd()};
+    cv.onpointerup=cv.onpointercancel=function(e){delete P[e.pointerId];pd=pinch()};
+    cv.onwheel=function(e){e.preventDefault();setF(fz*(e.deltaY<0?1.08:1/1.08));upd()};
+    sl.oninput=function(){fz=fc*Math.exp(L*(+sl.value));upd()};
+    bg.oninput=upd;
+    $q('sqfit').onclick=function(){fz=fc;cx=cy=.5;upd()};
+    $q('sqfill').onclick=function(){fz=fv;cx=cy=.5;upd()};
+    $q('sqno').onclick=function(){close();done(null)};
+    $q('sqok').onclick=function(){var S=mx,q=.86,out='';
+      for(var i=0;i<8;i++){var c=document.createElement('canvas');c.width=c.height=Math.max(1,Math.round(S));draw(c);out=c.toDataURL('image/jpeg',q);if(out.length<=lim)break;S*=.8;q=Math.max(.5,q-.08)}
+      close();done(out)};
+    upd();$q('sqok').focus()};
+  img.src=u})}
 function upErr(e){var m=(e&&e.message)||String(e);
   if(/bucket not found/i.test(m))return 'Upload failed: the storage bucket does not exist yet. Run site-assets.sql in Supabase.';
   if(/row-level security|policy|unauthori[sz]ed|not allowed|jwt/i.test(m))return 'Upload failed: only a logged-in admin can upload. Log in as admin, and make sure site-assets.sql was run after xend-storefront.sql.';
