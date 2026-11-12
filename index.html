@@ -14,7 +14,7 @@ window.xvApply=function(p){p=p||get();
   var e=eff(p);D.setAttribute('data-view',p);D.setAttribute('data-eff',e);
   var b=document.getElementById('vmode');
   if(b){var nm={auto:'Auto',mobile:'Mobile',desktop:'Desktop'}[p],ic=p==='auto'?(e==='desktop'?'\uD83D\uDDA5':'\uD83D\uDCF1'):(p==='mobile'?'\uD83D\uDCF1':'\uD83D\uDDA5');
-    b.textContent=ic+' '+nm;b.title='View mode: '+nm+(p==='auto'?' (fits your screen: '+e+'). Tap to force Mobile.':p==='mobile'?'. Tap to force Desktop.':'. Tap to go back to Auto.')}};
+    b.textContent=ic+' '+nm;b.title=(window.xvInfo?xvInfo.device+' '+xvInfo.width+'\u00D7'+xvInfo.height+' \u00B7 ':'')+'View mode: '+nm+(p==='auto'?' (fits your screen: '+e+'). Tap to force Mobile.':p==='mobile'?'. Tap to force Desktop.':'. Tap to go back to Auto.')}};
 window.xvCycle=function(){var c=get(),n=c==='auto'?'mobile':c==='mobile'?'desktop':'auto';
   try{if(n==='auto')localStorage.removeItem(K);else localStorage.setItem(K,n)}catch(e){}
   window.xvApply(n)};
@@ -1209,6 +1209,29 @@ input,select,textarea{background:var(--field);border-color:var(--field-edge);-we
 @media (max-width:560px){#sqm{align-items:flex-end;padding:0}.sqc{max-width:100%;border-bottom-left-radius:0;border-bottom-right-radius:0;padding-bottom:calc(20px + env(safe-area-inset-bottom))}}
 .xp img{aspect-ratio:1/1;object-fit:contain;background:rgba(148,163,184,.12)}
 .xph{aspect-ratio:1/1}
+
+/* ---- bio + custom bars ---- */
+.xbio{margin:6px auto 4px;max-width:38ch;white-space:pre-line;line-height:1.5;font-size:.95rem;overflow-wrap:anywhere}
+.xbars{display:flex;flex-direction:column;gap:10px;margin:14px 0 4px}
+.xbar{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:46px;padding:11px 16px;border-radius:var(--radius-md);
+  background:var(--hdr);color:var(--acc);font-weight:700;font-size:.95rem;text-decoration:none;text-align:center;border:1px solid rgba(255,255,255,.12);overflow-wrap:anywhere}
+a.xbar:hover{filter:brightness(1.12)}
+.xbar img{width:22px;height:22px;border-radius:6px;object-fit:cover;flex:none}
+html[data-w="xs"] .xbar{font-size:.88rem;padding:10px 12px}
+
+/* ---- popups: always centred and compact, sized from the real visible screen ---- */
+html #pop, html #ordm, html #cmpm { align-items: center !important; justify-content: center !important;
+  padding: 16px max(16px, env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)) !important; }
+html .popcard { width: min(100%, 340px) !important; max-width: 340px !important; margin: 0 auto !important; padding: 20px 18px !important;
+  border-radius: var(--radius-xl) !important; max-height: min(80vh, calc(var(--vh, 100vh) * .8)) !important; }
+html .popcard .bal { font-size: 2.6rem; }
+html #ordm .card { width: min(100%, 380px) !important; max-width: 380px !important; margin: 0 auto !important; border-radius: var(--radius-xl) !important;
+  padding-bottom: 16px !important; max-height: min(82vh, calc(var(--vh, 100vh) * .82)) !important; }
+html #cmpm .card { width: min(100%, 720px) !important; max-width: 720px !important; margin: 0 auto !important; border-radius: var(--radius-xl) !important;
+  padding-bottom: 16px !important; max-height: min(84vh, calc(var(--vh, 100vh) * .84)) !important; }
+html[data-short="1"] .popcard .bal { font-size: 2.1rem; }
+html[data-short="1"] .popcard { padding: 14px 16px !important; }
+html, body { overflow-x: clip; }
 </style>
 </head>
 <body>
@@ -1335,7 +1358,7 @@ async function saveCard(){try{await rpc('save_links',{k:key,pin_:wpin,l:readLink
 async function freeze(){try{await rpc('set_frozen',{k:key,pin_:wpin,f:!wallet.frozen});wallet=await rpc('wallet',{k:key,pin_:wpin});say(wallet.frozen?'Bracelet frozen.':'Bracelet unfrozen.',true)}catch(e){say(e.message,false)}render()}
 
 /* ---- digital card: many socials, each one switched on or off ---- */
-var PL=[['title','Title / company','Founder, DJ, Chef…','T'],['phone','Phone (call)','024 000 0000','☎'],['whatsapp','WhatsApp','024 000 0000','WA'],['email','Email','you@email.com','@'],['instagram','Instagram','@yourname','IG'],['tiktok','TikTok','@yourname','TT'],['facebook','Facebook','profile name or link','FB'],['x','X (Twitter)','@yourname','X'],['snapchat','Snapchat','username','SC'],['linkedin','LinkedIn','profile link','in'],['youtube','YouTube','@channel or link','YT'],['telegram','Telegram','@username','TG'],['website','Website','yoursite.com','🌐']];
+var PL=[['title','Title / company','Founder, DJ, Chef…','T'],['bio','Bio','A short line about you: what you do, your vibe…','B'],['phone','Phone (call)','024 000 0000','☎'],['whatsapp','WhatsApp','024 000 0000','WA'],['email','Email','you@email.com','@'],['instagram','Instagram','@yourname','IG'],['tiktok','TikTok','@yourname','TT'],['facebook','Facebook','profile name or link','FB'],['x','X (Twitter)','@yourname','X'],['snapchat','Snapchat','username','SC'],['linkedin','LinkedIn','profile link','in'],['youtube','YouTube','@channel or link','YT'],['telegram','Telegram','@username','TG'],['website','Website','yoursite.com','🌐']];
 function hrefOf(t,v){v=String(v||'').trim();if(!v)return null;
   var url=/^https?:\/\//i.test(v);
   if(!url&&/^[a-z][a-z0-9+.-]*:/i.test(v)&&t!=='phone')return null;
@@ -1355,7 +1378,7 @@ function hrefOf(t,v){v=String(v||'').trim();if(!v)return null;
     case 'telegram':return url?v:'https://t.me/'+e}
   return null}
 function cardLinks(L){var by={};(L||[]).forEach(function(l){by[l.t]=l});
-  return PL.filter(function(p){var l=by[p[0]];return p[0]!=='title'&&l&&l.on&&String(l.v||'').trim()}).map(function(p){var l=by[p[0]],h=hrefOf(p[0],l.v),
+  return PL.filter(function(p){var l=by[p[0]];return p[0]!=='title'&&p[0]!=='bio'&&l&&l.on&&String(l.v||'').trim()}).map(function(p){var l=by[p[0]],h=hrefOf(p[0],l.v),
     inner='<span class="ic">'+p[3]+'</span><span><b>'+p[1]+'</b><br><span class="mut">'+esc(l.v)+'</span></span>';
     return h?'<a class="lnk" href="'+esc(h)+'" target="_blank" rel="noopener">'+inner+'</a>':'<div class="lnk">'+inner+'</div>'}).join('')}
 function vCardView(c){var L=c.links||[],t=L.filter(function(l){return l.t==='title'&&l.on&&String(l.v||'').trim()})[0];
@@ -1365,7 +1388,7 @@ function vc(s){return String(s==null?'':s).replace(/[\r\n]+/g,' ').replace(/[,;\
 function saveVcf(){var c=card;if(!c)return;var v='BEGIN:VCARD\nVERSION:3.0\nFN:'+vc(c.name)+'\n';
   (c.links||[]).forEach(function(l){var val=vc(l.v),h=hrefOf(l.t,l.v);if(!l.on||!val)return;
     if(l.t==='photo'){if(okImg(l.v))v+='PHOTO;ENCODING=b;TYPE=JPEG:'+l.v.split(',')[1]+'\n';return}
-    if(l.t==='title')v+='TITLE:'+val+'\n';else if(l.t==='phone'||l.t==='whatsapp')v+='TEL:'+val+'\n';else if(l.t==='email')v+='EMAIL:'+val+'\n';else if(h&&/^https?:/.test(h))v+='URL:'+h+'\n'});
+    if(l.t==='title')v+='TITLE:'+val+'\n';else if(l.t==='bio')v+='NOTE:'+val+'\n';else if(l.t==='phone'||l.t==='whatsapp')v+='TEL:'+val+'\n';else if(l.t==='email')v+='EMAIL:'+val+'\n';else if(h&&/^https?:/.test(h))v+='URL:'+h+'\n'});
   v+='END:VCARD';var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([v],{type:'text/vcard'}));a.download=c.name.replace(/\W+/g,'_')+'.vcf';a.click()}
 var phv={},phdirty={},phid={};
 function okImg(v){return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(String(v||''))}
@@ -1382,7 +1405,7 @@ function photoForm(pfx,links,ident){if(phid[pfx]!==ident){phid[pfx]=ident;phdirt
   if(!phdirty[pfx])phv[pfx]=photoOf(links);
   return '<div class="lk"><b>Photo</b><div class="row" style="align-items:center;margin-top:6px"><div class="ph" id="'+pfx+'_ph">'+phHtml(phv[pfx])+'</div><button type="button" onclick="$(\''+pfx+'_file\').click()">Upload photo</button><button type="button" onclick="setPhoto(\''+pfx+'\',\'\')">Remove</button><input type="file" id="'+pfx+'_file" accept="image/*" hidden onchange="pickPhoto(\''+pfx+'\',this)"></div></div>'}
 function linksForm(pfx,links,ident){var by={};(links||[]).forEach(function(l){by[l.t]=l});
-  return photoForm(pfx,links,ident)+PL.map(function(p){var l=by[p[0]]||{};return '<div class="lk"><label class="tg"><b>'+p[1]+'</b><span><input type="checkbox" id="'+pfx+'on_'+p[0]+'"'+(l.on?' checked':'')+'> Show</span></label><input type="text" id="'+pfx+'v_'+p[0]+'" placeholder="'+esc(p[2])+'" value="'+esc(l.v||'')+'" autocapitalize="none" maxlength="200"></div>'}).join('')}
+  return photoForm(pfx,links,ident)+PL.map(function(p){var l=by[p[0]]||{};return '<div class="lk"><label class="tg"><b>'+p[1]+'</b><span><input type="checkbox" id="'+pfx+'on_'+p[0]+'"'+(l.on?' checked':'')+'> Show</span></label>'+(p[0]==='bio'?'<textarea id="'+pfx+'v_bio" rows="3" maxlength="200" placeholder="'+esc(p[2])+'" style="width:100%;resize:vertical">'+esc(l.v||'')+'</textarea></div>':'<input type="text" id="'+pfx+'v_'+p[0]+'" placeholder="'+esc(p[2])+'" value="'+esc(l.v||'')+'" autocapitalize="none" maxlength="200"></div>')}).join('')}
 function readLinks(pfx){var r=PL.map(function(p){var v=$(pfx+'v_'+p[0]).value.trim();return {t:p[0],v:v,on:$(pfx+'on_'+p[0]).checked&&!!v}}).filter(function(l){return l.v});if(okImg(phv[pfx]))r.push({t:'photo',v:phv[pfx],on:true});return r}
 function vEditG(){if(!editG)return '';var g=adm.guests.filter(function(x){return x.id===editG})[0];if(!g){editG=null;return ''}
   return '<div class="card"><h2>Card: '+esc(g.name)+'</h2><p class="mut">Name is always shown. Only items switched on are visible when the bracelet is tapped. The guest sees your changes too.</p>'+linksForm('a',g.links,g.id)+'<div class="row" style="margin-top:12px"><button class="go" onclick="saveGuestCard()">Save card</button><button onclick="editG=null;render()">Cancel</button></div></div>'}
@@ -1820,11 +1843,21 @@ function xTile(t,label,href,preview){
     else{bg='';inner=p[3]}}
   a=a.replace('%BG%',bg);
   return href?'<a '+a+' href="'+esc(href)+'" target="_blank" rel="noopener">'+inner+'</a>':'<span '+a+'>'+inner+'</span>'}
-/* front page: centred minimal business card */
-function vCardView(c){var L=c.links||[],t=L.filter(function(l){return l.t==='title'&&l.on&&String(l.v||'').trim()})[0],ph=photoOf(L),by={};L.forEach(function(l){by[l.t]=l});
-  var ic=PL.filter(function(p){var l=by[p[0]];return p[0]!=='title'&&l&&l.on&&String(l.v||'').trim()}).map(function(p){return xTile(p[0],p[1],hrefOf(p[0],by[p[0]].v))}).join('');
+function xCust(){var a=(FX.brand&&FX.brand.cust)||[];return a.filter(function(x){return x&&x.on!==0&&(x.k==='bar'||x.k==='icon')})}
+function xBarHtml(b){var im=okData(b.i)?'<img src="'+esc(b.i)+'" alt="">':'',inner=im+'<span>'+esc(b.t||'')+'</span>',h=b.u?xlink(b.u):'';
+  return h?'<a class="xbar" href="'+esc(h)+'" target="_blank" rel="noopener">'+inner+'</a>':'<div class="xbar">'+inner+'</div>'}
+function xCustIcon(b){var h=b.u?xlink(b.u):'',has=okData(b.i),
+  a='class="ic stile" style="width:48px;height:48px;flex:none;text-decoration:none" aria-label="'+esc(b.t||'Link')+'" title="'+esc(b.t||'')+'"',
+  inner=has?'<img class="full" src="'+esc(b.i)+'" alt="'+esc(b.t||'')+'">':'<b>'+esc((String(b.t||'?').trim().slice(0,2))||'?')+'</b>';
+  return h?'<a '+a+' href="'+esc(h)+'" target="_blank" rel="noopener">'+inner+'</a>':'<span '+a+'>'+inner+'</span>'}
+/* front page: name, title/company, BIO, custom bars, social icons, buttons */
+function vCardView(c){var L=c.links||[],ok=function(t){return L.filter(function(l){return l.t===t&&l.on&&String(l.v||'').trim()})[0]},t=ok('title'),bio=ok('bio'),ph=photoOf(L),by={};L.forEach(function(l){by[l.t]=l});
+  var ic=PL.filter(function(p){var l=by[p[0]];return p[0]!=='title'&&p[0]!=='bio'&&l&&l.on&&String(l.v||'').trim()}).map(function(p){return xTile(p[0],p[1],hrefOf(p[0],by[p[0]].v))}).join(''),
+  cs=xCust(),bars=cs.filter(function(x){return x.k==='bar'&&String(x.t||'').trim()}).map(xBarHtml).join(''),
+  cic=cs.filter(function(x){return x.k==='icon'&&(String(x.t||'').trim()||okData(x.i))}).map(xCustIcon).join('');
   return '<div class="card" style="text-align:center"><div class="ph" style="width:104px;height:104px;margin:0 auto 12px">'+phHtml(ph)+'</div><h2 style="font-size:1.6rem;margin:0 0 4px">'+esc(c.name)+'</h2>'+(t?'<p class="mut" style="margin:0 0 6px">'+esc(t.v)+'</p>':'')+
-  '<div class="row" style="justify-content:center;gap:12px;margin:16px 0">'+ic+'</div>'+xBtnRow('card','top',0)+xBtnRow('card','bottom',12)+'</div>'}
+  (bio?'<p class="xbio">'+esc(bio.v)+'</p>':'')+(bars?'<div class="xbars">'+bars+'</div>':'')+
+  ((ic||cic)?'<div class="row" style="justify-content:center;gap:12px;margin:16px 0">'+ic+cic+'</div>':'<div style="height:12px"></div>')+xBtnRow('card','top',0)+xBtnRow('card','bottom',12)+'</div>'}
 function icoCur(k){if(!icoDraft)icoDraft={};return icoDraft[k]!==undefined?icoDraft[k]:xIcoUrl(k)}
 function icoPng(f){return new Promise(function(ok,no){var img=new Image(),u=URL.createObjectURL(f);
   img.onload=function(){var w=img.naturalWidth,h=img.naturalHeight;if(!w||!h){URL.revokeObjectURL(u);no(new Error('Could not read that image.'));return}
@@ -1836,21 +1869,55 @@ function icoPick(k,inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
   if(!/^image\//.test(f.type)){toast('Choose an image file.',false);return}
   icoPng(f).then(function(d){icoCur(k);icoDraft[k]=d;render()}).catch(function(e){toast(e.message,false)})}
 function icoSet(k,v){icoCur(k);icoDraft[k]=v;render()}
+/* custom icons and bars (shown on every business card) */
+var custDraft=null;
+function custCur(){if(!custDraft)custDraft=JSON.parse(JSON.stringify((FX.brand&&FX.brand.cust)||[]));return custDraft}
+function custAdd(){var a=custCur();if(a.length>=12){toast('Up to 12 custom items.',false);return}a.push({id:'c'+Date.now().toString(36),k:'bar',t:'',u:'',i:'',on:1});render()}
+function custSet(n,f,v){var a=custCur();if(!a[n])return;a[n][f]=v;if(f==='t'||f==='u'){var p=$('cprev');if(p)p.innerHTML=custPreview()}else render()}
+function custDel(n){custCur().splice(n,1);render()}
+function custMove(n,d){var a=custCur(),m=n+d;if(m<0||m>=a.length)return;var x=a[n];a[n]=a[m];a[m]=x;render()}
+function custPick(n,inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  if(!/^image\//.test(f.type)){toast('Choose an image file.',false);return}
+  icoPng(f).then(function(d){custCur()[n].i=d;render()}).catch(function(e){toast(e.message,false)})}
+function custPreview(){var c=custCur().filter(function(x){return x.on!==0}),
+  bars=c.filter(function(x){return x.k==='bar'&&String(x.t||'').trim()}).map(xBarHtml).join(''),
+  cic=c.filter(function(x){return x.k==='icon'&&(String(x.t||'').trim()||okData(x.i))}).map(xCustIcon).join(''),
+  soc=[['whatsapp','WhatsApp'],['instagram','Instagram'],['email','Email']].map(function(s){return xTile(s[0],s[1],'',icoCur(s[0]))}).join('');
+  return '<div style="text-align:center"><b>Your name</b><div class="mut">Title / company</div><p class="xbio">Your bio sits right under the name.</p>'+(bars?'<div class="xbars">'+bars+'</div>':'')+'<div class="row" style="justify-content:center;gap:12px;margin:14px 0 0">'+soc+cic+'</div></div>'}
+function custCard(){var a=custCur(),h=a.map(function(x,n){var im=okData(x.i);
+  return '<div class="item"><div class="row sp"><b>Item '+(n+1)+'</b><span class="row" style="gap:6px"><button type="button" onclick="custMove('+n+',-1)" aria-label="Move up">\u2191</button><button type="button" onclick="custMove('+n+',1)" aria-label="Move down">\u2193</button><button type="button" class="bad" onclick="custDel('+n+')">Remove</button></span></div>'+
+  '<div class="row" style="margin-top:8px;align-items:center"><select onchange="custSet('+n+',\'k\',this.value)" style="flex:1;min-width:150px"><option value="bar"'+(x.k==='bar'?' selected':'')+'>Bar (full width, under the bio)</option><option value="icon"'+(x.k==='icon'?' selected':'')+'>Round icon (with the socials)</option></select>'+
+  '<label class="tg"><span><input type="checkbox"'+(x.on!==0?' checked':'')+' onchange="custSet('+n+',\'on\',this.checked?1:0)"> Show</span></label></div>'+
+  '<input style="width:100%;margin-top:8px" maxlength="60" placeholder="'+(x.k==='bar'?'Text on the bar, e.g. Book me for events':'Short label, e.g. Menu')+'" value="'+esc(x.t||'')+'" oninput="custSet('+n+',\'t\',this.value)">'+
+  '<input style="width:100%;margin-top:8px" maxlength="300" autocapitalize="none" placeholder="Link (optional): https://\u2026 or a phone number" value="'+esc(x.u||'')+'" oninput="custSet('+n+',\'u\',this.value)">'+
+  '<div class="icrow" style="margin-top:8px">'+(im?'<img src="'+esc(x.i)+'" alt="" style="width:40px;height:40px;border-radius:10px;object-fit:cover">':'<span class="mut" style="font-size:.85rem">No picture</span>')+
+  '<button type="button" class="go" onclick="$(\'cf_'+n+'\').click()">'+(im?'Change picture':'Add picture')+'</button>'+(im?'<button type="button" class="bad" onclick="custSet('+n+',\'i\',\'\')">Remove picture</button>':'')+
+  '<input type="file" id="cf_'+n+'" accept="image/*" hidden onchange="custPick('+n+',this)"></div></div>'}).join('');
+  return '<div class="card"><h2>Custom icons &amp; bars</h2><p class="mut">A <b>bar</b> is a full-width button that sits between the bio and the social icons. A <b>round icon</b> joins the social icons. Shown on every business card.</p>'+
+  '<button type="button" class="go" style="width:100%" onclick="custAdd()">+ Custom icon / bar</button>'+(h?'<div style="margin-top:10px">'+h+'</div>':'<p class="mut" style="margin-top:10px">Nothing added yet.</p>')+
+  '<h2 style="margin-top:16px;font-size:1rem">Preview</h2><div class="item" id="cprev">'+custPreview()+'</div></div>'}
 function xvIcons(){icoCur('');
   var row=function(k,label,tile){var cu=icoCur(k);
     return '<div class="item"><div class="icrow">'+tile+'<div style="flex:1;min-width:120px"><b>'+esc(label)+'</b><div class="mut" style="font-size:.8rem">'+(cu?'Custom icon':'Default icon')+'</div></div>'+
     '<button class="go" onclick="$(\'if_'+k+'\').click()">Upload</button><button class="bad" onclick="icoSet(\''+k+'\',\'\')">Reset</button><input type="file" id="if_'+k+'" accept="image/*" hidden onchange="icoPick(\''+k+'\',this)"></div></div>'};
-  var soc=PL.filter(function(p){return p[0]!=='title'}).map(function(p){var cu=icoCur(p[0]);return row(p[0],p[1],xTile(p[0],p[1],'',cu))}).join('');
-  return '<div class="card"><h2>Social icons</h2><p class="mut">Known socials show their app icon on the business card. Upload your own picture to replace any of them (square works best; PNG keeps transparency).</p>'+soc+'</div>'+
-  '<button class="go" style="width:100%" onclick="icoSave()">Save icons</button>'}
-async function icoSave(){if(!icoDraft){toast('Nothing to save.',false);return}
-  var prev=(FX.brand&&FX.brand.icons)||{},out={},k;
-  try{var any=false;for(k in icoDraft)if(/^data:/.test(icoDraft[k]||''))any=true;if(any)toast('Uploading\u2026',true);
-    for(k in prev)if(icoDraft[k]===undefined&&okData(prev[k]))out[k]=prev[k];
-    for(k in icoDraft){var v=icoDraft[k];if(!v)continue;out[k]=/^data:/.test(v)?await brandUp('icon-'+k,v):v}}
+  var soc=PL.filter(function(p){return p[0]!=='title'&&p[0]!=='bio'}).map(function(p){var cu=icoCur(p[0]);return row(p[0],p[1],xTile(p[0],p[1],'',cu))}).join('');
+  return custCard()+'<div class="card"><h2>Social icons</h2><p class="mut">Known socials show their app icon on the business card. Upload your own picture to replace any of them (square works best; PNG keeps transparency).</p>'+soc+'</div>'+
+  '<button class="go" style="width:100%" onclick="icoSave()">Save icons &amp; bars</button>'}
+async function icoSave(){if(!icoDraft&&!custDraft){toast('Nothing to save.',false);return}
+  var prev=(FX.brand&&FX.brand.icons)||{},pc=(FX.brand&&FX.brand.cust)||[],d=icoDraft||{},out={},cs=[],k;
+  try{var any=false;for(k in d)if(/^data:/.test(d[k]||''))any=true;(custDraft||[]).forEach(function(x){if(/^data:/.test(x.i||''))any=true});if(any)toast('Uploading\u2026',true);
+    for(k in prev)if(d[k]===undefined&&okData(prev[k]))out[k]=prev[k];
+    for(k in d){var v=d[k];if(!v)continue;out[k]=/^data:/.test(v)?await brandUp('icon-'+k,v):v}
+    var srcs=custDraft||pc;
+    for(var j=0;j<srcs.length;j++){var x=srcs[j],tx=String(x.t||'').trim().slice(0,60);
+      if(x.k==='bar'&&!tx)continue;if(x.k==='icon'&&!tx&&!x.i)continue;
+      var im=x.i?(/^data:/.test(x.i)?await brandUp('cust-'+String(x.id||j),x.i):x.i):'';
+      cs.push({id:String(x.id||('c'+j)).slice(0,20),k:x.k==='icon'?'icon':'bar',t:tx,u:String(x.u||'').trim().slice(0,300),i:okData(im)?im:'',on:x.on===0?0:1})}}
   catch(e){toast(upErr(e),false);return}
-  var nb=JSON.parse(JSON.stringify(FX.brand||{}));nb.icons=out;
-  if(await xCfgSave({brand:nb},'brand')){for(k in prev)if(prev[k]!==out[k])assetDrop(prev[k],'');icoDraft=null;render()}}
+  var nb=JSON.parse(JSON.stringify(FX.brand||{}));nb.icons=out;nb.cust=cs;
+  if(await xCfgSave({brand:nb},'brand')){for(k in prev)if(prev[k]!==out[k])assetDrop(prev[k],'');
+    var keep={};cs.forEach(function(x){if(x.i)keep[x.i]=1});pc.forEach(function(x){if(x.i&&!keep[x.i])assetDrop(x.i,'')});
+    icoDraft=null;custDraft=null;render()}}
 function vLanding(){return '<div class="card" style="text-align:center"><h2 style="font-size:1.6rem;margin-bottom:4px">XEND-CASH</h2><p class="mut">Hold a bracelet to the back of the phone to see its card, or open your wallet.</p><div class="row" style="justify-content:center"><button class="go" onclick="lmode=\'guest\';showLogin=true;render()">My wallet</button><button onclick="showLogin=!showLogin;render()">Log in</button></div></div>'}
 function vPublic(){var h='';
   if(wmode==='pin')h+='<div class="card"><h2>My wallet</h2><div class="row"><input id="pin" type="password" inputmode="numeric" placeholder="PIN" style="width:120px"><button class="go" onclick="openWallet()">Open</button><button onclick="wmode=null;render()">Back</button></div></div>';
@@ -2318,7 +2385,7 @@ function vMoneyBlock(){
   '<div class="row"><button class="go" onclick="mwOpen(\'deposit\')">Add money</button><button onclick="mwOpen(\'send\')">Send</button><button onclick="mwOpen(\'withdraw\')">Withdraw</button>'+(mw.pts_rate>0?'<button onclick="mwOpen(\'convert\')">Convert to points</button>':'')+'</div>'+
   '<p class="mut" style="margin:10px 0 0">Fee on each add, send or withdrawal: '+esc(feeTxt('money'))+'.</p>'+pend+
   (tx.length?'<details style="margin-top:10px"><summary><b>Money &amp; fee activity</b></summary>'+tx.map(mwRow).join('')+'</details>':'')+'</div>'}
-async function mwOpen(m){mwMode=m;mwErr='';
+async function mwOpen(m){mwMode=m;mwErr='';if(m==='send')mwSendTo='guest';
   if(m==='send'){try{mwPeople=(await rpc('gift_people',{k:key,pin_:wpin}))||[]}catch(e){mwPeople=[];mwErr=e.message}}
   render();scrollTo(0,0)}
 function mwClose(){mwMode=null;render()}
@@ -2519,7 +2586,7 @@ async function feesSave(){var mf=pes($('fmf').value),mp=Math.round(parseFloat($(
 async function wdResolve(id,st){var note=prompt(st==='paid'?'Payout reference (MoMo transaction ID):':'Reason for rejecting (the guest is refunded in full):','');if(note===null)return;
   try{await rpc('withdrawal_resolve',{p_wid:id,p_st:st,p_note:note});toast(st==='paid'?'Marked paid.':'Rejected and refunded.',true);await moneyLoad()}catch(e){toast(e.message,false)}}
 /* tab bar: admins get the new tabs; every tab name can be overridden from the Site tab */
-setTab=function(t){if(tab==='brand'&&t!=='brand')brandDraft=null;if(tab==='icons'&&t!=='icons')icoDraft=null;if(tab==='theme'&&t!=='theme'&&themeDraft){themeDraft=null;themeApply(FX.theme)}if(t==='money'){tab=t;render();moneyLoad();return}if(t==='tokens'){tab=t;render();tokLoad();return}if(XPAGES.indexOf(t)>-1){tab=t;render();xLoadAdm()}else setTab0(t)};
+setTab=function(t){if(tab==='brand'&&t!=='brand')brandDraft=null;if(tab==='icons'&&t!=='icons'){icoDraft=null;custDraft=null}if(tab==='theme'&&t!=='theme'&&themeDraft){themeDraft=null;themeApply(FX.theme)}if(t==='money'){tab=t;render();moneyLoad();return}if(t==='tokens'){tab=t;render();tokLoad();return}if(XPAGES.indexOf(t)>-1){tab=t;render();xLoadAdm()}else setTab0(t)};
 vStaff=function(){
   if(!me||me.role!=='admin'){var h=vStaff0();if(me&&me.role!=='vendor')XALL.forEach(function(t){var l=xv('label_'+t[0]);if(l)h=h.replace(new RegExp('(onclick="setTab\\(\''+t[0]+'\'\\)">)[^<]*(</button>)'),function(m,a,b){return a+esc(l)+b})});return h}
   var T=XALL,map={home:vHome,top:vTop,till:vTill,cards:vCards,events:vEvents,vendors:vVendors,buys:vBuys,team:vTeam,groups:vGroups,import:vImport,set:vSet,site:xvSite,brand:xvBrand,icons:xvIcons,shop:xvShop,secs:xvSecs,btns:xvBtns,orders:xvOrders,money:vMoneyAdmin,tokens:vTokAdmin,theme:xvTheme,ledger:vLedger};
@@ -2787,7 +2854,7 @@ async function brandSave(){brandSync();var d=brandDraft,prev=FX.brand||{};
   try{if(/^data:/.test(d.logo||'')||/^data:/.test(d.bn||''))toast('Uploading\u2026',true);
     lg=okData(d.logo)?await brandUp('logo',d.logo):'';bn=okData(d.bn)?await brandUp('banner',d.bn):''}
   catch(e){toast(upErr(e),false);return}
-  var o={lp:d.lp||'header',ls:d.ls||'m',logo:lg,bn:bn,ba:d.ba||'',bl:d.bl?xlink(d.bl):'',bp:d.bp||'top',bs:d.bs||'wide',bon:d.bon===0?0:1,icons:prev.icons||{}};
+  var o={lp:d.lp||'header',ls:d.ls||'m',logo:lg,bn:bn,ba:d.ba||'',bl:d.bl?xlink(d.bl):'',bp:d.bp||'top',bs:d.bs||'wide',bon:d.bon===0?0:1,icons:prev.icons||{},cust:prev.cust||[]};
   if(await xCfgSave({brand:o},'brand')){
     [prev.logo,prev.bn].forEach(function(u){var p=assetPath(u);if(p&&u!==o.logo&&u!==o.bn){try{Promise.resolve(sb.storage.from(ASSET_BUCKET).remove([p])).catch(function(){})}catch(e){}}});
     brandDraft=null;render()}}
@@ -3010,7 +3077,8 @@ function vMoneyFlow(){var m=mwMode,bal='<p class="mut">Money wallet balance: <b>
   er='<div id="mwe" class="mut" role="status" style="min-height:1.4em;margin:8px 0"></div><div id="mwp" class="mut" style="margin:10px 0"></div>';
   if(m==='convert')return '<div class="card xmny">'+mwHead('Convert to event tokens')+'<p class="mut">Rate: <b>GH\u20B5 1 = '+Number(mw.pts_rate)+' tokens</b>. These become <b>paid tokens</b>: spent after your admin-loaded tokens, and the vendor who receives them is paid in real money. The money leaves this wallet now and cannot be undone. After your event ends you can turn unused paid tokens back into money.</p><p class="mut">Money wallet balance: <b>'+esc(mny(mw&&mw.balance))+'</b>.</p><div class="row"><input id="mwa" type="number" inputmode="decimal" min="1" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"><input id="mwpin" type="password" inputmode="numeric" placeholder="Your PIN" autocomplete="off"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwConvert()">Convert to event tokens</button></div>';
   if(m==='deposit')return '<div class="card xmny">'+mwHead('Add money')+'<p class="mut">You pay on a secure Paystack page (MoMo or card). Money reaches your wallet only after Paystack confirms the payment. The fee is taken from what you pay.</p><div class="row">'+[10,20,50,100].map(function(x){return '<button onclick="$(\'mwa\').value='+x+';mwPrev()">'+x+'</button>'}).join('')+'</div><div class="row" style="margin-top:10px"><input id="mwa" type="number" inputmode="decimal" min="1" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwDeposit()">Continue to Paystack</button></div>';
-  if(m==='send')return '<div class="card xmny">'+mwHead('Send money')+'<p class="mut">Real money, not event tokens. Sends cannot be undone and can never be more than your wallet holds.</p>'+bal+
+  if(m==='send'&&mwSendTo==='momo')return xMomoCard(bal,er);
+  if(m==='send')return '<div class="card xmny">'+mwHead('Send money')+xSendTabs()+'<p class="mut">Real money, not event tokens. Sends cannot be undone and can never be more than your wallet holds.</p>'+bal+
     (mwPeople.length?'<select id="mws" style="width:100%"><option value="">Choose a guest</option>'+mwPeople.map(function(p){return '<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>'}).join('')+'</select>':'<p class="mut">'+(mwErr?esc(mwErr):'No other guests available yet.')+'</p>')+
     '<div class="row" style="margin-top:10px"><input id="mwa" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()"><input id="mwpin" type="password" inputmode="numeric" placeholder="Your PIN" autocomplete="off"></div>'+er+'<button class="go" id="mwgo" style="width:100%" onclick="mwSend()">Send money</button></div>';
   return '<div class="card xmny">'+mwHead('Withdraw money')+'<p class="mut">Paystack sends it to your account, usually within minutes. The amount and fee leave your wallet now; if the transfer fails, everything is returned automatically. Minimum GH\u20B5 5.00. Paystack pays to MoMo or bank accounts, not debit cards.</p>'+bal+
@@ -3021,6 +3089,37 @@ mwPrev=function(){mwPrev0();var g=$('mwgo'),a=$('mwa');if(!g||!a||!mw)return;var
   if(mwMode==='convert'){var r=Number(mw.pts_rate)||0,pt=Math.floor(v/100*r),c=r>0?Math.min(v,Math.ceil(pt*100/r)):0;over=c>mw.balance}
   else if(mwMode==='send'||mwMode==='withdraw')over=v+f>mw.balance;
   g.disabled=!!over}
+/* ---- send money: to a guest, or straight to any MoMo number ---- */
+var mwSendTo='guest',NETN={MTN:'MTN MoMo',VOD:'Telecel Cash',ATL:'AirtelTigo Money'};
+function xSendTabs(){var t=function(k,l){return '<button type="button" class="'+(mwSendTo===k?'go':'')+'" style="flex:1" onclick="mwSendTab(\''+k+'\')">'+l+'</button>'};return '<div class="row" style="margin:10px 0;gap:8px">'+t('guest','A guest')+t('momo','A MoMo number')+'</div>'}
+function mwSendTab(k){mwSendTo=k;mwErr='';render()}
+function momoNorm(v){var d=String(v||'').replace(/\D/g,'');if(d.indexOf('233')===0)d='0'+d.slice(3);else if(d.length===9&&d.charAt(0)!=='0')d='0'+d;return d.slice(0,10)}
+function momoNet(d){var p=d.slice(0,3);return /^0(24|25|53|54|55|59)$/.test(p)?'MTN':/^0(20|50)$/.test(p)?'VOD':/^0(26|27|56|57)$/.test(p)?'ATL':''}
+function momoIn(){var el=$('mwr');if(!el)return;var d=momoNorm(el.value),n=momoNet(d),s=$('mwrn'),h=$('mwrh');if(n&&s)s.value=n;
+  if(h)h.textContent=d.length>=3?(n?'Detected: '+NETN[n]:'Network not recognised, please choose it below.'):''}
+function momoRecent(){try{var a=JSON.parse(localStorage.getItem('xv-momo-recent')||'[]');return Array.isArray(a)?a.filter(function(x){return x&&/^0\d{9}$/.test(x.n)&&NETN[x.net]}).slice(0,5):[]}catch(e){return []}}
+function momoRemember(n,net,name){try{var a=momoRecent().filter(function(x){return x.n!==n});a.unshift({n:n,net:net,name:name||''});localStorage.setItem('xv-momo-recent',JSON.stringify(a.slice(0,5)))}catch(e){}}
+function momoUse(i){var x=momoRecent()[i];if(!x)return;$('mwr').value=x.n;$('mwrn').value=x.net;$('mwrname').value=x.name||'';momoIn()}
+function xMomoCard(bal,er){var rc=momoRecent();
+  return '<div class="card xmny">'+mwHead('Send money')+xSendTabs()+'<p class="mut">Sent straight to a Mobile Money number through Paystack. It cannot be undone, so check the number carefully. Minimum GH\u20B5 5.00.</p>'+bal+
+  (rc.length?'<div class="row" style="gap:8px;margin:6px 0">'+rc.map(function(x,i){return '<button type="button" onclick="momoUse('+i+')">'+esc(x.name||x.n)+'</button>'}).join('')+'</div>':'')+
+  '<div class="xf"><input id="mwr" type="tel" inputmode="tel" placeholder="Recipient MoMo number" autocomplete="off" oninput="momoIn()" style="width:100%"><div class="mut" id="mwrh" style="font-size:.85rem"></div>'+
+  '<select id="mwrn" style="width:100%"><option value="MTN">MTN MoMo</option><option value="VOD">Telecel Cash</option><option value="ATL">AirtelTigo Money</option></select>'+
+  '<input id="mwrname" placeholder="Recipient name (optional)" maxlength="60" autocomplete="off" style="width:100%">'+
+  '<input id="mwa" type="number" inputmode="decimal" min="5" step="0.01" placeholder="Amount (GH\u20B5)" oninput="mwPrev()" style="width:100%"><input id="mwpin" type="password" inputmode="numeric" placeholder="Your PIN" autocomplete="off" style="width:100%"></div>'+er+
+  '<button class="go" id="mwgo" style="width:100%" onclick="mwSendMomo()">Send to this number</button></div>'}
+async function mwSendMomo(){if(mwBusy)return;var a=pes($('mwa').value),p=$('mwpin').value.trim(),er=$('mwe'),d=momoNorm($('mwr').value),net=$('mwrn').value,nm=($('mwrname').value||'').trim();
+  if(!/^0\d{9}$/.test(d)){er.textContent='Enter a valid 10-digit MoMo number, e.g. 024 000 0000.';return}
+  if(!(a>=500)||!p){er.textContent='Enter at least GH\u20B5 5.00 and your PIN.';return}
+  var f=feeOf('money',a);if(f==null){er.textContent='Fees are not loaded yet. Go back and try again.';return}
+  if(a+f>mw.balance){er.textContent='You only have '+mny(mw.balance)+'. You need '+mny(a+f)+' (amount + fee).';return}
+  if(!confirm('Send '+mny(a)+' to '+(nm?nm+' \u00B7 ':'')+NETN[net]+' '+d+'?\nFee: '+mny(f)+'. Total taken from your wallet: '+mny(a+f)+'.\nThis cannot be undone.'))return;
+  mwBusy=true;ownAt=Date.now();
+  try{var r=await rpc('money_withdraw',{k:key,pin_:p,amt:a,momo:d,network:net,expect_fee:f,p_type:'momo',p_bank:null,p_name:null});
+    momoRemember(d,net,nm);mwMode=null;mw=null;render();mwPop('Money on its way',mny(r.amount),'to '+(nm||d),'Fee '+mny(r.fee)+'. Paystack is sending it now.');
+    payoutCall({action:'send',kind:'guest',id:r.id}).then(function(){setTimeout(function(){payoutCall({action:'check',kind:'guest',id:r.id}).catch(function(){})},9000)}).catch(function(){})}
+  catch(e){er.textContent=e.message}
+  mwBusy=false}
 async function mwWithdraw(){if(mwBusy)return;var a=pes($('mwa').value),p=$('mwpin').value.trim(),er=$('mwe'),ac=acctRead('w');
   if(!(a>=500)||!p){er.textContent='Enter at least GH\u20B5 5.00 and your PIN.';return}
   if(ac.err){er.textContent=ac.err;return}
@@ -3130,5 +3229,34 @@ loadCms().then(function(){var ae=document.activeElement;if(!(ae&&/^(INPUT|SELECT
 </script>
 <button id="vmode" type="button" onclick="xvCycle()" aria-label="Switch between auto, mobile and desktop view"></button>
 <script>window.xvApply&&window.xvApply()</script>
+<script>
+/* detect the phone and the real visible screen, then keep the page inside it */
+(function(){var D=document.documentElement,
+IP={'320x568':'iPhone SE (1st gen) / 5s','375x667':'iPhone SE / 6 / 7 / 8','414x736':'iPhone 6-8 Plus','375x812':'iPhone X / 11 Pro / 12-13 mini','414x896':'iPhone 11 / XR / 11 Pro Max','390x844':'iPhone 12 / 13 / 14','393x852':'iPhone 14 Pro / 15 / 16','428x926':'iPhone 12-14 Pro Max / 14 Plus','430x932':'iPhone 14-15 Pro Max / 15-16 Plus','402x874':'iPhone 16 Pro','440x956':'iPhone 16 Pro Max'},
+AN={'360x800':'Galaxy S-class (S20 / S21 / A-series)','360x780':'Galaxy S-class','360x640':'Android (small)','412x915':'Pixel / Galaxy S Plus class','412x892':'Pixel / Galaxy class','384x854':'Android (compact)','393x873':'Pixel 7 class','411x731':'Pixel 2 class','414x896':'Android (large)','360x760':'Android'},
+model='';
+function inScroll(e){for(var p=e.parentElement;p&&p!==D;p=p.parentElement){var o=getComputedStyle(p).overflowX;if(o==='auto'||o==='scroll')return true}return false}
+function guard(){var W=D.clientWidth;if(D.getAttribute('data-eff')==='desktop'&&W>=900)return;
+  if(D.scrollWidth<=W+1&&!document.querySelector('#pop:not(:empty)'))return;
+  var els=document.querySelectorAll('header *, main *, #pop *, #ordm *, #cmpm *'),n=0;
+  for(var i=0;i<els.length&&n<80;i++){var e=els[i],r=e.getBoundingClientRect();
+    if(r.width>0&&r.right>W+1&&getComputedStyle(e).position!=='fixed'&&!inScroll(e)){
+      e.style.maxWidth='100%';e.style.boxSizing='border-box';
+      if(e.tagName==='TABLE'){e.style.display='block';e.style.overflowX='auto'}else e.style.overflowWrap='anywhere';n++}}}
+function fit(){var vv=window.visualViewport,w=Math.round(vv?vv.width:innerWidth),h=Math.round(vv?vv.height:innerHeight),sw=screen.width,sh=screen.height,
+  key=Math.min(sw,sh)+'x'+Math.max(sw,sh),ua=navigator.userAgent||'',ios=/iPhone|iPod/.test(ua),and=/Android/.test(ua),tab=/iPad|Tablet/.test(ua)||(and&&!/Mobile/.test(ua)),
+  dev=ios?(IP[key]||'iPhone'):and?(model||AN[key]||(tab?'Android tablet':'Android phone')):(/iPad/.test(ua)?'iPad':'Computer');
+  D.style.setProperty('--vw',w+'px');D.style.setProperty('--vh',h+'px');
+  D.setAttribute('data-w',w<=340?'xs':w<=375?'s':w<=400?'m':w<=440?'l':'xl');D.setAttribute('data-short',h<640?'1':'0');D.setAttribute('data-dev',dev);
+  window.xvInfo={device:dev,width:w,height:h,screen:sw+'x'+sh,dpr:window.devicePixelRatio||1};
+  if(window.xvApply)window.xvApply();guard()}
+try{if(navigator.userAgentData&&navigator.userAgentData.getHighEntropyValues)navigator.userAgentData.getHighEntropyValues(['model']).then(function(m){if(m&&m.model){model=m.model;fit()}}).catch(function(){})}catch(e){}
+window.xvFit=fit;fit();
+window.addEventListener('resize',fit);window.addEventListener('orientationchange',function(){setTimeout(fit,250)});
+if(window.visualViewport)window.visualViewport.addEventListener('resize',fit);
+if(typeof render==='function'){var r0=render;render=function(){var x=r0.apply(this,arguments);setTimeout(guard,80);return x}}
+if(window.MutationObserver)['pop','ordm','cmpm'].forEach(function(id){var el=document.getElementById(id);if(el)new MutationObserver(function(){setTimeout(guard,30)}).observe(el,{childList:true,subtree:true})});
+})();
+</script>
 </body>
 </html>
