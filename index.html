@@ -1233,6 +1233,14 @@ html[data-short="1"] .popcard .bal { font-size: 2.1rem; }
 html[data-short="1"] .popcard { padding: 14px 16px !important; }
 html, body { overflow-x: clip; }
 </style>
+<style>.lgph{width:56px;height:56px;border-radius:12px;display:grid;place-items:center;font-size:26px;color:#fff;overflow:hidden;flex:none}.lgph img{width:100%;height:100%;object-fit:cover}.lgav{border-radius:50%;background:#475569;font-size:18px;font-weight:700}
+.lgrow{display:flex;gap:10px;align-items:center}.lgsw{width:11px;height:11px;border-radius:50%;display:inline-block}.lgwait{background:#fef3c7;color:#92400e}.lgbad{background:var(--bad);color:#fff}
+.lgcard{border-radius:22px;overflow:hidden;border:1px solid var(--line);background:var(--card);max-width:440px;margin:0 auto 14px}.lghd{padding:14px;color:#fff;display:flex;justify-content:space-between;font-weight:700}.lgbd{padding:14px}
+.lgbig{height:170px;border-radius:14px;display:grid;place-items:center;font-size:64px;color:#fff;overflow:hidden}.lgbig img{width:100%;height:100%;object-fit:cover}.lgwho{display:flex;gap:12px;align-items:center;margin:14px 0}.lgwho .lgph{width:60px;height:60px}
+.lgrw{background:#fef3c7;color:#92400e;border-radius:10px;padding:8px 10px;font-weight:600;font-size:.85rem;margin:8px 0}.lgal{border-left:4px solid var(--bad);padding:6px 10px;margin-bottom:6px;font-size:.85rem}
+.lgtl{border-left:2px solid var(--line);padding-left:12px;font-size:.85rem}.lgtl div{margin-bottom:6px}.lgchk{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:.9rem}.lgchk input{width:auto}
+.lgpair{display:grid;grid-template-columns:1fr 1fr;gap:8px}.lgw{width:100%;height:130px;border-radius:12px}.lgb{display:inline-block;padding:11px 14px;border-radius:12px;border:1px solid var(--line);text-decoration:none;text-align:center}
+</style>
 </head>
 <body>
 <header><div class="hin"><b>XEND-CASH</b><span class="mut" id="nfc"></span><button id="bell" onclick="bellTap()" aria-label="Alerts"></button><span id="who"></span></div></header>
@@ -1791,7 +1799,7 @@ function render(){
   $('who').innerHTML=me?esc(me.name)+' <span class="mut">('+roleLabel(me.role)+')</span> <button onclick="logout()">Log out</button>':'';
   $('msg').innerHTML=flash?'<div class="msg '+(flash.ok?'ok':'err')+'" role="status">'+esc(flash.t)+'</div>':'';flash=null;
   if(writeCtl)$('msg').innerHTML+='<button class="bad" onclick="writeCtl.abort()" style="margin-bottom:12px">Cancel writing</button>';
-  $('view').innerHTML=!cfg?vCfg():!me?vPublic():vStaff();
+  $('view').innerHTML=LB?vBagPublic():!cfg?vCfg():!me?vPublic():vStaff();
   if(me&&me.role==='vendor')paintSales();
   if(chatOpen&&($('cmsgs')||$('cflist')))paintChat();
 }
@@ -3283,6 +3291,66 @@ async function tokReopen(sid){if(!confirm('Reopen this vendor\u2019s section so 
 
 themeApply(FX.theme);
 
+/* ---- QR for friends without NFC: the owner reveals it with their PIN ---- */
+var qrT=null,qrEnd=0,qrMode='key',qrTok=null,qrBusy=false;
+function qrOk(t){return /^[0-9a-f]{32}$/i.test(String(t||''))}
+function qrStop(){if(qrT){clearInterval(qrT);qrT=null}}
+function qrClose(){qrStop();var p=$('pop');if(p&&p.dataset.qr){delete p.dataset.qr;p.innerHTML=''}}
+/* mode 'login' asks for username + PIN; otherwise only the PIN (this phone's guest, or the bracelet that was just tapped) */
+function qrOpen(mode){
+  var p=$('pop');if(!p)return;
+  var gs=ld('fb-guest'),tok=gs&&qrOk(gs.k)?gs.k:(qrOk(key)?key:null);
+  qrMode=(mode==='login'||!tok)?'login':'key';qrTok=qrMode==='key'?tok:null;
+  qrStop();p.dataset.qr='1';
+  p.innerHTML='<div class="popcard" role="dialog" aria-label="Show my QR"><div style="font-weight:700">\uD83D\uDCF1 Show my QR</div>'+
+    '<p style="margin:8px 0 12px">For friends whose phone has no NFC. Enter your '+(qrMode==='login'?'username and ':'')+'PIN to show a QR that opens your business card.</p>'+
+    (qrMode==='login'?'<input id="qru" placeholder="Username" autocapitalize="none" autocomplete="username" style="width:100%;margin-bottom:8px">':'')+
+    '<input id="qrp" type="password" inputmode="numeric" placeholder="PIN" autocomplete="current-password" style="width:100%" onkeydown="if(event.key===\'Enter\')qrReveal()">'+
+    '<div id="qre" role="status" style="min-height:1.3em;margin:8px 0;font-weight:600"></div>'+
+    '<button onclick="qrReveal()" style="width:100%;background:#111;color:#ffc400;border-color:#111">Show QR</button>'+
+    '<button onclick="qrClose()" style="width:100%;margin-top:8px">Cancel</button></div>';
+  setTimeout(function(){var e=$(qrMode==='login'?'qru':'qrp');if(e)e.focus()},50)}
+async function qrReveal(){
+  if(qrBusy)return;
+  var pe=$('qrp'),ue=$('qru'),er=$('qre'),pin=pe?pe.value.trim():'',un=ue?ue.value.trim():'';
+  if(!pin||(qrMode==='login'&&!un)){if(er)er.textContent=qrMode==='login'?'Enter your username and PIN.':'Enter your PIN.';return}
+  qrBusy=true;if(er)er.textContent='Checking\u2026';
+  try{
+    var tok=qrTok;
+    if(qrMode==='login'){
+      var r;try{r=await rpc('claim_login',{n:un,pin_:pin})}catch(e){if(/claim_login|schema cache|Could not find/i.test(e.message))r=await rpc('guest_login',{n:un,pin_:pin});else throw e}
+      if(!r||!r.ok)throw new Error((r&&r.text)||'Wrong username or PIN.');
+      tok=r.token}
+    var w=await rpc('wallet',{k:tok,pin_:pin});
+    if(!w)throw new Error('Wrong PIN.');
+    if(!qrOk(tok))throw new Error('This bracelet cannot make a QR yet.');
+    qrShow(tok,w.name)}
+  catch(e){var e2=$('qre');if(e2)e2.textContent=e.message;var p2=$('qrp');if(p2){p2.value='';p2.focus()}}
+  qrBusy=false}
+function qrShow(tok,name){
+  var p=$('pop');if(!p)return;qrStop();
+  var u=base()+'#b='+tok,q='';
+  try{if(typeof qrcode==='function'){var x=qrcode(0,'M');x.addData(u);x.make();q=x.createSvgTag({cellSize:4,margin:2,scalable:true})}}catch(e){q=''}
+  qrEnd=Date.now()+120000;p.dataset.qr='1';
+  p.innerHTML='<div class="popcard" role="dialog" aria-label="My QR"><div style="font-weight:700">'+esc(name||'My card')+'</div>'+
+    (q?'<div style="width:240px;max-width:100%;margin:12px auto;background:#fff;padding:8px;border-radius:12px">'+q+'</div>':'<p style="margin:12px 0">The QR could not be drawn. Check your internet connection and try again.</p>')+
+    '<p style="margin:0">Your friend scans this with their phone camera. It opens your business card.</p>'+
+    '<p id="qrleft" style="margin:8px 0 0;font-size:.9rem"></p>'+
+    '<button onclick="qrClose()" style="width:100%;margin-top:14px;background:#111;color:#ffc400;border-color:#111">Hide QR</button></div>';
+  qrTick();qrT=setInterval(qrTick,1000)}
+function qrTick(){var e=$('qrleft');if(!e){qrStop();return}
+  var s=Math.max(0,Math.ceil((qrEnd-Date.now())/1000));
+  if(s<=0){qrClose();toast('QR hidden. Enter your PIN to show it again.',true);return}
+  e.textContent='Hides automatically in '+Math.floor(s/60)+':'+('0'+s%60).slice(-2)}
+function qrBtnRow(){return '<div class="row" style="justify-content:center;margin-top:12px"><button onclick="qrOpen()">\uD83D\uDCF1 Show my QR (no NFC needed)</button></div>'}
+/* 1. business card page (after tapping a bracelet) */
+var vCardView3=vCardView;vCardView=function(c){var h=vCardView3.apply(this,arguments),r=h.replace(/<\/div>$/,qrBtnRow()+'</div>');return r===h?h+'<div class="card">'+qrBtnRow()+'</div>':r};
+/* 2. guest home (wallet) */
+var vWallet3=vWallet;vWallet=function(){var h=vWallet3.apply(this,arguments);if(mwMode)return h;
+  return '<div class="card"><div class="row sp"><span><b>Share my card</b><br><span class="mut">Friend has no NFC? Show a QR that opens your business card.</span></span><button class="go" onclick="qrOpen()">\uD83D\uDCF1 Show QR</button></div></div>'+h};
+/* 3. guest login (no bracelet in hand): username + PIN */
+var vLogin3=vLogin;vLogin=function(){var h=vLogin3.apply(this,arguments);
+  return lmode==='guest'?h+'<div class="card"><h2>Show my QR</h2><p class="mut">Friend has no NFC? Show a QR that opens your business card. You need your username and PIN.</p><button class="go" onclick="qrOpen(\'login\')">\uD83D\uDCF1 Show my QR</button></div>':h};
 boot();
 loadCms().then(function(){var ae=document.activeElement;if(!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)))render()});
 </script>
@@ -3360,6 +3428,127 @@ var saveGuestCard1=saveGuestCard;saveGuestCard=async function(){var m=planCheck(
 var vWallet1=vWallet;vWallet=function(){return planCard(wallet)+vWallet1.apply(this,arguments)};
 /* admin: load plans with the guest list */
 var loadAdm9=loadAdm;loadAdm=async function(){var r=await loadAdm9.apply(this,arguments);try{var d=await rpc('plans_admin');planMap=d.plans||{};planFee=d.upgrade_fee}catch(e){}return r};
+</script>
+<script>
+/* ===== LUGGAGE CARDS (staff register, owner claims, anyone scans) ===== */
+var LG=ld('lg-bags')||[],LB=null,LGU={},LGP=null,LGC=null,LGO=null;
+var LGG={A:['Group A','#2563eb'],B:['Group B','#ea580c'],C:['Group C','#16a34a'],D:['Group D','#9333ea']};
+function lgSave(){sv('lg-bags',LG)}
+function lgGet(c){return LG.filter(function(x){return x.code===c})[0]}
+function lgNow(){return new Date().toLocaleString([],{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+function lgCol(b){return (LGG[b.group]||['','#475569'])[1]}
+function lgUrl(c){return base()+'#l='+c}
+function lgPhoto(inp,cb){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;var r=new FileReader();r.onload=function(){var i=new Image();i.onload=function(){var s=Math.min(1,480/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.7));toast('Photo added.',true)};i.src=r.result};r.readAsDataURL(f)}
+function lgPh(b,s){return '<div class="lgph" style="background:'+lgCol(b)+(s?';width:'+s+'px;height:'+s+'px':'')+'">'+(b.photo?'<img src="'+b.photo+'" alt="">':'\uD83E\uDDF3')+'</div>'}
+function lgAv(o){return '<div class="lgph lgav">'+(o.photo?'<img src="'+o.photo+'" alt="">':esc(o.name.split(/\s+/).map(function(w){return w[0]}).join('').slice(0,2).toUpperCase()))+'</div>'}
+function lgPill(b){return b.owner?(b.owner.missing?'<span class="tag lgbad">Missing</span>':'<span class="tag">Claimed</span>'):'<span class="tag lgwait">Waiting for its owner</span>'}
+function lgQR(u){var q=qrcode(0,'M');q.addData(u);q.make();return q.createSvgTag(4,0)}
+function lgIdx(b){var L=LG.filter(function(x){return x.owner&&x.owner.phone===b.owner.phone});return [L.indexOf(b)+1,L.length]}
+
+/* ---- staff tab ---- */
+function vBags(){var un=LG.filter(function(b){return !b.owner}).length,al=[];
+  LG.forEach(function(b){(b.alerts||[]).forEach(function(a){al.push([a,b])})});
+  return (al.length?'<div class="card"><h2>Finder alerts</h2>'+al.slice(-5).reverse().map(function(x){return '<div class="lgal">\uD83D\uDD14 '+esc(x[0].t)+' \u00B7 '+x[1].code+' ('+esc(x[1].owner.name)+') \u00B7 '+esc(x[0].loc)+'</div>'}).join('')+'</div>':'')+
+  '<div class="card"><h2>Register a bag</h2><p class="mut">Add the chip code, photo, label, trip and group. The bag then shows \u201CWaiting for its owner\u201D.</p>'+
+  '<div class="row"><input id="lgc" placeholder="Chip code" value="'+lgNext()+'" aria-label="Chip code"><button onclick="lgChip()">'+(HAS?'Scan chip':'New code')+'</button></div>'+
+  '<div class="row" style="margin-top:8px"><button onclick="$(\'lgf\').click()">'+(LGP?'Photo added \u2713':'Take bag photo')+'</button><input type="file" id="lgf" accept="image/*" capture="environment" hidden onchange="lgPhoto(this,function(d){LGP=d})"></div>'+
+  '<input id="lgl" placeholder="Label, e.g. Black duffel" style="width:100%;margin-top:8px"><input id="lgt" placeholder="Trip, e.g. Cape Coast tour, 14 Dec" style="width:100%;margin-top:8px">'+
+  '<div class="row" style="margin-top:8px"><select id="lgg">'+Object.keys(LGG).map(function(k){return '<option value="'+k+'">'+LGG[k][0]+'</option>'}).join('')+'</select><input id="lgs" placeholder="Seat (optional)"></div>'+
+  '<p><button class="go" onclick="lgReg()">Register bag</button></p></div>'+
+  '<div class="card"><div class="row sp"><span><b>Unclaimed: '+un+'</b><br><span class="mut">Owners see a reminder banner when they scan.</span></span><button onclick="lgNudge()">Nudge unclaimed</button></div></div>'+
+  '<div class="card"><h2>Bags ('+LG.length+')</h2>'+(LG.length?LG.map(function(b){var o=b.owner;return '<div class="item lgrow">'+lgPh(b)+'<div style="flex:1;min-width:0"><b>'+(o?esc(o.name):'Unclaimed')+'</b> '+lgPill(b)+'<div class="mut"><span class="lgsw" style="background:'+lgCol(b)+'"></span> '+LGG[b.group][0]+(b.seat?' \u00B7 seat '+esc(b.seat):'')+' \u00B7 '+esc(b.trip||'No trip')+'</div><div class="mut">'+b.code+' \u00B7 '+esc(b.label)+' \u00B7 '+esc(b.status)+(b.claimed?' \u00B7 claimed '+esc(b.claimed):'')+'</div><div class="row" style="margin-top:6px"><button onclick="lgOpen(\''+b.code+'\')">Open card</button><button onclick="lgLabel(\''+b.code+'\')">Label</button>'+(HAS?'<button onclick="lgWrite(\''+b.code+'\')">Write chip</button>':'')+'<button class="bad" onclick="lgDel(\''+b.code+'\')">Delete</button></div></div>'+(o?lgAv(o):'')+'</div>'}).join(''):'<p class="mut">No bags yet.</p>')+'</div>'}
+function lgNext(){return 'XB-'+String(LG.length+431).padStart(4,'0')}
+function lgChip(){if(!HAS){$('lgc').value='XB-'+Math.floor(1000+Math.random()*9000);return}
+  toast('Hold the new chip to the phone.',true);var n=new NDEFReader(),a=new AbortController();n.scan({signal:a.signal}).then(function(){n.onreading=function(e){a.abort();$('lgc').value=('XB-'+e.serialNumber.replace(/[^0-9A-Fa-f]/g,'').slice(-6)).toUpperCase();toast('Chip read.',true)}}).catch(function(e){toast(e.message,false)})}
+function lgReg(){var c=$('lgc').value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');if(!c)return toast('Enter a chip code.',false);if(lgGet(c))return toast('That code is already registered.',false);
+  LG.unshift({code:c,label:$('lgl').value.trim()||'Unlabelled bag',trip:$('lgt').value.trim(),group:$('lgg').value,seat:$('lgs').value.trim(),photo:LGP,status:'Registered by staff',claimed:null,owner:null,pin:null,tl:[lgNow()+' Registered by '+me.name],scans:[],alerts:[]});LGP=null;lgSave();toast(c+' registered.',true);render()}
+function lgDel(c){if(!confirm('Delete bag '+c+'?'))return;LG=LG.filter(function(b){return b.code!==c});lgSave();render()}
+function lgNudge(){var n=0;LG.forEach(function(b){if(!b.owner){b.nudged=lgNow();n++}});lgSave();toast(n?'Reminder set on '+n+' unclaimed bag'+(n>1?'s':'')+'.':'Everyone has claimed.',true);render()}
+function lgWrite(c){new NDEFReader().write({records:[{recordType:'url',data:lgUrl(c)}]}).then(function(){toast('Link written to chip.',true)}).catch(function(e){toast(e.message,false)});toast('Hold the chip to the phone.',true)}
+function lgLabel(c){var b=lgGet(c),k=lgCol(b),w=window.open('','_blank');if(!w)return toast('Allow pop-ups to print.',false);
+  w.document.write('<title>'+c+'</title><body style="font-family:sans-serif;text-align:center"><div style="display:inline-block;border:6px solid '+k+';border-radius:16px;padding:12px;width:260px"><div style="background:'+k+';color:#fff;font-weight:700;padding:6px;border-radius:8px">'+LGG[b.group][0]+'</div><div style="width:200px;margin:12px auto">'+lgQR(lgUrl(c))+'</div><div style="font-weight:700;font-size:18px">'+esc(b.label)+'</div><div style="font:700 26px monospace">'+c+'</div><div style="font-size:12px">Scan with any phone camera</div></div><script>setTimeout(function(){print()},300)<\/script>');w.document.close()}
+function lgOpen(c){LB=c;try{history.replaceState(null,'','#l='+c)}catch(e){}render();scrollTo(0,0)}
+function lgBack(){LB=null;if(me)tab='bags';try{history.replaceState(null,'',location.pathname)}catch(e){}render()}
+
+/* ---- the luggage card (anyone / owner / staff) ---- */
+function vBagPublic(){var b=lgGet(LB),back=me?'<p><button onclick="lgBack()">\u2190 Back to bags</button></p>':'';
+  if(!b)return back+'<div class="card"><h2>Unknown tag</h2><p class="mut">This luggage tag is not registered. Ask the tour desk.</p></div>';
+  var R=me&&me.role!=='vendor'?'staff':LGU[b.code]?'owner':'anyone',o=b.owner,k=lgCol(b),ow=R!=='anyone',head='<div class="lghd" style="background:'+k+'"><span>'+(o?'Luggage card':'Luggage tag')+'</span><span>';
+  var big='<div class="lgbig" style="background:'+k+'">'+(b.photo?'<img src="'+b.photo+'" alt="">':'\uD83E\uDDF3')+'</div>';
+  if(!o)return back+'<div class="lgcard">'+head+LGG[b.group][0]+'</span></div><div class="lgbd">'+big+'<h2 style="margin:12px 0 4px">Waiting for its owner</h2><p>'+esc(b.label)+'. Photo added by staff.</p>'+(b.nudged?'<div class="lgrw">Reminder from staff: please claim this bag.</div>':'')+'<p class="mut">Tag '+b.code+'. Owner: enter your details and a PIN below to claim it. Lost? Call the tour desk.</p></div></div>'+vClaimBag(b);
+  var n=lgIdx(b),show=o.privacy==='show'||ow||(o.privacy==='missing'&&o.missing),t=o.phone.replace(/[^\d+]/g,'');
+  var h=back+'<div class="lgcard">'+head+(n[1]>1?'Bag '+n[0]+' of '+n[1]:LGG[b.group][0])+'</span></div><div class="lgbd">'+big+
+  '<p style="margin:10px 0 0"><b>'+esc(b.label)+'</b> <span class="mut">\u00B7 '+b.code+'</span> '+lgPill(b)+'</p><div class="lgwho">'+lgAv(o)+'<div><div class="mut">This bag belongs to</div><h2 style="margin:0">'+esc(o.name)+'</h2></div></div>'+
+  (o.reward?'<div class="lgrw">\uD83C\uDF81 '+esc(o.reward)+'</div>':'')+'<div class="row">'+(show?'<a class="go lgb" href="tel:'+t+'">\uD83D\uDCDE Call owner</a>'+(o.wa?'<a class="lgb" href="https://wa.me/'+t.replace('+','')+'">WhatsApp</a>':'')+(o.email?'<a class="lgb" href="mailto:'+esc(o.email)+'">Email</a>':''):'<button class="go" onclick="lgFound(\''+b.code+'\',1)">\uD83D\uDD14 Notify owner</button>')+'</div>'+
+  (show?'':'<p class="mut">The owner\u2019s number stays private.'+(o.privacy==='missing'?' It shows if the bag is marked missing.':'')+'</p>')+
+  '<p class="mut">Last status: '+esc(b.status)+'</p>'+(R==='anyone'?'<button class="bad" style="width:100%" onclick="lgFound(\''+b.code+'\')">I found this bag</button><label class="lgchk"><input type="checkbox" id="lgfl" checked> Share my location with the owner</label><p class="mut">No app needed.</p>':'')+'</div></div>';
+  if(R==='anyone')h+='<div class="card"><h3>Are you the owner?</h3><div class="row"><input id="lgpn" type="password" inputmode="numeric" maxlength="4" placeholder="PIN"><button onclick="lgPin(\''+b.code+'\')">Unlock</button></div></div>';
+  if(ow)h+='<div class="card"><h2>'+(R==='staff'?'Staff and owner view':'Owner view')+'</h2>'+(o.going?'<p>\uD83D\uDCCD Going to: <b>'+esc(o.going)+'</b></p>':'')+'<p class="mut">Trip: '+esc(b.trip||'n/a')+'</p><h3>Timeline</h3><div class="lgtl">'+b.tl.map(function(x){return '<div>'+esc(x)+'</div>'}).join('')+'</div>'+
+  '<h3>Map</h3>'+(b.loc?'<p><a href="https://www.google.com/maps?q='+b.loc+'" target="_blank" rel="noopener">Open last known position</a></p>':'<p class="mut">No position yet. A finder alert with location will appear here.</p>')+
+  (R==='owner'?'<h3>Your card settings</h3><select id="lgpv"><option value="show"'+(o.privacy==='show'?' selected':'')+'>Show my phone number</option><option value="notify"'+(o.privacy==='notify'?' selected':'')+'>Notify owner button only</option><option value="missing"'+(o.privacy==='missing'?' selected':'')+'>Show number only if missing</option></select><input id="lgrw" value="'+esc(o.reward)+'" placeholder="Reward note" style="width:100%;margin-top:8px"><input id="lggo" value="'+esc(o.going)+'" placeholder="Going to (hotel)" style="width:100%;margin-top:8px"><div class="row" style="margin-top:8px"><button class="go" onclick="lgOwn(\''+b.code+'\')">Save</button><button class="'+(o.missing?'':'bad')+'" onclick="lgMiss(\''+b.code+'\')">'+(o.missing?'Mark as found':'Mark as missing')+'</button></div>':'')+'</div>';
+  if(R==='staff')h+='<div class="card"><h2>Staff only</h2><p>'+LGG[b.group][0]+' \u00B7 Seat '+esc(b.seat||'n/a')+' \u00B7 Claimed '+esc(b.claimed)+'</p><h3>Scan history</h3><div class="mut">'+(b.scans.length?b.scans.map(esc).join('<br>'):'No scans yet')+'</div><h3>Status</h3><div class="row"><input id="lgst" placeholder="e.g. Loaded on bus 08" value="'+esc(b.status)+'"><button onclick="lgStat(\''+b.code+'\')">Update</button></div>'+
+  '<h3>Photo comparison at handover</h3><div class="lgpair"><div><div class="mut">Registration</div>'+lgPh(b,0).replace('class="lgph"','class="lgph lgw"')+'</div><div><div class="mut">Bag in front of you</div><div class="lgph lgw" style="background:var(--line)">'+(LGC?'<img src="'+LGC+'" alt="">':'\uD83D\uDCF7')+'</div></div></div><p><button onclick="$(\'lgcf\').click()">Take handover photo</button><input type="file" id="lgcf" accept="image/*" capture="environment" hidden onchange="lgPhoto(this,function(d){LGC=d;render()})"></p></div>';
+  return h}
+function vClaimBag(b){return '<div class="card"><h2>Claim this bag</h2><button onclick="lgBiz()">Use my business card details</button><input id="lgn" placeholder="Your name" style="width:100%;margin-top:8px"><input id="lgp" placeholder="Phone" inputmode="tel" style="width:100%;margin-top:8px"><input id="lge" placeholder="Email (optional)" style="width:100%;margin-top:8px">'+
+  '<label class="lgchk"><input type="checkbox" id="lgw"> Show a WhatsApp button</label><div class="row" style="margin-top:8px"><button onclick="$(\'lgof\').click()">Add my photo</button><input type="file" id="lgof" accept="image/*" hidden onchange="lgPhoto(this,function(d){LGO=d})"></div>'+
+  '<h3>Contact privacy</h3><label class="lgchk"><input type="radio" name="lgpr" value="show"> Show my phone number</label><label class="lgchk"><input type="radio" name="lgpr" value="notify" checked> Only a \u201CNotify owner\u201D button. Number never revealed</label><label class="lgchk"><input type="radio" name="lgpr" value="missing"> Show my number only if the bag is marked missing</label>'+
+  '<input id="lgrw" placeholder="Reward note (optional)" maxlength="60" style="width:100%;margin-top:8px"><input id="lggo" placeholder="Going to, e.g. hotel (owner and staff only)" style="width:100%;margin-top:8px"><input id="lgpin" type="password" inputmode="numeric" maxlength="4" placeholder="Choose a 4 digit PIN" style="width:100%;margin-top:8px">'+
+  '<label class="lgchk"><input type="checkbox" id="lgsb"> Save as my business card</label><p><button class="go" onclick="lgClaim(\''+b.code+'\')">Claim bag</button></p></div>'}
+function lgBiz(){var x=ld('lg-biz');if(!x)return toast('No saved card yet. Fill in once and tick \u201CSave as my business card\u201D.',false);$('lgn').value=x.name;$('lgp').value=x.phone;$('lge').value=x.email||'';$('lgw').checked=!!x.wa;if(x.photo)LGO=x.photo;toast('Filled from your business card.',true)}
+function lgClaim(c){var b=lgGet(c),n=$('lgn').value.trim(),p=$('lgp').value.trim(),pin=$('lgpin').value;if(!n||!p)return toast('Name and phone are required.',false);if(!/^\d{4}$/.test(pin))return toast('Choose a 4 digit PIN.',false);
+  var o={name:n,phone:p,email:$('lge').value.trim(),wa:$('lgw').checked,photo:LGO,privacy:document.querySelector('[name=lgpr]:checked').value,reward:$('lgrw').value.trim(),going:$('lggo').value.trim(),missing:false};
+  if($('lgsb').checked)sv('lg-biz',{name:o.name,phone:o.phone,email:o.email,wa:o.wa,photo:o.photo});
+  b.owner=o;b.pin=pin;b.claimed=lgNow();b.status='Claimed by owner';b.tl.push(b.claimed+' Claimed by '+n);LGU[c]=1;LGO=null;lgSave();toast('Claimed. Staff dashboard updated.',true);render()}
+function lgPin(c){var b=lgGet(c);if($('lgpn').value===b.pin){LGU[c]=1;render()}else toast('Wrong PIN.',false)}
+function lgOwn(c){var o=lgGet(c).owner;o.privacy=$('lgpv').value;o.reward=$('lgrw').value.trim();o.going=$('lggo').value.trim();lgSave();toast('Saved.',true);render()}
+function lgMiss(c){var b=lgGet(c);b.owner.missing=!b.owner.missing;b.tl.push(lgNow()+(b.owner.missing?' Marked missing by owner':' Marked found'));lgSave();render()}
+function lgStat(c){var b=lgGet(c);b.status=$('lgst').value.trim()||b.status;b.tl.push(lgNow()+' '+b.status);lgSave();toast('Status updated.',true);render()}
+function lgFound(c,n){var b=lgGet(c),w=$('lgfl')&&$('lgfl').checked||n;
+  function done(loc){var a={t:lgNow(),loc:loc?'location shared':'location not shared'};if(loc)b.loc=loc;b.alerts=(b.alerts||[]).concat(a);b.scans.push(a.t+' '+(n?'Notify tap':'Finder scan')+', '+a.loc);b.tl.push(a.t+' Someone reported finding it');b.status='Finder alert '+a.t;lgSave();toast('Thanks. The owner and staff have been alerted.',true);render()}
+  if(w&&navigator.geolocation&&(!n||confirm('Share your location with the owner?')))navigator.geolocation.getCurrentPosition(function(p){done(p.coords.latitude+','+p.coords.longitude)},function(){done(null)},{timeout:6000});else done(null)}
+(function(){var m=String(location.hash||'').match(/[#&]l=([A-Za-z0-9_-]{3,24})/);if(m)LB=m[1].toUpperCase()})();
+/* add the Bags tab on top of the app's existing (layered) staff view */
+var vStaffLG=vStaff;
+vStaff=function(){
+  if(!me||me.role==='vendor')return vStaffLG();
+  var on=tab==='bags',keep=tab;if(on)tab='cards';
+  var h=vStaffLG();if(on)tab=keep;
+  var i=h.indexOf('</div>');if(i<0)return h;
+  var row=h.slice(0,i);if(on)row=row.replace(' class="on"',' class=""');
+  row+='<button class="'+(on?'on':'')+'" onclick="setTab(\'bags\')">Bags</button>';
+  return on?row+'</div>'+vBags():row+h.slice(i)};
+</script>
+<script>
+/* ===== LUGGAGE: server-backed (run luggage.sql once in Supabase) ===== */
+var LGX={},LGXM={},LGB={},LGPIN={};
+lgSave=function(){};
+lgGet=function(c){return LGX[c]||LG.filter(function(x){return x.code===c})[0]};
+lgIdx=function(b){return b.idx||[1,1]};
+async function lgList(){try{LG=(await rpc('lg_list'))||[]}catch(e){toast(e.message,false)}render()}
+async function lgLoad(c,pin){LGB[c]=1;try{var r=await rpc('lg_card',{p_code:c,p_pin:pin||LGPIN[c]||null});LGXM[c]=!!me;
+  if(!r.found)LGX[c]=null;else{LGX[c]=r.bag;if(r.role==='owner'){LGU[c]=1;if(pin)LGPIN[c]=pin}else delete LGU[c];if(r.err)toast(r.err,false)}}
+  catch(e){LGX[c]=null;LGXM[c]=!!me;toast(e.message,false)}LGB[c]=0;render()}
+var vBagPublic1=vBagPublic;
+vBagPublic=function(){if(LB&&(LGX[LB]===undefined||LGXM[LB]!==!!me)){if(!LGB[LB])lgLoad(LB);return '<div class="card"><p class="mut">Loading\u2026</p></div>'}return vBagPublic1()};
+var setTab1=setTab;setTab=function(t){if(t==='bags')lgList();return setTab1.apply(this,arguments)};
+var lgBack1=lgBack;lgBack=function(){lgBack1();lgList()};
+lgOpen=function(c){LB=c;LGX[c]=undefined;try{history.replaceState(null,'','#l='+c)}catch(e){}render();scrollTo(0,0)};
+lgReg=async function(){var c=$('lgc').value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');if(!c)return toast('Enter a chip code.',false);
+  try{await rpc('lg_register',{p_code:c,p_label:$('lgl').value.trim(),p_trip:$('lgt').value.trim(),p_group:$('lgg').value,p_seat:$('lgs').value.trim(),p_photo:LGP});LGP=null;toast(c+' registered.',true);await lgList()}catch(e){toast(e.message,false)}};
+lgDel=async function(c){if(!confirm('Delete bag '+c+'?'))return;try{await rpc('lg_delete',{p_code:c});await lgList()}catch(e){toast(e.message,false)}};
+lgNudge=async function(){try{var n=await rpc('lg_nudge');toast(n?'Reminder set on '+n+' unclaimed bag'+(n>1?'s':'')+'.':'Everyone has claimed.',true);await lgList()}catch(e){toast(e.message,false)}};
+lgStat=async function(c){try{await rpc('lg_status',{p_code:c,p_status:$('lgst').value.trim()});toast('Status updated.',true);await lgLoad(c)}catch(e){toast(e.message,false)}};
+lgClaim=async function(c){var n=$('lgn').value.trim(),p=$('lgp').value.trim(),pin=$('lgpin').value;if(!n||!p)return toast('Name and phone are required.',false);if(!/^\d{4}$/.test(pin))return toast('Choose a 4 digit PIN.',false);
+  var a={p_code:c,p_name:n,p_phone:p,p_email:$('lge').value.trim(),p_wa:$('lgw').checked,p_photo:LGO,p_privacy:document.querySelector('[name=lgpr]:checked').value,p_reward:$('lgrw').value.trim(),p_going:$('lggo').value.trim(),p_pin:pin};
+  try{var r=await rpc('lg_claim',a);if(!r.ok)return toast(r.text,false);
+    if($('lgsb').checked)sv('lg-biz',{name:n,phone:p,email:a.p_email,wa:a.p_wa,photo:LGO});
+    LGO=null;toast('Claimed. Staff dashboard updated.',true);await lgLoad(c,pin)}catch(e){toast(e.message,false)}};
+lgPin=function(c){lgLoad(c,$('lgpn').value)};
+lgOwn=async function(c){try{var r=await rpc('lg_owner_save',{p_code:c,p_pin:LGPIN[c],p_privacy:$('lgpv').value,p_reward:$('lgrw').value.trim(),p_going:$('lggo').value.trim()});if(!r.ok)return toast(r.text,false);toast('Saved.',true);await lgLoad(c)}catch(e){toast(e.message,false)}};
+lgMiss=async function(c){try{var r=await rpc('lg_owner_missing',{p_code:c,p_pin:LGPIN[c]});if(!r.ok)return toast(r.text,false);await lgLoad(c)}catch(e){toast(e.message,false)}};
+lgFound=function(c,n){var w=$('lgfl')&&$('lgfl').checked||n;
+  async function done(loc){try{await rpc('lg_found',{p_code:c,p_notify:!!n,p_loc:loc});toast('Thanks. The owner and staff have been alerted.',true);await lgLoad(c)}catch(e){toast(e.message,false)}}
+  if(w&&navigator.geolocation&&(!n||confirm('Share your location with the owner?')))navigator.geolocation.getCurrentPosition(function(p){done(p.coords.latitude+','+p.coords.longitude)},function(){done(null)},{timeout:6000});else done(null)};
 </script>
 </body>
 </html>
