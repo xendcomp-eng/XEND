@@ -1240,7 +1240,7 @@ html, body { overflow-x: clip; }
 <div id="msg"></div><div id="view"></div>
 </main>
 <p class="mut" style="text-align:center;font-size:.75rem;margin:0 0 24px">Version: 11 Nov 2026 · token sources + Paystack payouts</p>
-<div id="pop"></div><div id="toast" role="status"></div>
+<div id="pop"></div><div id="toast" role="status"></div><div id="ver" style="display:none;text-align:center;font-size:.7rem;opacity:.5;padding:10px 0 18px">Version 2026-11-12 03:11</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
@@ -1354,7 +1354,7 @@ async function changePin(){var o=$('op').value.trim(),n=$('np').value.trim();if(
     else{wpin=n;sv('fb-guest',{k:key,pin:n});wallet=await rpc('wallet',{k:key,pin_:n});gEdit=null;say('PIN changed. Use the new PIN next time you log in.',true)}}
   catch(e){say(e.message,false)}render()}
 function guestOut(){mw=null;mwMode=null;mwErr='';gEdit=null;giftOpen=false;giftSince=null;chatOpen=false;stopChat();cdirty=false;wallet=null;wmode=null;key=null;card=null;wpin='';sv('fb-guest',null);render()}
-async function saveCard(){try{await rpc('save_links',{k:key,pin_:wpin,l:readLinks('g')});wallet=await rpc('wallet',{k:key,pin_:wpin});cdirty=false;phdirty.g=false;gEdit=null;say('Card saved.',true)}catch(e){say(e.message,false)}render()}
+async function saveCard(){try{var sent=readLinks('g');await rpc('save_links',{k:key,pin_:wpin,l:sent});wallet=await rpc('wallet',{k:key,pin_:wpin});cdirty=false;phdirty.g=false;gEdit=null;var lost=cardLost(sent,wallet.links);if(lost)say(lost,false);else say('Card saved.',true)}catch(e){say(e.message,false)}render()}
 async function freeze(){try{await rpc('set_frozen',{k:key,pin_:wpin,f:!wallet.frozen});wallet=await rpc('wallet',{k:key,pin_:wpin});say(wallet.frozen?'Bracelet frozen.':'Bracelet unfrozen.',true)}catch(e){say(e.message,false)}render()}
 
 /* ---- digital card: many socials, each one switched on or off ---- */
@@ -1405,11 +1405,42 @@ function photoForm(pfx,links,ident){if(phid[pfx]!==ident){phid[pfx]=ident;phdirt
   if(!phdirty[pfx])phv[pfx]=photoOf(links);
   return '<div class="lk"><b>Photo</b><div class="row" style="align-items:center;margin-top:6px"><div class="ph" id="'+pfx+'_ph">'+phHtml(phv[pfx])+'</div><button type="button" onclick="$(\''+pfx+'_file\').click()">Upload photo</button><button type="button" onclick="setPhoto(\''+pfx+'\',\'\')">Remove</button><input type="file" id="'+pfx+'_file" accept="image/*" hidden onchange="pickPhoto(\''+pfx+'\',this)"></div></div>'}
 function linksForm(pfx,links,ident){var by={};(links||[]).forEach(function(l){by[l.t]=l});
-  return photoForm(pfx,links,ident)+PL.map(function(p){var l=by[p[0]]||{};return '<div class="lk"><label class="tg"><b>'+p[1]+'</b><span><input type="checkbox" id="'+pfx+'on_'+p[0]+'"'+(l.on?' checked':'')+'> Show</span></label>'+(p[0]==='bio'?'<textarea id="'+pfx+'v_bio" rows="3" maxlength="200" placeholder="'+esc(p[2])+'" style="width:100%;resize:vertical">'+esc(l.v||'')+'</textarea></div>':'<input type="text" id="'+pfx+'v_'+p[0]+'" placeholder="'+esc(p[2])+'" value="'+esc(l.v||'')+'" autocapitalize="none" maxlength="200"></div>')}).join('')}
-function readLinks(pfx){var r=PL.map(function(p){var v=$(pfx+'v_'+p[0]).value.trim();return {t:p[0],v:v,on:$(pfx+'on_'+p[0]).checked&&!!v}}).filter(function(l){return l.v});if(okImg(phv[pfx]))r.push({t:'photo',v:phv[pfx],on:true});return r}
+  return photoForm(pfx,links,ident)+PL.map(function(p){var l=by[p[0]]||{};return '<div class="lk">'+(p[0]==='bio'?'<div class="tg"><b>'+p[1]+'</b></div>':'<label class="tg"><b>'+p[1]+'</b><span><input type="checkbox" id="'+pfx+'on_'+p[0]+'"'+(l.on?' checked':'')+'> Show</span></label>')+(p[0]==='bio'?'<textarea id="'+pfx+'v_bio" rows="3" maxlength="200" placeholder="'+esc(p[2])+'" style="width:100%;resize:vertical">'+esc(l.v||'')+'</textarea></div>':'<input type="text" id="'+pfx+'v_'+p[0]+'" placeholder="'+esc(p[2])+'" value="'+esc(l.v||'')+'" autocapitalize="none" maxlength="200"></div>')}).join('')}
+function readLinks(pfx){var r=PL.map(function(p){var v=$(pfx+'v_'+p[0]).value.trim();return {t:p[0],v:v,on:(p[0]==='bio'?true:$(pfx+'on_'+p[0]).checked)&&!!v}}).filter(function(l){return l.v});if(okImg(phv[pfx]))r.push({t:'photo',v:phv[pfx],on:true});return r}
 function vEditG(){if(!editG)return '';var g=adm.guests.filter(function(x){return x.id===editG})[0];if(!g){editG=null;return ''}
   return '<div class="card"><h2>Card: '+esc(g.name)+'</h2><p class="mut">Name is always shown. Only items switched on are visible when the bracelet is tapped. The guest sees your changes too.</p>'+linksForm('a',g.links,g.id)+'<div class="row" style="margin-top:12px"><button class="go" onclick="saveGuestCard()">Save card</button><button onclick="editG=null;render()">Cancel</button></div></div>'}
-async function saveGuestCard(){try{await rpc('admin_save_links',{gid:editG,l:readLinks('a')});say('Card saved.',true);phdirty.a=false;editG=null;await loadAdm()}catch(e){say(e.message,false);render()}}
+async function saveGuestCard(){try{var sent=readLinks('a'),gid=editG;await rpc('admin_save_links',{gid:gid,l:sent});phdirty.a=false;editG=null;await loadAdm();var g=(adm.guests||[]).filter(function(x){return x.id===gid})[0],lost=cardLost(sent,g&&g.links);if(lost)say(lost,false);else say('Card saved.',true);render()}catch(e){say(e.message,false);render()}}
+/* after a save, check the server really kept the bio and custom buttons */
+function cardLost(sent,got){var cnt=function(a,t){return (a||[]).filter(function(l){return l.t===t&&String(l.v||'').trim()}).length},bad=[];
+  if(cnt(sent,'bio')&&!cnt(got,'bio'))bad.push('bio');
+  if(cnt(sent,'cbtn')>cnt(got,'cbtn'))bad.push('custom buttons');
+  return bad.length?'Saved, but the server dropped your '+bad.join(' and ')+'. The database function save_links / admin_save_links must be updated (send the SQL of both functions to be patched).':''}
+/* personal custom buttons on a business card (stored as links items t:cbtn) */
+var cbd={};
+function cbParse(l){try{var o=JSON.parse(l.v);return o&&typeof o==='object'?{id:String(o.id||''),t:String(o.t||''),u:String(o.u||''),i:String(o.i||'')}:null}catch(e){return null}}
+function cbInit(pfx,links,ident){if(!cbd[pfx]||cbd[pfx].ident!==ident){cbd[pfx]={ident:ident,a:(links||[]).filter(function(l){return l.t==='cbtn'}).map(cbParse).filter(Boolean)}}return cbd[pfx].a}
+function cbHtml(pfx){var a=cbd[pfx].a;
+  return a.map(function(x,n){var im=okData(x.i);
+    return '<div class="item"><div class="row sp"><b>Button '+(n+1)+'</b><button type="button" class="bad" style="min-height:38px" onclick="cbDel(\''+pfx+'\','+n+')">Remove</button></div>'+
+    '<input style="width:100%;margin-top:8px" maxlength="40" placeholder="Label, e.g. Book me" value="'+esc(x.t)+'" oninput="cbSet(\''+pfx+'\','+n+',\'t\',this.value)">'+
+    '<input style="width:100%;margin-top:8px" maxlength="300" autocapitalize="none" placeholder="Link: https://\u2026 or a phone number" value="'+esc(x.u)+'" oninput="cbSet(\''+pfx+'\','+n+',\'u\',this.value)">'+
+    '<div class="row" style="margin-top:8px;align-items:center">'+(im?'<img src="'+esc(x.i)+'" alt="" style="width:40px;height:40px;border-radius:10px;object-fit:cover">':'<span class="mut" style="font-size:.85rem">No picture</span>')+
+    '<button type="button" onclick="$(\'cbf_'+pfx+n+'\').click()">'+(im?'Change picture':'Add picture (optional)')+'</button>'+(im?'<button type="button" class="bad" onclick="cbSet(\''+pfx+'\','+n+',\'i\',\'\',1)">Remove picture</button>':'')+
+    '<input type="file" id="cbf_'+pfx+n+'" accept="image/*" hidden onchange="cbPick(\''+pfx+'\','+n+',this)"></div></div>'}).join('')}
+function cbPaint(pfx){var e=$(pfx+'_cb');if(e)e.innerHTML=cbHtml(pfx);cdirty=true}
+function cbAdd(pfx){var a=cbd[pfx].a;if(a.length>=6){toast('Up to 6 custom buttons.',false);return}a.push({id:'b'+Date.now().toString(36),t:'',u:'',i:''});cbPaint(pfx)}
+function cbDel(pfx,n){cbd[pfx].a.splice(n,1);cbPaint(pfx)}
+function cbSet(pfx,n,f,v,repaint){var x=cbd[pfx].a[n];if(!x)return;x[f]=v;cdirty=true;if(repaint)cbPaint(pfx)}
+function cbPick(pfx,n,inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  if(!/^image\//.test(f.type)){toast('Choose an image file.',false);return}
+  var img=new Image(),u=URL.createObjectURL(f);
+  img.onload=function(){var S=96,c=document.createElement('canvas');c.width=c.height=S;var x=c.getContext('2d'),m=Math.min(img.width,img.height);
+    x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,S,S);URL.revokeObjectURL(u);cbSet(pfx,n,'i',c.toDataURL('image/png'),1)};
+  img.onerror=function(){URL.revokeObjectURL(u);toast('Could not read that image.',false)};img.src=u}
+function cbSection(pfx,links,ident){cbInit(pfx,links,ident);
+  return '<div class="lk"><b>Custom buttons</b><p class="mut" style="margin:4px 0 8px">Full-width buttons shown under your bio. Each has a label, a link and an optional picture.</p><div id="'+pfx+'_cb">'+cbHtml(pfx)+'</div><button type="button" class="go" style="width:100%;margin-top:8px" onclick="cbAdd(\''+pfx+'\')">+ Add custom button</button></div>'}
+var linksForm0=linksForm;linksForm=function(pfx,links,ident){return linksForm0(pfx,links,ident)+cbSection(pfx,links,ident)};
+var readLinks0=readLinks;readLinks=function(pfx){var r=readLinks0(pfx);(cbd[pfx]?cbd[pfx].a:[]).forEach(function(x){var t=String(x.t||'').trim().slice(0,40);if(!t)return;r.push({t:'cbtn',v:JSON.stringify({id:String(x.id||'').slice(0,20),t:t,u:String(x.u||'').trim().slice(0,300),i:okData(x.i)?x.i:''}),on:true})});return r};
 /* ---- guest chat: event-only, messages vanish, location is a one-time pin ---- */
 var chatOpen=false,chatTo='',chatMsgs=[],chatPeople=[],chatMe='',chatTimer=null,chatBusy=false,chatOk=[],chatReqs=[],chatPend=[],tappedKey=null,tapCtl=null,reqN=0,chatNoteAt=0,chatMode='private',chatQ='',chatView='list',chatSeen=ld('fb-seen')||{},chatKnown=null;
 function cM(){return FX.msg_cost!=null?Number(FX.msg_cost):1}
@@ -1853,7 +1884,7 @@ function xCustIcon(b){var h=b.u?xlink(b.u):'',has=okData(b.i),
 /* front page: name, title/company, BIO, custom bars, social icons, buttons */
 function vCardView(c){var L=c.links||[],ok=function(t){return L.filter(function(l){return l.t===t&&l.on&&String(l.v||'').trim()})[0]},t=ok('title'),bio=ok('bio'),ph=photoOf(L),by={};L.forEach(function(l){by[l.t]=l});
   var ic=PL.filter(function(p){var l=by[p[0]];return p[0]!=='title'&&p[0]!=='bio'&&l&&l.on&&String(l.v||'').trim()}).map(function(p){return xTile(p[0],p[1],hrefOf(p[0],by[p[0]].v))}).join(''),
-  cs=xCust(),bars=cs.filter(function(x){return x.k==='bar'&&String(x.t||'').trim()}).map(xBarHtml).join(''),
+  cs=xCust(),bars=cs.filter(function(x){return x.k==='bar'&&String(x.t||'').trim()}).map(xBarHtml).join('')+L.filter(function(l){return l.t==='cbtn'&&l.on}).map(cbParse).filter(function(x){return x&&x.t.trim()}).map(xBarHtml).join(''),
   cic=cs.filter(function(x){return x.k==='icon'&&(String(x.t||'').trim()||okData(x.i))}).map(xCustIcon).join('');
   return '<div class="card" style="text-align:center"><div class="ph" style="width:104px;height:104px;margin:0 auto 12px">'+phHtml(ph)+'</div><h2 style="font-size:1.6rem;margin:0 0 4px">'+esc(c.name)+'</h2>'+(t?'<p class="mut" style="margin:0 0 6px">'+esc(t.v)+'</p>':'')+
   (bio?'<p class="xbio">'+esc(bio.v)+'</p>':'')+(bars?'<div class="xbars">'+bars+'</div>':'')+
@@ -1985,6 +2016,7 @@ async function friendLink(code){var gs=ld('fb-guest');
   catch(e){say(e.message,false);render()}}
 /* chat extras: toast, tap overlay, friend list helpers, fun bits */
 var EMO=['\uD83D\uDC4B','\uD83D\uDE02','\u2764\uFE0F','\uD83D\uDD25','\uD83C\uDF89','\uD83D\uDE0E'],toastT=null;
+setInterval(function(){var e=$('ver');if(e)e.style.display=(typeof me!=='undefined'&&me&&me.role==='admin')?'':'none'},1000);
 function toast(t,ok){var e=$('toast');if(!e)return;e.textContent=t;e.className=ok===false?'err':'';clearTimeout(toastT);toastT=setTimeout(function(){e.textContent=''},6000)}
 function tapOverlay(on){var p=$('pop');if(!p)return;if(!on){if(p.dataset.tap){p.innerHTML='';delete p.dataset.tap}return}
   p.dataset.tap='1';p.innerHTML='<div class="popcard" role="alertdialog"><div style="font-weight:700">Ready to add a friend</div><div class="pulse" aria-hidden="true">\uD83D\uDCF2</div><p style="margin:0">Hold their bracelet to the back of your phone.</p><button onclick="tapCancel()" style="width:100%;margin-top:16px">Cancel</button></div>'}
@@ -2571,7 +2603,28 @@ function vMoneyAdmin(){var m=adm.mon;
   var rec='<div class="card"><h2>Where the money is</h2><p class="mut">Real money, from confirmed payments only.</p><table><tr><td>Confirmed deposits</td><td class="xr"><b>'+esc(mny(rc.deposits))+'</b></td></tr><tr><td>In guest money wallets</td><td class="xr">'+esc(mny(rc.in_wallets))+'</td></tr><tr><td>Backing event tokens (converted, net)</td><td class="xr">'+esc(mny(rc.tokens_backed))+'</td></tr><tr><td>Held for withdrawal requests</td><td class="xr">'+esc(mny(rc.pending_payouts))+'</td></tr><tr><td>Paid out to guests</td><td class="xr">'+esc(mny(rc.paid_out))+'</td></tr><tr><td>Fees earned (all time)</td><td class="xr">'+esc(mny(rc.fees_earned))+'</td></tr><tr><td>Difference</td><td class="xr"><span class="tag'+(ok?' ok':'')+'">'+(ok?'Balanced':esc(mny(rc.difference))+' \u2013 check')+'</span></td></tr></table></div>'+
     '<div class="card"><h2>Kept separate from wallet money</h2><div class="xk"><div><span class="mut">Event tokens in guest wallets (admin loaded)</span><b>'+m.tokens.in_wallets+'</b></div><div><span class="mut">Pre-order sales ('+m.preorders.count+' orders)</span><b>'+esc(mny(m.preorders.revenue))+'</b></div></div></div>';
   var rl=(m.recent||[]).length?'<div class="card"><h2>Recent reward activity</h2><div style="overflow-x:auto"><table>'+m.recent.map(function(r){return '<tr><td>'+when(r.created_at)+'</td><td>'+esc(r.source==='admin_withdraw'?'Withdrawn'+(r.note?': '+r.note:''):(RSRC[r.asset+'|'+r.source]||r.source))+(r.guest?'<br><span class="mut">'+esc(r.guest)+'</span>':'')+'</td><td class="xr"><b>'+(r.delta>0?'+':'')+(r.asset==='money'?esc(mny(r.delta)):r.delta+' tokens')+'</b></td></tr>'}).join('')+'</table></div></div>':'';
-  return rw+po+fs+ptsCard(m)+src+rec+'' +rl.replace(/^$/,'')}
+  return msumCard(m)+rw+po+fs+ptsCard(m)+src+rec+'' +rl.replace(/^$/,'')}
+/* real-money summary at the top of the Money tab, with a date filter */
+var msum={from:'',to:'',data:null,err:'',busy:false};
+function msumCard(m){var rc=m.recon||{},d=msum.data,ranged=!!(d&&d.ranged),
+  v=d||{received:rc.deposits,sent:rc.paid_out,held:rc.in_wallets,pending:rc.pending_payouts,profit:rc.fees_earned},
+  row=function(a,b,c){return '<tr><td>'+a+(c?'<br><span class="mut">'+c+'</span>':'')+'</td><td class="xr"><b>'+esc(mny(b))+'</b></td></tr>'};
+  return '<div class="card xmny"><div class="row sp"><h2 style="margin:0">Real money summary</h2><span class="tag xm">'+(ranged?'Date range':'All time')+'</span></div>'+
+  '<div class="row" style="margin-top:10px;align-items:center"><label class="mut">From <input type="date" id="ms_f" value="'+esc(msum.from)+'"></label><label class="mut">To <input type="date" id="ms_t" value="'+esc(msum.to)+'"></label><button class="go" onclick="msumApply()"'+(msum.busy?' disabled':'')+'>Apply</button><button onclick="msumClear()">All time</button></div>'+
+  (msum.err?'<p class="mut" role="status" style="margin:8px 0 0">'+esc(msum.err)+'</p>':'')+
+  '<table style="margin-top:10px">'+row('Received through Paystack',v.received,'confirmed deposits')+row('Sent out',v.sent,'paid out to guests and vendors')+row('Held by guests',v.held,'in guest money wallets right now')+row('Pending payouts',v.pending,'waiting to be sent')+row('House profit from fees',v.profit,'fees earned')+'</table>'+
+  '<p class="mut" style="margin:8px 0 0">'+(ranged?'Held and pending are shown as they are now; the other figures cover the chosen dates.':'Figures from your current report. Choose dates and press Apply to filter.')+'</p></div>'}
+async function msumApply(){var f=$('ms_f').value,t=$('ms_t').value;msum.from=f;msum.to=t;
+  if(!f&&!t){msumClear();return}
+  if(f&&t&&f>t){msum.err='The start date is after the end date.';render();return}
+  msum.busy=true;msum.err='';render();
+  try{var a=new Date(f||'2000-01-01'+'T00:00:00'),b=t?new Date(t+'T00:00:00'):new Date();
+    if(f)a=new Date(f+'T00:00:00');b=new Date(b.getTime()+(t?86400000:0));
+    var r=await rpc('money_summary',{p_from:a.toISOString(),p_to:b.toISOString()});
+    msum.data={received:r.received,sent:r.sent,held:r.held,pending:r.pending,profit:r.profit,ranged:true}}
+  catch(e){msum.data=null;msum.err=/money_summary|schema cache|Could not find the function/i.test(e.message)?'Date filtering needs a small database function (money_summary) that is not installed yet, so the all-time figures are shown.':e.message}
+  msum.busy=false;render()}
+function msumClear(){msum.from='';msum.to='';msum.data=null;msum.err='';render()}
 function ptsCard(m){var r=Number(m.pts_rate)||0;
   return '<div class="card"><h2>Money to points</h2><p class="mut">Lets guests turn money from their money wallet into event points. The money they spend counts as your earnings. Set how many points GH\u20B5 1 buys. Set 0 to switch it off (the button is then hidden).</p><div class="row"><input id="ptr" type="number" min="0" step="any" placeholder="Points for GH\u20B5 1" value="'+(r>0?esc(r):'')+'"><button class="go" onclick="ptsSave()">Save</button></div><p class="mut">'+(r>0?'Now: GH\u20B5 1 = '+r+' points.':'Now: switched off.')+'</p></div>'}
 async function ptsSave(){var v=parseFloat($('ptr').value);if(!isFinite(v))v=0;if(v<0||v>100000){toast('Enter a rate from 0 to 100000.',false);return}
