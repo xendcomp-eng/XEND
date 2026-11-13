@@ -3573,6 +3573,8 @@ lgFound=function(c,n){var w=$('lgfl')&&$('lgfl').checked||n;
 .xtile .xi{font-size:1.7rem;line-height:1}
 .xtile b{font-size:.98rem}
 .xtile .xb{position:absolute;top:10px;right:10px;min-width:22px;padding:2px 7px;border-radius:99px;background:#ef4444;color:#fff;font-size:.72rem;font-weight:700;text-align:center}
+.xeven>.xtile:last-child:nth-child(odd){grid-column:1/-1;min-height:72px}
+@media(min-width:700px){.xeven>.xtile:last-child:nth-child(odd){grid-column:auto;min-height:96px}}
 .xtile.hero{grid-column:1/-1;flex-direction:row;align-items:center;min-height:76px;gap:14px}
 .xtile.hero .xi{font-size:2rem}
 .xh{grid-column:1/-1;margin:14px 2px 0;font-weight:700;opacity:.7}
@@ -3598,7 +3600,7 @@ lgFound=function(c,n){var w=$('lgfl')&&$('lgfl').checked||n;
 </style>
 <script>
 /* ===== v2 layer: tiles, QR scanner, QR-to-NFC pairing, blank tags, claim from business card ===== */
-var gSec='',xInit=0,xScanH=null,xC,xN=0,xLast=null,xErrMsg='';
+var gSec='',xInit=0,xScanH=null,xC,xN=0,xLast=null,xErrMsg='',TOUR;
 var XI={home:'🏠',top:'💳',till:'🧾',cards:'🪪',events:'🎪',vendors:'💰',buys:'🛍️',team:'👥',groups:'🗂️',import:'📥',set:'⚙️',ledger:'📒',site:'🌐',brand:'🎨',icons:'🧩',shop:'🏪',secs:'🧱',btns:'🔘',orders:'📦',money:'💵',tokens:'🪙',theme:'🌗',bags:'🧳'};
 var XG=[['Operations',['top','till','cards','bags','import','home']],['Money',['vendors','buys','ledger','money','tokens']],['People and events',['team','groups','events']],['Look and content',['site','brand','icons','shop','orders','secs','btns','theme','set']]];
 function tileBtn(fn,id,ic,lb,sub,bd,hero){return '<button class="xtile'+(hero?' hero':'')+'" onclick="'+fn+'(\''+id+'\')"><span class="xi" aria-hidden="true">'+ic+'</span><span><b>'+lb+'</b>'+(sub?'<br><span class="mut">'+sub+'</span>':'')+'</span>'+(bd?'<span class="xb">'+bd+'</span>':'')+'</button>'}
@@ -3642,22 +3644,23 @@ function xTokCard(w){if(tsp===null)setTimeout(tsLoad,0);
 /* ---- guest: tile home, My bag on top, compact balances ---- */
 var vWallet0=vWallet;
 vWallet=function(){var w=wallet;if(mwMode||!w)return vWallet0.apply(this,arguments);
-  var live=w.live!==false,L=ld('lg-mine')||[],S={bag:['My bag',function(){return lgMine()}],card:['My card',function(){return cardEditBlock(w)}],pin:['PIN',function(){return pinEditBlock()}]};
-  if(live){S.chat=['Chat',function(){return chatCard()}];S.send=['Send tokens',function(){return giftCard()}];
-    S.acts=['Activities',function(){return '<div class="card">'+(w.acts||[]).map(function(a){return '<div class="item row sp"><span>'+esc(a.name)+'</span><span class="tag '+(a.done?'ok':'')+'">'+(a.done?'Done':'Not done')+'</span></div>'}).join('')+'</div>'}];
+  var live=w.live!==false,L=ld('lg-mine')||[],S={card:['My card',function(){return cardEditBlock(w)}],pin:['PIN',function(){return pinEditBlock()}]};
+  if(w.tour)S.bag=['My bag',function(){return lgMine()}];
+  if(live){    S.acts=['Activities',function(){return '<div class="card">'+(w.acts||[]).map(function(a){return '<div class="item row sp"><span>'+esc(a.name)+'</span><span class="tag '+(a.done?'ok':'')+'">'+(a.done?'Done':'Not done')+'</span></div>'}).join('')+'</div>'}];
     S.hist=['History',function(){return txCounters(w.tx,'Event token activity',w.tx.length?'<div>'+w.tx.map(function(t){return '<div class="item row sp"><span>'+esc(t.type)+' \u00B7 '+esc(t.who)+'<br><span class="mut">'+when(t.ts)+'</span></span><b>'+(t.amt>0?'+':'')+t.amt+'</b></div>'}).join('')+'</div>':'','')}]}
   if(gSec&&S[gSec])return xBar(S[gSec][0],'tGo(\'\')')+S[gSec][1]();
   gSec='';
   var strip='<div class="xcmp'+(live?'':' one')+'">'+(live?xTokCard(w):'')+xMonCard()+'</div>';
-  var t=tileBtn('tGo','bag','🧳','My bag',L.length?L.length+' on this phone':'Scan or type your tag code','',1)+strip+(live?clockCard():'')+'<div class="xtg">'+tileBtn('tGo','card','🪪','My card','Edit your business card')+
-    (S.chat&&feat('chat')?tileBtn('tGo','chat','💬','Chat','',typeof reqN!=='undefined'&&reqN?reqN:''):'')+(S.send&&feat('gifts')?tileBtn('tGo','send','🎁','Send tokens'):'')+
+  var t=strip+(live?clockCard():'')+'<div class="xtg xeven">'+(w.tour?tileBtn('tGo','bag','🧳','My bag',L.length?L.length+' on this phone':'Scan or type a tag code'):'')+tileBtn('tGo','card','🪪','My card','Edit your business card')+
+    (live&&feat('chat')?'<button class="xtile" onclick="chatOpenUI()"><span class="xi" aria-hidden="true">💬</span><span><b>Chat</b><br><span class="mut">Friends and messages</span></span>'+(reqN?'<span class="xb">'+reqN+'</span>':'')+'</button>':'')+
     (live&&(w.acts||[]).length?tileBtn('tGo','acts','✅','Activities',(w.acts.filter(function(a){return a.done}).length)+' of '+w.acts.length+' done'):'')+
-    tileBtn('tGo','pin','🔒','PIN and security')+(live?'<button class="xtile" onclick="freeze()"><span class="xi" aria-hidden="true">'+(w.frozen?'🧊':'🟢')+'</span><span><b>Bracelet</b><br><span class="mut">'+(w.frozen?'Frozen. Tap to unfreeze':'Active. Tap to freeze')+'</span></span></button>':'')+
+    tileBtn('tGo','pin','🔒','PIN and security')+(live?'<button class="xtile" onclick="xFreeze()"><span class="xi" aria-hidden="true">'+(w.frozen?'🧊':'🟢')+'</span><span><b>Bracelet</b><br><span class="mut">'+(w.frozen?'Frozen. Tap to unfreeze':'Active. Tap to freeze')+'</span></span></button>':'')+
     (live?tileBtn('tGo','hist','📜','History'):'')+'</div><button onclick="guestOut()">Log out</button>';
   return t};
+function xFreeze(){if(wallet&&wallet.frozen)return freeze();xAsk('Freeze your bracelet? It will stop working at stalls and for gifts until you unfreeze it.',null,freeze)}
 function tGo(id){if(!id&&cdirty){return xAsk('Leave without saving your card changes?',null,function(){cdirty=false;gSec='';render();scrollTo(0,0)})}gSec=id;render();scrollTo(0,0)}
 var guestOut0=guestOut;guestOut=function(){gSec='';return guestOut0.apply(this,arguments)};
-var logout0=logout;logout=function(){gSec='';xInit=0;xC=undefined;return logout0.apply(this,arguments)};
+var logout0=logout;logout=function(){gSec='';xInit=0;xC=undefined;TOUR=undefined;return logout0.apply(this,arguments)};
 
 /* ---- admin and staff: tile home replaces the tab strip; vendor gets its own small home ---- */
 var vStaff1=vStaff;
@@ -3683,6 +3686,7 @@ function xClaimScan(){xScan('Scan the bag QR',function(t){var c=xCode(t);if(!c){
 var lgMine0=lgMine;lgMine=function(){var h=lgMine0.apply(this,arguments),k='<div class="row"><input id="lgmc"',i=h.indexOf(k),b='<div class="row"><button class="go" style="width:100%" onclick="xClaimScan()">📷 Scan QR to claim</button></div><div class="row" style="margin-top:8px"><input id="lgmc"';return i<0?b.replace('<input id="lgmc"','')+h:h.slice(0,i)+b+h.slice(i+k.length)};
 var lgClaim0=lgClaim;
 lgClaim=function(c){if(!wallet)return lgClaim0(c);
+  if(!wallet.tour){xTone(false);return toast('Bag claiming is not switched on for you. Please ask a staff member.',false)}
   var L=wallet.links||[],g=function(t){var l=L.filter(function(x){return x.t===t&&String(x.v||'').trim()})[0];return l?l.v:''};
   if(!g('phone'))return xNeedCard(c);
   var f=function(i,v){var e=$(i);if(e&&!e.value&&v)e.value=v};f('lgn',wallet.name);f('lgp',g('phone'));f('lge',g('email'));if(g('whatsapp')&&$('lgw'))$('lgw').checked=true;if(!LGO&&photoOf(L))LGO=photoOf(L);if(/^\d{4}$/.test(wpin))f('lgpin',wpin);
@@ -3691,6 +3695,17 @@ function xNeedCard(c){xModal('<h2>Add your details first</h2><p class="mut">Your
 async function xSaveCard(c){var p=$('xcp').value.trim(),e=$('xce').value.trim();if(!p)return toast('Phone is required.',false);
   var L=(wallet.links||[]).filter(function(l){return l.t!=='phone'&&!(e&&l.t==='email')});L.push({t:'phone',v:p,on:true});if(e)L.push({t:'email',v:e,on:true});
   try{await rpc('save_links',{k:key,pin_:wpin,l:L});wallet=await rpc('wallet',{k:key,pin_:wpin});xModal();render();lgClaim(c)}catch(err){toast(err.message,false)}}
+
+
+/* ---- admin: Tour switch on every guest row (decides who gets My bag) ---- */
+var gCard0=gCard;
+gCard=function(g,t){var h=gCard0(g,t);if(!(me&&me.role==='admin'))return h;
+  if(TOUR===undefined){TOUR=null;xTourLoad()}
+  var on=TOUR&&TOUR[String(g.id)],b=TOUR===false?'<button disabled title="Run tour.sql in Supabase first">Tour: setup needed</button>':'<button class="'+(on?'on':'bad')+'" onclick="xTour(\''+g.id+'\','+!on+')">Tour '+(on?'ON':'OFF')+'</button>',
+    i=h.lastIndexOf('</div></div>');return i<0?h:h.slice(0,i)+b+h.slice(i)};
+function xTourPaint(){var e=$('gres');if(e)e.innerHTML=gResults()}
+async function xTourLoad(){try{var r=await rpc('tour_ids');TOUR={};(r||[]).forEach(function(id){TOUR[String(id)]=1})}catch(e){TOUR=false}xTourPaint()}
+async function xTour(id,on){try{await rpc('guest_set_tour',{gid:String(id),on_:on});TOUR=TOUR||{};if(on)TOUR[String(id)]=1;else delete TOUR[String(id)];xTone(true);toast('Tour '+(on?'switched on':'switched off')+'. My bag '+(on?'is now available to this guest.':'is hidden for this guest.'),true)}catch(e){xTone(false);toast(e.message,false)}xTourPaint()}
 
 /* ---- staff and admin: tags, pairing, register by scan ---- */
 async function xCnt(){try{xC=await rpc('lg_tag_counts')}catch(e){xC=null}render()}
@@ -3720,6 +3735,86 @@ async function xReg(nfc){var fill=function(c){xTone(true);if($('lgc'))$('lgc').v
   if(!nfc)return xScan('Scan the bag QR',function(t){fill(xCode(t))});
   var ac=new AbortController();toast('Hold the chip to the back of the phone.',true);
   try{var n=new NDEFReader();await n.scan({signal:ac.signal});n.onreading=async function(e){ac.abort();try{fill(await rpc('lg_tag_resolve',{p_text:e.serialNumber}))}catch(x){xErr(x.message);render()}}}catch(e){xErr('NFC could not start: '+e.message);render()}}
+</script>
+
+<style>
+.xchat{max-width:720px;margin:0 auto}
+.xct{display:flex;gap:4px;padding:4px;border-radius:99px;background:linear-gradient(145deg,var(--glass-a),var(--glass-b));border:1px solid var(--line);margin-bottom:12px}
+.xct button{flex:1;border:0;border-radius:99px;min-height:42px;background:transparent;font-weight:700;position:relative}
+.xct button.on{background:var(--acc);color:#111}
+.xct .dot{position:absolute;top:2px;right:6px}
+.xst{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 12px;scrollbar-width:none}
+.xst::-webkit-scrollbar{display:none}
+.xst button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px;font-size:.75rem;color:inherit}
+.xav{display:inline-flex;padding:3px;border-radius:50%;background:var(--line)}
+.xav.un{background:conic-gradient(var(--acc),#f472b6,var(--acc))}
+.xav .av{border:2px solid var(--card)}
+.xrow{display:flex;align-items:center;gap:12px;width:100%;padding:10px 6px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;color:inherit;border-radius:0}
+.xrow .xtx{flex:1;min-width:0;display:flex;flex-direction:column}
+.xrow .xtx .mut{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xconv{display:flex;flex-direction:column;height:calc(100dvh - 200px);min-height:380px}
+.xch{display:flex;align-items:center;gap:10px;padding-bottom:8px}
+.xwho{flex:1;font-weight:800;display:flex;align-items:center;gap:8px;min-width:0}
+.xmsgs{flex:1;overflow-y:auto;padding:6px 2px;border-radius:16px;background:linear-gradient(180deg,transparent,var(--glass-b))}
+.xbub>div{border:0!important;border-radius:20px!important;box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.xbub.xnew>div{animation:xpop .5s cubic-bezier(.34,1.56,.64,1)}
+.xbub.xme.xnew>div{transform-origin:100% 100%}.xbub:not(.xme).xnew>div{transform-origin:0 100%}
+@keyframes xpop{from{transform:scale(.55) translateY(16px);opacity:0}to{transform:none;opacity:1}}
+.xact{display:flex;gap:6px;overflow-x:auto;padding:8px 0;scrollbar-width:none}
+.xact button{white-space:nowrap;border-radius:99px;min-height:38px;padding:4px 14px}
+.xcomp{display:flex;gap:6px;align-items:center;padding:6px;border-radius:99px;border:1px solid var(--line);background:var(--card)}
+.xcomp input{flex:1;min-width:0;border:0;background:transparent;min-height:40px}
+.xcomp select{max-width:96px;border:0;background:transparent;font-size:.8rem}
+.xcomp button{border-radius:50%;width:42px;height:42px;padding:0;min-height:0}
+.xemo{display:flex;gap:6px;padding:8px 4px}
+.xemo button{min-height:40px;padding:4px 10px}
+.xcost{font-size:.78rem;margin:6px 6px 0}
+@media(prefers-reduced-motion:reduce){.xbub.xnew>div{animation:none}}
+</style>
+<script>
+/* ===== v3 layer: modern chat ===== */
+var cTab='friends',xA={},xGot=0,xPh=null,xPhC=-1,XIMG=/^data:image\/[a-z+]+;base64,[A-Za-z0-9+\/=]+$/;
+function xMuted(){try{return localStorage.getItem('x-mute')==='1'}catch(e){return false}}
+function xMute(){try{localStorage.setItem('x-mute',xMuted()?'0':'1')}catch(e){}render()}
+function xChime(k){if(xMuted())return;try{navigator.vibrate&&navigator.vibrate(k==='in'?[25,35,25]:20)}catch(e){}
+  try{var c=new (window.AudioContext||window.webkitAudioContext)(),f=k==='in'?[700,1000]:[500,760],t=c.currentTime;f.forEach(function(hz,i){var o=c.createOscillator(),g=c.createGain();o.frequency.value=hz;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.12,t+i*.09);g.gain.exponentialRampToValueAtTime(.001,t+i*.09+.12);o.start(t+i*.09);o.stop(t+i*.09+.13)});setTimeout(function(){c.close()},500)}catch(e){}}
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.xchat button,.xtile');if(b&&!xMuted())try{navigator.vibrate&&navigator.vibrate(12)}catch(x){}});
+/* profile pictures come from each person's business card; nothing is uploaded here */
+function xPhoto(n){if(wallet&&n===wallet.name){var m=photoOf(wallet.links);return XIMG.test(m)?m:''}
+  var p=chatPeople.concat(chatReqs||[],chatPend||[]).filter(function(x){return x.name===n})[0],v=p&&xPh&&xPh[p.id];return v&&XIMG.test(v)?v:''}
+var avh0=avh;avh=function(n,sz){var p=xPhoto(n);return p?'<span class="av" style="background:#ddd url('+p+') center/cover'+(sz?';flex-basis:'+sz+'px;width:'+sz+'px;height:'+sz+'px':'')+'"></span>':avh0(n,sz)};
+async function xPhLoad(){try{xPh=(await rpc('chat_photos',{k:key,pin_:wpin}))||{}}catch(e){xPh={}}if(chatOpen){paintFriends();var m=$('cmsgs');if(m)paintChat()}}
+function xRing(n,u){return '<span class="xav'+(u?' un':'')+'">'+avh(n,52)+'</span>'}
+function xStories(){var me=wallet?wallet.name:'You',h='<button onclick="chatClose();gSec=\'card\';render()">'+xRing(me,0)+'<span>You</span></button>';
+  chatPeople.forEach(function(p){h+='<button onclick="chatOpenConv(\''+esc(p.id)+'\')">'+xRing(p.name,unreadN(p.id))+'<span>'+esc(String(p.name).split(' ')[0])+'</span></button>'});return h}
+paintFriends=function(){var f=$('cflist');if(!f)return;
+  var c=chatPeople.length+(chatReqs||[]).length+(chatPend||[]).length;if(c!==xPhC){xPhC=c;xPhLoad()}
+  var q=(chatQ||'').trim().toLowerCase(),L=chatPeople.filter(function(p){return !q||p.name.toLowerCase().indexOf(q)>-1}),s=$('xst'),h=xStories();if(s&&s.dataset.h!==h){s.innerHTML=h;s.dataset.h=h}
+  f.innerHTML=(L.length?L.map(function(p){var u=unreadN(p.id);return '<button class="xrow" onclick="chatOpenConv(\''+esc(p.id)+'\')">'+avh(p.name,46)+'<span class="xtx"><b>'+esc(p.name)+'</b><span class="mut">'+esc(prevTxt(p.id))+'</span></span>'+(u?'<span class="dot">'+u+'</span>':'')+'</button>'}).join(''):'<p class="mut">'+(chatPeople.length?'No friend matches that.':'No friends yet. Open Add friend to tap a bracelet or use a code.')+'</p>')+
+  ((chatPend||[]).length?'<p class="mut" style="margin:10px 4px 0">Waiting for '+chatPend.map(function(p){return esc(p.name)}).join(', ')+' to accept.</p>':'')};
+/* bubbles bounce in only when new; incoming ones play a chime */
+var chatBubble0=chatBubble;chatBubble=function(x){var h=chatBubble0(x),mine=x.from_id===chatMe,nw=!xA[x.id];if(nw){xA[x.id]=1;if(!mine)xGot=1}
+  return h.replace('<div style="display:flex;','<div class="xbub'+(mine?' xme':'')+(nw?' xnew':'')+'" style="display:flex;')};
+var paintChat0=paintChat;paintChat=function(){xGot=0;paintChat0.apply(this,arguments);if(xGot)xChime('in')};
+var chatOpenConv0=chatOpenConv;chatOpenConv=function(id){threadMsgs(id).forEach(function(m){xA[m.id]=1});return chatOpenConv0(id)};
+var chatSend0=chatSend;chatSend=async function(loc){var i=$('ctxt'),had=i&&i.value.trim();await chatSend0.apply(this,arguments);if(!loc&&had&&$('ctxt')&&!$('ctxt').value)xChime('out')};
+function xTab(t){if(t==='bcast')return chatOpenConv('');cTab=t;chatView='list';chatTo='';render()}
+function xEmo(){var e=$('xemo');if(e)e.style.display=e.style.display==='none'?'flex':'none'}
+function xPre(sel,id){var n=0,t=setInterval(function(){var s=$(sel);if(s){s.value=id;clearInterval(t)}else if(++n>20)clearInterval(t)},100)}
+async function xGoGift(){var id=chatTo;chatClose();await giftOpenUI();xPre('gto',id)}
+async function xGoMoney(){var id=chatTo;chatClose();await mwOpen('send');xPre('mws',id)}
+var vChat0=vChat;
+vChat=function(){var conv=chatView==='conv',act=conv?(chatTo?'friends':'bcast'):cTab,uf=0;chatPeople.forEach(function(p){uf+=unreadN(p.id)});
+  function T(id,lb,bd){return '<button class="'+(act===id?'on':'')+'" onclick="xTab(\''+id+'\')">'+lb+(bd?'<span class="dot">'+bd+'</span>':'')+'</button>'}
+  var head='<div class="xchat"><div class="row sp" style="margin-bottom:8px"><h2 style="margin:0">Chat</h2><span class="row" style="gap:6px"><button onclick="xMute()" aria-label="'+(xMuted()?'Turn sound on':'Turn sound off')+'">'+(xMuted()?'🔕':'🔔')+'</button><button onclick="chatClose()">Close</button></span></div><div class="xct">'+T('friends','My friends',uf||'')+T('add','Add friend',reqN||'')+T('bcast','Broadcast',unreadN('')||'')+'</div>';
+  if(conv){var fr=!!chatTo;
+    return head+'<div class="xconv"><div class="xch"><button onclick="chatBack()" aria-label="Back">\u2039</button><span id="cwho" class="xwho"></span><button class="bad" id="cunf" onclick="chatUnfriend()">Remove</button></div><div id="cmsgs" class="xmsgs" aria-live="polite"></div><div id="cerr" class="mut" role="status" style="min-height:1.2em"></div>'+
+    '<div class="xact">'+(fr&&feat('gifts')?'<button onclick="xGoGift()">🎁 Gift tokens</button>':'')+(fr&&mw!==false?'<button onclick="xGoMoney()">💸 Send money</button>':'')+(fr?'<button onclick="snapCam()">📷 Snap</button>':'')+'<button onclick="chatSend(true)">📍 Location</button></div>'+
+    '<div id="xemo" class="xemo" style="display:none">'+EMO.map(function(e){return '<button onclick="chatEmoji(\''+e+'\')">'+e+'</button>'}).join('')+'</div>'+
+    '<div id="cbox" class="xcomp"><button onclick="xEmo()" aria-label="Emoji">😊</button><input id="ctxt" maxlength="500" autocomplete="off" enterkeyhint="send" placeholder="Message" onkeydown="if(event.key===\'Enter\')chatSend()"><select id="cttl" aria-label="Vanishes after"><option value="10">10 min</option><option value="60" selected>1 hour</option><option value="1440">24 hours</option></select><button class="go" id="csend" onclick="chatSend()" aria-label="Send">\u27A4</button></div>'+
+    '<p class="mut xcost">Messages vanish by themselves. Each one costs '+(fr?cM():cB())+' pt'+((fr?cM():cB())===1?'':'s')+(fr?'':' (broadcast to everyone)')+'.</p></div></div>'}
+  if(cTab==='add')return head+(HAS?'<button class="go" style="width:100%" onclick="homeTap()">📲 Tap a bracelet to add a friend</button>':'<p class="mut">To add a friend, hold their bracelet to your phone, or use a code or QR below.</p>')+codePanel()+'<div id="creq"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div><button class="bad" style="margin-top:14px" onclick="chatLeave()">Leave chat &amp; delete my messages</button></div>';
+  return head+'<div id="xst" class="xst">'+xStories()+'</div><input id="cfq" type="search" placeholder="Search friends" autocomplete="off" value="'+esc(chatQ)+'" oninput="chatQ=this.value;paintFriends()" style="width:100%;border-radius:99px"><div id="cflist"></div><div id="spot"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div></div>'};
 </script>
 
 </body>
