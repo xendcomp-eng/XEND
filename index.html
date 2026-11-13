@@ -3604,7 +3604,7 @@ var gSec='',xInit=0,xScanH=null,xC,xN=0,xLast=null,xErrMsg='',TOUR;
 var XI={home:'🏠',top:'💳',till:'🧾',cards:'🪪',events:'🎪',vendors:'💰',buys:'🛍️',team:'👥',groups:'🗂️',import:'📥',set:'⚙️',ledger:'📒',site:'🌐',brand:'🎨',icons:'🧩',shop:'🏪',secs:'🧱',btns:'🔘',orders:'📦',money:'💵',tokens:'🪙',theme:'🌗',bags:'🧳'};
 var XG=[['Operations',['top','till','cards','bags','import','home']],['Money',['vendors','buys','ledger','money','tokens']],['People and events',['team','groups','events']],['Look and content',['site','brand','icons','shop','orders','secs','btns','theme','set']]];
 function tileBtn(fn,id,ic,lb,sub,bd,hero){return '<button class="xtile'+(hero?' hero':'')+'" onclick="'+fn+'(\''+id+'\')"><span class="xi" aria-hidden="true">'+ic+'</span><span><b>'+lb+'</b>'+(sub?'<br><span class="mut">'+sub+'</span>':'')+'</span>'+(bd?'<span class="xb">'+bd+'</span>':'')+'</button>'}
-function xBar(t,fn){return '<div class="xbar"><button onclick="'+fn+'">\u2190 Back</button><h2>'+esc(t)+'</h2></div>'}
+function xBar(t,fn){return '<div class="xbk"><button type="button" onclick="'+fn+'" aria-label="Back">\u2190 Back</button></div><h2 class="xbkt">'+esc(t)+'</h2>'}
 /* alerts: tone + vibration */
 function tileBtnone(ok){try{var c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=ok?880:260;g.gain.value=.15;o.start();setTimeout(function(){o.stop();c.close()},ok?140:320)}catch(e){}try{navigator.vibrate&&navigator.vibrate(ok?60:[90,60,90])}catch(e){}}
 function xErr(m){xErrMsg=m;xTone(false)}
@@ -3679,7 +3679,7 @@ vStaff=function(){if(!me)return vStaff1();if(me.role==='vendor')return xVendor()
 function xVendor(){var s=armed?'charge':gSec;
   if(s==='charge')return xBar('Charge','tGo(\'\')')+vTill();if(s==='sales')return xBar('Today\u2019s sales','tGo(\'\')')+'<div id="vsum"></div>';if(s==='recent')return xBar('Recent sales','tGo(\'\')')+'<div id="vrec"></div>';
   return '<div id="vsum"></div><div class="xtg">'+tileBtn('tGo','charge','🧾','Charge','Wait for a tap')+tileBtn('tGo','sales','📈','Today\u2019s sales')+tileBtn('tGo','recent','🕘','Recent sales')+'</div>'}
-var setTabT=setTab;setTab=function(t){if(t==='tiles'){tab='tiles';render();scrollTo(0,0);return}return setTabT.apply(this,arguments)};
+var setTabT=setTab;setTab=function(t){if(t==='tiles'){tab='tiles';render();scrollTo(0,0);return}var r=setTabT.apply(this,arguments);render();scrollTo(0,0);return r};
 
 /* ---- bags: scan to claim, claim from business card ---- */
 function xClaimScan(){xScan('Scan the bag QR',function(t){var c=xCode(t);if(!c){xTone(false);return toast('That QR is not a bag tag.',false)}xTone(true);lgOpen(c)})}
@@ -3701,15 +3701,20 @@ async function xSaveCard(c){var p=$('xcp').value.trim(),e=$('xce').value.trim();
 var gCard0=gCard;
 gCard=function(g,t){var h=gCard0(g,t);if(!(me&&me.role==='admin'))return h;
   if(TOUR===undefined){TOUR=null;xTourLoad()}
-  var on=TOUR&&TOUR[String(g.id)],b=TOUR===false?'<button disabled title="Run tour.sql in Supabase first">Tour: setup needed</button>':'<button class="'+(on?'on':'bad')+'" onclick="xTour(\''+g.id+'\','+!on+')">Tour '+(on?'ON':'OFF')+'</button>',
+  var on=TOUR&&TOUR[String(g.id)],b=TOUR===false?'<button class="bad" title="'+esc(TOURERR||'')+'" onclick="xTourRetry()">Tour: tap to retry</button>':'<button class="'+(on?'on':'bad')+'" onclick="xTour(\''+g.id+'\','+!on+')">Tour '+(on?'ON':'OFF')+'</button>',
     i=h.lastIndexOf('</div></div>');return i<0?h:h.slice(0,i)+b+h.slice(i)};
-function xTourPaint(){var e=$('gres');if(e)e.innerHTML=gResults()}
-async function xTourLoad(){try{var r=await rpc('tour_ids');TOUR={};(r||[]).forEach(function(id){TOUR[String(id)]=1})}catch(e){TOUR=false}xTourPaint()}
+function xTourPaint(){var e=$('gres');if(e)e.innerHTML=gResults();else if(me&&me.role==='admin')render()}
+var TOURERR='';
+async function xTourLoad(){try{var r=await rpc('tour_ids');TOUR={};TOURERR='';(Array.isArray(r)?r:[]).forEach(function(id){TOUR[String(id)]=1})}catch(e){TOUR=false;TOURERR=(e&&e.message)||String(e)}xTourPaint()}
+async function xTourRetry(){TOUR=null;await xTourLoad();if(TOUR===false)toast('Tour could not load: '+TOURERR,false);else toast('Tour is ready. Tap Tour ON or OFF on a guest.',true)}
 async function xTour(id,on){try{await rpc('guest_set_tour',{gid:String(id),on_:on});TOUR=TOUR||{};if(on)TOUR[String(id)]=1;else delete TOUR[String(id)];xTone(true);toast('Tour '+(on?'switched on':'switched off')+'. My bag '+(on?'is now available to this guest.':'is hidden for this guest.'),true)}catch(e){xTone(false);toast(e.message,false)}xTourPaint()}
 
+/* ---- confirmation tone (was missing; Tour toggle and tag actions crashed without it) ---- */
+function xTone(ok){if(xMuted())return;try{navigator.vibrate&&navigator.vibrate(ok?30:[60,40,60])}catch(e){}
+  try{var c=new (window.AudioContext||window.webkitAudioContext)(),t=c.currentTime;(ok?[660,880]:[300,220]).forEach(function(hz,i){var o=c.createOscillator(),g=c.createGain();o.frequency.value=hz;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.12,t+i*.1);g.gain.exponentialRampToValueAtTime(.001,t+i*.1+.14);o.start(t+i*.1);o.stop(t+i*.1+.15)});setTimeout(function(){c.close()},600)}catch(e){}}
 /* ---- staff and admin: tags, pairing, register by scan ---- */
 async function xCnt(){try{xC=await rpc('lg_tag_counts')}catch(e){xC=null}render()}
-function tileBtnagCard(){var ad=me&&me.role==='admin',c=xC||{blank:0,paired:0,total:0},un=xLast&&Date.now()-xLast.at<10000;
+function xTagCard(){var ad=me&&me.role==='admin',c=xC||{blank:0,paired:0,total:0},un=xLast&&Date.now()-xLast.at<10000;
   return (xErrMsg?'<div class="msg err" role="alert">'+esc(xErrMsg)+' <button onclick="xErrMsg=\'\';render()">Dismiss</button></div>':'')+
   '<div class="card"><h2>Tags</h2><div class="xcnt"><div><b>'+c.blank+'</b><span class="mut">Blank</span></div><div><b>'+c.paired+'</b><span class="mut">Paired</span></div><div><b>'+xN+'</b><span class="mut">Paired today</span></div></div>'+
   '<div class="row">'+(HAS?'<button class="go" onclick="xPair()">Pair QR to NFC</button>':'')+'<button onclick="xReg(0)">📷 Scan QR to register</button>'+(HAS?'<button onclick="xReg(1)">Tap chip to register</button>':'')+(un?'<button class="bad" onclick="xUndo()">Undo '+esc(xLast.code)+'</button>':'')+'</div>'+
@@ -3928,7 +3933,7 @@ async function xVViews(id){clearTimeout(xVT);try{var v=(await rpc('story_viewers
 vChat=function(){var conv=chatView==='conv',act=conv?(chatTo?'friends':'bcast'):cTab,uf=0,seen=false;chatPeople.forEach(function(p){uf+=unreadN(p.id)});
   try{seen=localStorage.getItem('x-wt')==='1'}catch(e){}if(!seen&&!xWalked){xWalked=1;setTimeout(function(){xWalk(0)},400)}
   function T(id,lb,bd){return '<button class="'+(act===id?'on':'')+'" onclick="xTab(\''+id+'\')">'+lb+(bd?'<span class="dot">'+bd+'</span>':'')+'</button>'}
-  var head='<div class="xchat"><div class="row sp" style="margin-bottom:8px"><h2 style="margin:0">XEND Chat</h2><span class="row" style="gap:6px"><button onclick="xWalk(0)" aria-label="How chat works">?</button><button onclick="xMute()" aria-label="'+(xMuted()?'Turn sound on':'Turn sound off')+'">'+(xMuted()?'\uD83D\uDD15':'\uD83D\uDD14')+'</button><button onclick="chatClose()">Close</button></span></div>'+(conv?'':'<div id="spot"></div>')+
+  var head='<div class="xchat"><div class="row sp" style="margin-bottom:8px"><div class="xhd"><h2>Messages</h2><span class="mut">'+(chatPeople.length?chatPeople.length+(chatPeople.length===1?' friend':' friends'):'Your private event chat')+'</span></div><span class="row" style="gap:6px"><button onclick="xWalk(0)" aria-label="How chat works">?</button><button onclick="xMute()" aria-label="'+(xMuted()?'Turn sound on':'Turn sound off')+'">'+(xMuted()?'\uD83D\uDD15':'\uD83D\uDD14')+'</button><button onclick="chatClose()" aria-label="Close chat">\u2715</button></span></div>'+(conv?'':'<div id="spot"></div>')+
     '<div class="xct">'+T('friends','My friends',uf||'')+T('add','Add friend',reqN||'')+T('bcast','Broadcast',unreadN('')||'')+'</div>'+(conv?'':'<button class="xreqb" onclick="xReqTog()">\uD83D\uDCE8 Friend requests'+(reqN?'<span class="dot">'+reqN+'</span>':'')+'</button><div id="xreq" style="display:'+(xReqOpen?'block':'none')+'"></div>');
   if(conv){var fr=!!chatTo;
     return head+'<div class="xconv"><div class="xch"><button onclick="chatBack()" aria-label="Back">\u2039</button><span id="cwho" class="xwho"></span><button class="bad" id="cunf" onclick="chatUnfriend()">Remove</button></div><div id="cmsgs" class="xmsgs" aria-live="polite"></div><div id="cerr" class="mut" role="status" style="min-height:1.2em"></div>'+
@@ -3942,5 +3947,84 @@ vChat=function(){var conv=chatView==='conv',act=conv?(chatTo?'friends':'bcast'):
   return head+'<div id="xst" class="xst">'+xStories()+'</div><input id="cfq" type="search" placeholder="Search friends" autocomplete="off" value="'+esc(chatQ)+'" oninput="chatQ=this.value;paintFriends()" style="width:100%;border-radius:99px;margin-bottom:8px"><div id="cflist"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div></div>'};
 </script>
 
+
+<style>
+/* floating Back: sticks under the header, left aligned, follows you while scrolling */
+.xbk{position:sticky;top:calc(var(--hh,60px) + 8px);z-index:14;height:0;overflow:visible;text-align:left;pointer-events:none}
+.xbk button{pointer-events:auto;display:inline-flex;align-items:center;gap:4px;width:auto;min-height:44px;padding:8px 18px;border-radius:99px;font-weight:700;background:var(--card);color:inherit;border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.28);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.xbkt{margin:0 0 14px;min-height:44px;display:flex;align-items:center;padding-left:116px;font-size:1.15rem}
+</style>
+<script>
+(function(){function hh(){var h=document.querySelector('header');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px')}
+hh();addEventListener('resize',hh);addEventListener('load',hh);try{var h=document.querySelector('header');if(h&&window.ResizeObserver)new ResizeObserver(hh).observe(h)}catch(e){}})();
+</script>
+
+<style>
+/* ===== premium chat look ===== */
+body:has(.xchat) #vmode{display:none!important}
+.xchat{padding-bottom:8px}
+.xchat button{border:1px solid var(--line)}
+.xchat>.row.sp{align-items:center;margin-bottom:14px!important}
+.xhd h2{margin:0;font-size:1.65rem;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.xhd .mut{font-size:.82rem}
+.xchat>.row.sp .row{gap:8px!important}
+.xchat>.row.sp .row button{width:42px;height:42px;min-height:0;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;box-shadow:0 4px 14px rgba(15,23,42,.10)}
+.xsp{background:linear-gradient(135deg,rgba(255,196,0,.20),rgba(244,114,182,.13));border:1px solid rgba(255,196,0,.35);border-radius:18px;padding:8px 14px;box-shadow:0 6px 18px rgba(255,160,0,.10)}
+.xct{padding:5px;border-radius:99px;box-shadow:0 8px 24px rgba(15,23,42,.08)}
+.xct button{border:0!important;font-size:.9rem;box-shadow:none!important;transition:background .2s,transform .15s}
+.xct button.on{background:linear-gradient(135deg,#ffd43b,#ffb300)!important;color:#111;box-shadow:0 5px 16px rgba(255,170,0,.45)!important}
+.xct .dot{top:-4px;right:2px}
+.xreqb{min-height:46px;margin-bottom:12px;border-radius:16px;font-size:.92rem;border:1px dashed var(--line)!important;background:var(--glass-b)!important;box-shadow:none}
+.xreqb .dot{position:static;margin-left:8px;vertical-align:middle}
+.xreqi{border-radius:18px;box-shadow:0 6px 18px rgba(15,23,42,.06)}
+.xst{gap:16px;padding:2px 2px 14px}
+.xst button{background:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:0!important;min-height:0!important;min-width:68px;font-weight:600;font-size:.74rem;gap:6px}
+.xav{padding:3px;box-shadow:0 0 0 1px var(--line) inset}
+.xav.un{background:linear-gradient(135deg,#ffd43b,#f472b6 55%,#8b5cf6);box-shadow:0 4px 14px rgba(244,114,182,.45)}
+.xav.se{background:var(--line);opacity:.85}
+.xav .av{border:3px solid var(--card)}
+.xplus{box-shadow:0 2px 8px rgba(0,0,0,.25)}
+#cfq{border:1px solid var(--line)!important;background:var(--glass-a)!important;box-shadow:0 4px 16px rgba(15,23,42,.06);padding-left:18px}
+.xrow{gap:14px;padding:12px 14px!important;border-radius:22px!important;background:linear-gradient(145deg,var(--glass-a),var(--glass-b))!important;border:1px solid var(--line)!important;box-shadow:0 8px 22px rgba(15,23,42,.07);margin-bottom:10px;transition:transform .15s,box-shadow .2s}
+.xrow:active{transform:scale(.985)}
+.xrow b{font-size:1.02rem;letter-spacing:-.01em}
+.xrow .xtx .mut{font-size:.86rem}
+.xrow .dot{background:linear-gradient(135deg,#fb7185,#ef4444);box-shadow:0 3px 10px rgba(239,68,68,.45);min-width:24px;text-align:center}
+.xrow::after{content:"\203A";font-size:1.4rem;opacity:.3;margin-left:2px}
+#cflist>p.mut{text-align:center;padding:26px 10px;border:1px dashed var(--line);border-radius:20px}
+.xchat:has(.xconv)>.row.sp,.xchat:has(.xconv)>.xct{display:none}
+.xconv{height:calc(100dvh - var(--hh,60px) - 30px);min-height:420px}
+.xch{gap:10px;padding:8px 10px;margin-bottom:8px;border-radius:22px;background:linear-gradient(145deg,var(--glass-a),var(--glass-b));border:1px solid var(--line);box-shadow:0 8px 24px rgba(15,23,42,.08);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.xch>button:first-child{width:40px;height:40px;min-height:0;padding:0;border-radius:50%;font-size:1.3rem;line-height:1}
+.xwho .av{box-shadow:0 0 0 3px rgba(255,196,0,.55)}
+.xwn{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.xwn b{font-size:1rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xwn small{font-size:.72rem;opacity:.65;font-weight:500}
+.xbc{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#ffd43b,#ff9f1c);font-size:1.2rem}
+.xch .bad{min-height:34px;padding:2px 12px;font-size:.78rem;border-radius:99px;border-style:solid!important;background:transparent!important;box-shadow:none}
+.xmsgs{padding:12px 6px;background:radial-gradient(120% 60% at 15% 0%,rgba(255,196,0,.10),transparent 60%),radial-gradient(100% 50% at 100% 100%,rgba(244,114,182,.09),transparent 60%);border-radius:22px;scroll-behavior:smooth}
+.xbub>div{padding:9px 14px!important;box-shadow:0 3px 10px rgba(15,23,42,.10)!important;border-radius:22px!important;max-width:82%!important}
+.xbub.xme>div{background:linear-gradient(135deg,#ffd43b,#ffb300)!important;color:#1a1300!important;border-bottom-right-radius:7px!important}
+.xbub:not(.xme)>div{background:var(--card)!important;border-bottom-left-radius:7px!important}
+.xbub>div>div:last-child{font-size:.66rem!important;opacity:.55!important;text-align:right;margin-top:3px;letter-spacing:.02em}
+.xact{gap:8px;padding:8px 2px}
+.xact button{min-height:36px;font-size:.84rem;font-weight:600;background:var(--glass-b)!important;border:1px solid var(--line)!important;box-shadow:none}
+.xcomp{padding:6px;border-radius:30px;background:var(--glass-a);border:1px solid var(--line);box-shadow:0 12px 32px rgba(15,23,42,.14);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.xcomp input{box-shadow:none!important;outline:none!important;border:0!important;background:transparent!important;font-size:1rem}
+.xcomp input:focus{box-shadow:none!important;border:0!important}
+.xic{box-shadow:none!important}
+.xsendb{width:46px!important;height:46px!important;background:linear-gradient(135deg,#ffd43b,#ff9f1c)!important;box-shadow:0 6px 18px rgba(255,159,28,.55)!important;transition:transform .12s}
+.xsendb:active{transform:scale(.92)}
+.xcost{text-align:center;font-size:.72rem;opacity:.7;margin:8px 10px 0}
+@media(prefers-color-scheme:dark){
+ .xrow,.xch,.xcomp,.xct,#cfq{box-shadow:0 8px 24px rgba(0,0,0,.45)}
+}
+</style>
+<script>
+/* conversation header: name plus a calm subtitle */
+(function(){var p3=paintChat;paintChat=function(){p3.apply(this,arguments);var w=$('cwho');if(!w||chatView!=='conv')return;
+ var p=chatTo?chatPeople.filter(function(x){return x.id===chatTo})[0]:null;
+ w.innerHTML=(p?avh(p.name,40):'<span class="xbc">\uD83D\uDCE2</span>')+'<span class="xwn"><b>'+esc(p?p.name:'Everyone at the event')+'</b><small>'+(p?'Vanishing messages':'Broadcast to the whole event')+'</small></span>'}})();
+</script>
 </body>
 </html>
