@@ -1352,7 +1352,7 @@ async function loadAdm(){try{adm.guests=(await rpc('list_guests'))||[];if(me.rol
 function setTab(t){tab=t;if(t!=='top')loadAdm();else render()}
 async function createGuest(){var n=$('gn').value.trim();if(!n){say('Enter a guest name.',false);return render()}
   var a=$('ga').value.split(',').map(function(x){return x.trim()}).filter(Boolean).map(function(x){return {name:x,done:false}});
-  try{var r=await rpc('create_guest',{n:n,r:$('gr').value.trim(),a:a,p_event:$('ge').value||null});say('Card created for '+n+'. Guest PIN '+r.pin+'.',true);await loadAdm();if(HAS)writeTag(r.token)}catch(e){say(e.message,false);render()}}
+  try{var r=await rpc('create_guest',{n:n,r:$('gr').value.trim(),a:a,p_event:$('ge').value||null});say('Card created for '+n+'.'+(r.pin?' Guest PIN '+r.pin+'.':''),true);await loadAdm();if(HAS)writeTag(r.token)}catch(e){say(e.message,false);render()}}
 async function markDone(i){try{await rpc('mark_done',{k:key,i:i});scanInfo=await rpc('scan',{k:key});say('Marked done.',true)}catch(e){say(e.message,false)}render()}
 
 /* ---- guest wallet ---- */
@@ -1776,10 +1776,20 @@ async function mkAcct(kind){var pf=kind==='vendor'?'v':'s',fn=kind==='vendor'?'c
 function createVendor(){return mkAcct('vendor')}
 function createStaffAcct(){return mkAcct('staff')}
 function acctForm(pf,title,hint,btn,fn,ph){return '<div class="card"><h2>'+title+'</h2><p class="mut">'+hint+'</p><div class="row"><input id="'+pf+'n" placeholder="'+ph+'"><input id="'+pf+'u" placeholder="Username" autocapitalize="none" autocomplete="off"><input id="'+pf+'p" placeholder="Password (6+ characters)" autocapitalize="none" autocomplete="off"><button class="go" onclick="'+fn+'()">'+btn+'</button></div></div>'}
+var credShow={},pinShow={};
+function credBox(id){var c=credShow[id];if(!c)return '';
+  return '<div class="mut" style="margin:6px 0;padding:8px;border-radius:8px;background:rgba(127,127,127,.12)">Username: <b>'+esc(c.username||'?')+'</b><br>Password: '+(c.password?'<b>'+esc(c.password)+'</b>':'not stored (this account was made before the eye feature)')+'<div class="row" style="margin-top:6px"><button onclick="credSet(\''+id+'\')">Set new password</button></div></div>'}
+async function credEye(id){if(!me||me.role!=='admin')return;if(credShow[id]){delete credShow[id];return render()}
+  try{credShow[id]=(await rpc('admin_reveal_creds',{p_id:id}))||{username:'',password:null}}catch(e){say(e.message,false)}render()}
+async function credSet(id){if(!me||me.role!=='admin')return;var p=prompt('New password (6 or more characters)');if(!p)return;
+  if(p.length<6){say('Password must be 6 or more characters.',false);return render()}
+  try{await rpc('admin_set_password',{p_id:id,p_password:p});credShow[id]=await rpc('admin_reveal_creds',{p_id:id});say('Password changed.',true)}catch(e){say(e.message,false)}render()}
+async function pinEye(id){if(!me||me.role!=='admin')return;if(pinShow[id]!=null){delete pinShow[id];return render()}
+  try{var v=await rpc('admin_guest_pin',{gid:id});pinShow[id]=(v==null?'?':String(v))}catch(e){say(e.message,false)}render()}
 function vTeam(){var st=adm.staff,ad=me.role==='admin';
   return acctForm('v','New vendor','Vendors charge guests and see their own sales. They log in with the username and password you set here.','Create vendor','createVendor','Vendor name (e.g. Jollof Stand)')+
   (ad?acctForm('s','New staff','Staff top up points, create guest cards and add vendors. They log in with the username and password you set here.','Create staff','createStaffAcct','Staff name'):'')+
-  '<div class="card"><h2>'+(ad?'Team':'Vendors')+'</h2>'+(st===null?'<p class="mut">Run setup.sql in Supabase first.</p>':st.length?st.map(function(x){return '<div class="item"><div class="row sp"><b>'+esc(x.name)+'</b><span class="tag">'+roleLabel(x.role)+'</span></div>'+(x.role==='vendor'?'<select onchange="setSE(\''+x.id+'\',this.value)" style="margin-top:6px">'+evOpts(x.event_id)+'</select>':'')+'</div>'}).join(''):'<p class="mut">None yet.</p>')+'</div>'}
+  '<div class="card"><h2>'+(ad?'Team':'Vendors')+'</h2>'+(st===null?'<p class="mut">Run setup.sql in Supabase first.</p>':st.length?st.map(function(x){return '<div class="item"><div class="row sp"><b>'+esc(x.name)+'</b><span class="row"><span class="tag">'+roleLabel(x.role)+'</span>'+(ad?'<button title="Show login" onclick="credEye(\''+x.id+'\')">'+(credShow[x.id]?'\uD83D\uDE48':'\uD83D\uDC41')+'</button>':'')+'</span></div>'+(ad?credBox(x.id):'')+(x.role==='vendor'?'<select onchange="setSE(\''+x.id+'\',this.value)" style="margin-top:6px">'+evOpts(x.event_id)+'</select>':'')+'</div>'}).join(''):'<p class="mut">None yet.</p>')+'</div>'}
 function vVendors(){var v=adm.vendors;
   if(v===null)return '<div class="card"><h2>Sales by vendor</h2><p class="mut">Run setup.sql in Supabase first.</p></div>';
   var tot=v.reduce(function(a,x){return a+x.total},0),td=v.reduce(function(a,x){return a+x.today},0);
@@ -1862,7 +1872,7 @@ async function runImport(){if(!impRows.length){say('Choose a file first.',false)
   var out=[],ev=$('imev')?$('imev').value:'';
   for(var i=0;i<impRows.length;i++){var r=impRows[i];
     try{if(impKind==='guest'){var a=(r[2]||'').split(/[;|]/).map(function(x){return x.trim()}).filter(Boolean).map(function(x){return {name:x,done:false}});
-        var g=await rpc('create_guest',{n:r[0],r:r[1]||'',a:a,p_event:ev||null});out.push([r[0],'PIN '+g.pin,'ok'])}
+        var g=await rpc('create_guest',{n:r[0],r:r[1]||'',a:a,p_event:ev||null});out.push([r[0],g.pin?'PIN '+g.pin:'Created','ok'])}
       else{var u=(r[1]||r[0].toLowerCase().replace(/[^a-z0-9]/g,'')+Math.floor(10+Math.random()*90)).toLowerCase().replace(/[^a-z0-9._-]/g,''),p=r[2]||pw();
         await rpc(impKind==='vendor'?'create_vendor':'create_staff',{p_username:u,p_password:p,p_name:r[0]});out.push([r[0],u+' / '+p,'ok'])}}
     catch(e){out.push([r[0],e.message,'fail'])}}
@@ -3010,7 +3020,7 @@ function sChips(items,cur,fn){return items.map(function(c){return '<button class
 
 /* ---- guests: smart search, and each card shows the ID the guest claimed their bracelet with ---- */
 function gHay(g){var c=g.claim||{},ev=(adm.events||[]).filter(function(e){return e.id===g.event_id})[0];
-  return sHay([g.name,g.room,g.pin,g.uid,c.code,c.username,c.bracelet,ev&&ev.name,g.frozen?'frozen':'',c.code?'claimed':'by staff'])}
+  return sHay([g.name,g.room,g.uid,c.code,c.username,c.bracelet,ev&&ev.name,g.frozen?'frozen':'',c.code?'claimed':'by staff'])}
 function gList(){var P=sParse(gq),fl=P.is.slice();if(gf!=='all')fl.push(gf);
   return (adm.guests||[]).filter(function(g){
     for(var i=0;i<fl.length;i++){var k=fl[i];
@@ -3019,7 +3029,7 @@ function gList(){var P=sParse(gq),fl=P.is.slice();if(gf!=='all')fl.push(gf);
     return sHit(gHay(g),P.toks)})}
 function gCard(g,toks){var c=g.claim,isA=me&&me.role==='admin';
   return '<div class="item"><div class="row sp"><b>'+sMark(g.name,toks)+'</b><span>'+g.balance+' pts</span></div>'+
-  '<div class="mut">'+sMark(g.room||'',toks)+' · PIN '+esc(g.pin)+(g.uid?' · tag '+sMark(g.uid,toks):'')+(g.frozen?' · <span class="tag">Frozen</span>':'')+'</div>'+
+  '<div class="mut">'+sMark(g.room||'',toks)+(isA?' · PIN '+(pinShow[g.id]!=null?'<b>'+esc(pinShow[g.id])+'</b>':'\u2022\u2022\u2022\u2022')+' <button title="Show PIN" style="padding:2px 8px" onclick="pinEye(\''+g.id+'\')">'+(pinShow[g.id]!=null?'\uD83D\uDE48':'\uD83D\uDC41')+'</button>':'')+(g.uid?' · tag '+sMark(g.uid,toks):'')+(g.frozen?' · <span class="tag">Frozen</span>':'')+'</div>'+
   (c?'<div class="row sp" style="margin-top:6px"><span class="mut">ID <b>'+sMark(c.code||'',toks)+'</b> · @'+sMark(c.username||'',toks)+(c.bracelet?' · bracelet '+sMark(c.bracelet,toks):'')+(c.at?'<br>Activated '+esc(new Date(c.at).toLocaleString()):'')+'</span><span class="row"><span class="tag ok">Claimed</span>'+(isA?'<button class="bad" onclick="xndReset(\''+esc(g.token)+'\')">Reset</button>':'')+'</span></div>':'')+
   '<div class="row" style="margin-top:6px"><button onclick="writeTag(\''+g.token+'\')">Write tag</button><button onclick="pairTag(\''+g.id+'\')">Pair tag</button><button onclick="editG=\''+g.id+'\';render();scrollTo(0,0)">Edit card</button><button onclick="copyLink(\''+g.token+'\')">Copy link</button>'+(feat('remote_credit')?'<button class="go" onclick="creditG(\''+g.token+'\')">Credit</button>':'')+'</div>'+
   '<div class="row" style="margin-top:6px"><select onchange="setGE(\''+g.id+'\',this.value,'+g.spend_on+')">'+evOpts(g.event_id)+'</select><button class="'+(g.spend_on?'on':'bad')+'" onclick="setGE(\''+g.id+'\',\''+(g.event_id||'')+'\','+!g.spend_on+')">Spending '+(g.spend_on?'ON':'OFF')+'</button></div></div>'}
@@ -3029,7 +3039,7 @@ function gResults(){var G=adm.guests||[],L=gList(),P=sParse(gq);
   return '<p class="mut" style="margin:0">'+L.length+(L.length===1?' guest':' guests')+((gq||gf!=='all')?' shown of '+G.length:'')+'</p>'+L.slice(0,gLim).map(function(g){return gCard(g,P.toks)}).join('')+
     (L.length>gLim?'<button style="width:100%;margin-top:8px" onclick="gLim+=60;var e=$(\'gres\');if(e)e.innerHTML=gResults()">Show more</button>':'')}
 function guestsCard(){var G=adm.guests||[],n=G.length,cl=G.filter(function(g){return g.claim}).length,fr=G.filter(function(g){return g.frozen}).length;
-  return '<div class="card" id="gcard"><h2>Guests</h2>'+sBar('gs',gq,'Search name, room, PIN, ID code, username, bracelet\u2026','gType')+
+  return '<div class="card" id="gcard"><h2>Guests</h2>'+sBar('gs',gq,'Search name, room, ID code, username, bracelet\u2026','gType')+
     '<div class="row" style="margin-top:8px">'+sChips([['all','All',n],['claimed','Claimed',cl],['manual','By staff',n-cl],['frozen','Frozen',fr]],gf,'gChip')+'</div>'+
     '<p class="mut" style="margin:8px 0 0;font-size:.8rem">Words are combined. Dashes in codes are ignored. Try is:frozen, is:off or is:paired.</p>'+
     '<div id="gres" style="margin-top:6px">'+gResults()+'</div></div>'}
