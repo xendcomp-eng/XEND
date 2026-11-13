@@ -3541,7 +3541,16 @@ async function lgAssign(c){var v=$('lgga').value,g=(adm.guests||[]).filter(funct
   try{await rpc('lg_assign',{p_code:c,p_guest_id:v||null,p_guest_name:g?g.name:null});toast(v?'Linked.':'Link removed.',true);await lgLoad(c)}catch(e){toast(e.message,false)}}
 function lgMine(){var L=ld('lg-mine')||[];return '<div class="card"><h2>My bag</h2><p class="mut">Type the code printed on your bag tag, or tap the tag with your phone.</p><div class="row"><input id="lgmc" placeholder="Chip code, e.g. XB-0432" autocapitalize="characters" style="flex:1;min-width:160px"><button class="go" onclick="lgGo()">Open</button></div>'+(L.length?'<p class="mut" style="margin:10px 0 4px">Your bags on this phone</p><div class="row">'+L.map(function(c){return '<button onclick="lgGo(\''+c+'\')">\uD83E\uDDF3 '+c+'</button>'}).join('')+'</div>':'')+'</div>'}
 function lgGo(c){c=(c||$('lgmc').value).trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');if(!c)return toast('Enter the chip code.',false);lgOpen(c)}
-var vPublic1=vPublic;vPublic=function(){return vPublic1()+(wallet||wmode==='pin'?'':lgMine())};
+/* business card page: My bag is a tile, shown only when Tour is ON for this card; tapping it opens the My bag feature */
+var cbagOpen=false;
+function cbagGo(v){cbagOpen=(v==='1');render();scrollTo(0,0)}
+var vPublic1=vPublic;vPublic=function(){
+  if(wallet||wmode==='pin'||!card){cbagOpen=false;return vPublic1()}
+  var tour=card.tour===true;
+  if(!tour){cbagOpen=false;return vPublic1()}
+  if(cbagOpen)return xBar('My bag','cbagGo(\'0\')')+lgMine();
+  var L=ld('lg-mine')||[];
+  return vPublic1()+'<div class="xtg" style="grid-template-columns:1fr">'+tileBtn('cbagGo','1','\uD83E\uDDF3','My bag',L.length?L.length+' on this phone':'Scan or type a tag code')+'</div>'};
 var vWallet2=vWallet;vWallet=function(){var h=vWallet2.apply(this,arguments);if(mwMode)return h;var i=h.lastIndexOf('<button onclick="guestOut()">Log out</button>');return i<0?h+lgMine():h.slice(0,i)+lgMine()+h.slice(i)};
 var setTab1=setTab;setTab=function(t){if(t==='bags')lgList();return setTab1.apply(this,arguments)};
 var lgBack1=lgBack;lgBack=function(){lgBack1();if(me)lgList()};
