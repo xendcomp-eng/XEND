@@ -24,6 +24,12 @@ window.addEventListener('orientationchange',function(){setTimeout(function(){win
 })();
 </script>
 <meta name="theme-color" content="#111111">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="XEND">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>XEND-CASH</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1654,12 +1660,16 @@ async function snapRedeem(){var p=snapPot,av=p?Number(p.avail)||0:0;if(!(av>0))r
 /* ---- alerts: notifications + vibration for messages, transactions and scans ---- */
 var NOTIF=ld('fb-notif')!==false,ownAt=0,lastBal=null,bgMsgId=null;
 if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(function(){})}catch(e){}}
+function isIOS(){var u=navigator.userAgent||'';return /iPhone|iPad|iPod/.test(u)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)}
+function isStandalone(){return window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)}
+function iosInstallHelp(){xModal('<h2>Turn on alerts on iPhone</h2><p class="mut">iPhone only allows alerts for apps added to the Home Screen.</p><ol style="margin:8px 0 8px 18px;padding:0;line-height:1.6"><li>Open this page in <b>Safari</b>.</li><li>Tap the <b>Share</b> button, then <b>Add to Home Screen</b>.</li><li>Open <b>XEND</b> from your Home Screen and log in.</li><li>Tap the bell and choose <b>Allow</b>.</li></ol><p class="mut">Your iPhone controls the alert sound and vibration. Check Settings \u203A Notifications \u203A XEND.</p><button class="go" style="width:100%" onclick="xModal()">Got it</button>')}
 function notifyOK(){return 'Notification' in window&&Notification.permission==='granted'}
 function buzz(p){if(NOTIF&&navigator.vibrate){try{navigator.vibrate(p||[120,80,120])}catch(e){}}}
 function bellPaint(){var b=$('bell');if(!b)return;var p='Notification' in window?Notification.permission:'none';
   b.textContent=!NOTIF?'\uD83D\uDD15 Off':(p==='granted'?'\uD83D\uDD14 On':'\uD83D\uDD14 Enable');b.title='Notifications and vibration for messages, points and scans'}
 function bellSet(v){NOTIF=v;sv('fb-notif',v);bellPaint()}
 async function bellTap(){
+  if(!('Notification' in window)&&isIOS()&&!isStandalone()){iosInstallHelp();return}
   if(!('Notification' in window)){bellSet(!NOTIF);toast(NOTIF?'Vibration alerts on. This browser cannot show notifications (on iPhone, add the app to your Home Screen first).':'Alerts off.',true);if(NOTIF)buzz(80);return}
   if(Notification.permission==='denied'){toast('Notifications are blocked. Allow them for this site in your browser settings.',false);return}
   if(Notification.permission==='default'){var r='denied';try{r=await Notification.requestPermission()}catch(e){}
@@ -3916,7 +3926,7 @@ function xStories(){var me=wallet?wallet.name:'You',mine=xSG(chatMe),ok=xSt!==nu
   h='<button onclick="'+(!ok?'chatClose();gSec=\'card\';render()':mine.length?'xView(\''+chatMe+'\')':'xAddStory()')+'"><span class="xwrap">'+xRing(me,chatMe)+(ok?'<span class="xplus" onclick="event.stopPropagation();xAddStory()">+</span>':'')+'</span><span>Your story</span></button>';
   chatPeople.slice().sort(function(a,b){return xRank(a.id)-xRank(b.id)}).forEach(function(p){var u=unreadN(p.id);
     h+='<button onclick="'+(xSG(p.id).length?'xView(\''+esc(p.id)+'\')':'chatOpenConv(\''+esc(p.id)+'\')')+'"><span class="xwrap">'+xRing(p.name,p.id)+(u?'<span class="dot xd">'+u+'</span>':'')+'</span><span>'+esc(String(p.name).split(' ')[0])+'</span></button>'});return h}
-async function xStLoad(){if(xStBusy)return;xStBusy=1;try{xSt=(await rpc('story_feed',{k:key,pin_:wpin}))||[]}catch(e){if(/story_feed|schema cache|Could not find/i.test(e.message))xSt=null}xStAt=Date.now();xStBusy=0;if(chatOpen)paintFriends()}
+async function xStLoad(){if(xStBusy)return;xStBusy=1;try{xSt=(await rpc('story_feed',{k:key,pin_:wpin}))||[]}catch(e){if(/story_feed|schema cache|Could not find/i.test(e.message)){xSt=null;if(!window.xStWarn){window.xStWarn=1;toast('Stories are not working: '+e.message,false)}}}xStAt=Date.now();xStBusy=0;if(chatOpen)paintFriends()}
 var paintFriends0=paintFriends;paintFriends=function(){if(Date.now()-xStAt>25000&&!xStBusy)xStLoad();paintFriends0()};
 function xAddStory(){var i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=function(){var f=i.files&&i.files[0];if(!f)return;var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){
   var s=Math.min(1,720/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
@@ -3956,6 +3966,134 @@ vChat=function(){var conv=chatView==='conv',act=conv?(chatTo?'friends':'bcast'):
   return head+'<div id="xst" class="xst">'+xStories()+'</div><input id="cfq" type="search" placeholder="Search friends" autocomplete="off" value="'+esc(chatQ)+'" oninput="chatQ=this.value;paintFriends()" style="width:100%;border-radius:99px;margin-bottom:8px"><div id="cflist"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div></div>'};
 </script>
 
+
+<script>
+/* ===== voice and video calls (WebRTC). Signalling goes through call_send / call_poll (run xend-calls.sql once) ===== */
+/* To help calls connect on strict mobile networks, add a TURN server below, e.g. {urls:'turn:your.server:3478',username:'user',credential:'pass'} */
+var CALL_ICE=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}];
+var CL=null,clLast=0,clBusy=false,clOff=false,clErr='',clAt=0,clRI=null,clAC=null,clSeen={};
+function clId(){try{return crypto.randomUUID()}catch(e){return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,10)}}
+function clSignal(to,cid,kind,media,payload){return rpc('call_send',{k:key,pin_:wpin,to_:to,cid:cid,kind:kind,media:media||null,payload:payload?JSON.stringify(payload):null}).catch(function(){})}
+function clMediaErr(e){var n=e&&e.name;if(n==='NotAllowedError'||n==='SecurityError')return 'Allow the microphone'+(CL&&CL.media==='video'?' and camera':'')+' for this site, then try again.';if(n==='NotFoundError')return 'No microphone or camera found.';return (e&&e.message)||'Could not open the microphone.'}
+async function clMedia(video,facing){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.RTCPeerConnection)throw new Error('This browser cannot make calls. Use Safari on iPhone or Chrome on Android.');
+  return navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:video?{facingMode:facing||'user',width:{ideal:640},height:{ideal:480}}:false})}
+function clPC(){var pc=new RTCPeerConnection({iceServers:CALL_ICE});
+  pc.ontrack=function(e){if(!CL||CL.pc!==pc)return;CL.remote=e.streams[0]||CL.remote;clAttach()};
+  pc.onconnectionstatechange=function(){if(!CL||CL.pc!==pc)return;var s=pc.connectionState;
+    if(s==='connected'){CL.state='live';CL.since=CL.since||Date.now();clearTimeout(CL.rt);clearTimeout(CL.dt);clUI()}
+    else if(s==='failed')clEnd(true,'The call could not connect. Check that both phones have a good connection.',true);
+    else if(s==='disconnected'){clearTimeout(CL.dt);CL.dt=setTimeout(function(){if(CL&&CL.pc===pc&&pc.connectionState!=='connected')clEnd(true,'The call dropped.',true)},8000)}};
+  return pc}
+function clGather(pc){return new Promise(function(ok){if(pc.iceGatheringState==='complete')return ok();
+  var t=setTimeout(done,2500);function done(){clearTimeout(t);pc.removeEventListener('icegatheringstatechange',chk);ok()}
+  function chk(){if(pc.iceGatheringState==='complete')done()}pc.addEventListener('icegatheringstatechange',chk)})}
+async function clStart(media){
+  if(clOff){toast(clErr||'Calls are not set up yet. Run xend-calls.sql in Supabase.',false);return}
+  if(CL){toast('You are already in a call.',false);return}
+  var to=chatTo;if(!to)return;
+  var pp=chatPeople.filter(function(p){return p.id===to})[0],c=CL={id:clId(),peer:to,peerName:pp?pp.name:'Friend',media:media,role:'out',state:'calling',facing:'user'};
+  clUI();
+  try{c.stream=await clMedia(media==='video')}catch(e){clEnd(false,clMediaErr(e),true);return}
+  if(CL!==c){try{c.stream.getTracks().forEach(function(t){t.stop()})}catch(e){}return}
+  var pc=c.pc=clPC();c.stream.getTracks().forEach(function(t){pc.addTrack(t,c.stream)});clAttach();
+  try{var o=await pc.createOffer();await pc.setLocalDescription(o);await clGather(pc);if(CL!==c)return;
+    await rpc('call_send',{k:key,pin_:wpin,to_:c.peer,cid:c.id,kind:'ring',media:media,payload:JSON.stringify({sdp:pc.localDescription.sdp})})}
+  catch(e){if(CL===c)clEnd(false,/call_send|schema cache|Could not find|permission denied/i.test(e.message)?'Calls are not set up yet. Run xend-calls.sql in Supabase.':(e.message||'Could not start the call.'),true);return}
+  c.rt=setTimeout(function(){if(CL===c&&c.state==='calling')clEnd(true,'No answer.',false)},45000)}
+function clIncoming(s,p){if(!p||!p.sdp)return;
+  var c=CL={id:s.call_id,peer:s.from_id,peerName:s.from_name||'Someone',media:s.media==='video'?'video':'voice',role:'in',state:'ringing',offer:p.sdp,facing:'user'};
+  clUI();clRing(true);
+  try{notify('\uD83D\uDCDE '+c.peerName+' is calling',(c.media==='video'?'Video':'Voice')+' call','call',[300,150,300,150,300])}catch(e){}
+  c.rt=setTimeout(function(){if(CL===c&&c.state==='ringing')clEnd(false,'Missed call from '+c.peerName+'.',false)},40000)}
+async function clAccept(){
+  var c=CL;if(!c||c.role!=='in'||c.state!=='ringing')return;
+  clRing(false);clearTimeout(c.rt);c.state='connecting';clUI();
+  try{c.stream=await clMedia(c.media==='video')}catch(e){clSignal(c.peer,c.id,'decline');clEnd(false,clMediaErr(e),true);return}
+  if(CL!==c){try{c.stream.getTracks().forEach(function(t){t.stop()})}catch(e){}return}
+  var pc=c.pc=clPC();c.stream.getTracks().forEach(function(t){pc.addTrack(t,c.stream)});
+  try{await pc.setRemoteDescription({type:'offer',sdp:c.offer});var a=await pc.createAnswer();await pc.setLocalDescription(a);await clGather(pc);if(CL!==c)return;
+    await rpc('call_send',{k:key,pin_:wpin,to_:c.peer,cid:c.id,kind:'answer',media:c.media,payload:JSON.stringify({sdp:pc.localDescription.sdp})})}
+  catch(e){if(CL===c)clEnd(true,'Could not connect the call.',true);return}
+  clAttach();c.rt=setTimeout(function(){if(CL===c&&c.state!=='live')clEnd(true,'The call could not connect.',true)},20000)}
+function clDecline(){var c=CL;if(!c)return;clSignal(c.peer,c.id,'decline');clEnd(false)}
+function clHang(){clEnd(true,'Call ended.',false)}
+function clEnd(sendEnd,msg,bad){var c=CL;if(!c)return;CL=null;clRing(false);
+  [c.rt,c.dt].forEach(function(t){clearTimeout(t)});clearInterval(c.ti);
+  if(sendEnd)clSignal(c.peer,c.id,'end');
+  try{c.pc&&c.pc.close()}catch(e){}try{c.stream&&c.stream.getTracks().forEach(function(t){t.stop()})}catch(e){}
+  var d=$('clwrap');if(d)d.remove();if(msg)toast(msg,!bad)}
+function clMute(){var c=CL;if(!c||!c.stream)return;c.muted=!c.muted;c.stream.getAudioTracks().forEach(function(t){t.enabled=!c.muted});clUI()}
+function clCam(){var c=CL;if(!c||!c.stream)return;c.camOff=!c.camOff;c.stream.getVideoTracks().forEach(function(t){t.enabled=!c.camOff});clUI()}
+async function clFlip(){var c=CL;if(!c||!c.stream||!c.pc)return;var f=c.facing==='user'?'environment':'user';
+  try{var n=await navigator.mediaDevices.getUserMedia({video:{facingMode:f,width:{ideal:640},height:{ideal:480}}}),nt=n.getVideoTracks()[0],
+    snd=c.pc.getSenders().filter(function(s){return s.track&&s.track.kind==='video'})[0];
+    if(snd)await snd.replaceTrack(nt);c.stream.getVideoTracks().forEach(function(t){t.stop();c.stream.removeTrack(t)});c.stream.addTrack(nt);nt.enabled=!c.camOff;c.facing=f;
+    var lv=$('cllv');if(lv){lv.srcObject=c.stream;lv.style.transform=f==='user'?'scaleX(-1)':'none'}}
+  catch(e){toast('Could not switch the camera.',false)}}
+function clAttach(){if(!CL)return;var rv=$('clrv'),lv=$('cllv');
+  if(rv&&CL.remote&&rv.srcObject!==CL.remote){rv.srcObject=CL.remote;var pr=rv.play();if(pr&&pr.catch)pr.catch(function(){var b=$('cltap');if(b)b.style.display='block'})}
+  if(lv&&CL.stream&&lv.srcObject!==CL.stream){lv.srcObject=CL.stream;lv.muted=true;var q=lv.play();if(q&&q.catch)q.catch(function(){})}}
+function clPlay(){var rv=$('clrv'),b=$('cltap');if(rv)rv.play().catch(function(){});if(b)b.style.display='none'}
+function clTime(){var s=Math.max(0,Math.floor((Date.now()-(CL.since||Date.now()))/1000));return Math.floor(s/60)+':'+('0'+s%60).slice(-2)}
+function clRing(on){clearInterval(clRI);clRI=null;if(!on)return;
+  var go=function(){try{if(typeof xMuted==='function'&&xMuted())return;var c=clAC||(clAC=new (window.AudioContext||window.webkitAudioContext)());if(c.state==='suspended')c.resume();var t=c.currentTime;
+    [0,.25].forEach(function(d){var o=c.createOscillator(),g=c.createGain();o.frequency.value=d?520:440;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.12,t+d);g.gain.exponentialRampToValueAtTime(.001,t+d+.2);o.start(t+d);o.stop(t+d+.22)});
+    if(navigator.vibrate)navigator.vibrate([200,100,200])}catch(e){}};go();clRI=setInterval(go,2000)}
+function clUI(){var c=CL;if(!c)return;var d=$('clwrap');
+  if(!d){d=document.createElement('div');d.id='clwrap';document.body.appendChild(d);
+    d.innerHTML='<video id="clrv" class="clrv" autoplay playsinline></video><div class="clshade"></div><div class="clmid"><div id="clav"></div><h2 id="clnm"></h2><p id="clst"></p></div><video id="cllv" class="cllv" autoplay playsinline muted></video><button id="cltap" class="cltap" onclick="clPlay()" style="display:none">Tap to hear</button><div class="clbar" id="clbar"></div>'}
+  d.className='clwrap '+(c.media==='video'?'vid':'voice')+(c.state==='live'?' live':'');
+  $('clnm').textContent=c.peerName;$('clav').innerHTML=avh(c.peerName,88);
+  $('clst').textContent=c.state==='calling'?'Calling\u2026':c.state==='ringing'?'Incoming '+(c.media==='video'?'video':'voice')+' call':c.state==='connecting'?'Connecting\u2026':clTime();
+  if(c.state==='live'&&!c.ti)c.ti=setInterval(function(){var e=$('clst');if(CL===c&&e)e.textContent=clTime()},1000);
+  var b=function(cls,fn,ic,lb){return '<button class="clb '+cls+'" onclick="'+fn+'" aria-label="'+lb+'"><span>'+ic+'</span><small>'+lb+'</small></button>'};
+  $('clbar').innerHTML=c.state==='ringing'?b('red','clDecline()','\uD83D\uDCF5','Decline')+b('grn','clAccept()','\uD83D\uDCDE','Accept'):
+    b(c.muted?'on':'','clMute()',c.muted?'\uD83D\uDD07':'\uD83C\uDFA4',c.muted?'Unmute':'Mute')+(c.media==='video'?b(c.camOff?'on':'','clCam()',c.camOff?'\uD83D\uDEAB':'\uD83D\uDCF7',c.camOff?'Camera on':'Camera off')+b('','clFlip()','\uD83D\uDD04','Flip'):'')+b('red','clHang()','\uD83D\uDCF5','End');
+  clAttach()}
+async function clHandle(s){var p=null;try{p=s.payload?JSON.parse(s.payload):null}catch(e){}
+  if(s.kind==='ring'){if(clSeen[s.call_id])return;clSeen[s.call_id]=1;if(s.age>40)return;if(CL){clSignal(s.from_id,s.call_id,'decline');return}clIncoming(s,p);return}
+  if(!CL||CL.id!==s.call_id)return;
+  if(s.kind==='answer'&&CL.role==='out'&&p&&p.sdp&&CL.pc&&CL.pc.signalingState==='have-local-offer'){clearTimeout(CL.rt);CL.state='connecting';clUI();
+    var c=CL;try{await c.pc.setRemoteDescription({type:'answer',sdp:p.sdp})}catch(e){if(CL===c)clEnd(true,'Could not connect the call.',true);return}
+    c.rt=setTimeout(function(){if(CL===c&&c.state!=='live')clEnd(true,'The call could not connect.',true)},20000)}
+  else if(s.kind==='decline')clEnd(false,CL.peerName+' declined.',false);
+  else if(s.kind==='end')clEnd(false,CL.state==='ringing'?'Missed call from '+CL.peerName+'.':'Call ended.',false)}
+async function clPoll(){if(clBusy||me||!wallet||!key||!feat('chat'))return;clBusy=true;
+  try{var r=(await rpc('call_poll',{k:key,pin_:wpin,after_:clLast}))||[];r.forEach(function(s){if(s.id>clLast)clLast=s.id});for(var i=0;i<r.length;i++)await clHandle(r[i])}
+  catch(e){if(/call_poll|schema cache|Could not find|permission denied/i.test(e.message)){clOff=true;clErr='Calls are not set up yet. Run xend-calls.sql in Supabase. ('+e.message+')'}}
+  clBusy=false}
+setInterval(function(){if(clOff)return;var n=Date.now();if(!CL&&n-clAt<3000)return;clAt=n;clPoll()},1000);
+var guestOut9=guestOut;guestOut=function(){if(CL)clEnd(true);clLast=0;return guestOut9.apply(this,arguments)};
+/* two buttons at the bottom of a private chat */
+var vChat9=vChat;vChat=function(){var h=vChat9.apply(this,arguments);
+  if(chatView!=='conv'||!chatTo||!feat('chat'))return h;
+  var row='<div class="xcallrow"><button class="go" onclick="clStart(\'voice\')">\uD83D\uDCDE Voice call</button><button class="go" onclick="clStart(\'video\')">\uD83C\uDFA5 Video call</button></div>',i=h.lastIndexOf('</div>');
+  return i<0?h+row:h.slice(0,i)+row+h.slice(i)};
+</script>
+<style>
+.xcallrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 0}
+.xcallrow button{min-height:48px;font-weight:700}
+.clwrap{position:fixed;inset:0;z-index:9999;background:#0b0b0f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+.clrv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+.clwrap.voice .clrv{opacity:0;pointer-events:none}
+.clshade{position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.1) 40%,rgba(0,0,0,.55));pointer-events:none}
+.clwrap.vid.live .clshade{background:linear-gradient(rgba(0,0,0,.35),transparent 30%,transparent 70%,rgba(0,0,0,.55))}
+.clmid{position:relative;text-align:center;margin-bottom:auto;margin-top:12vh}
+.clmid h2{margin:12px 0 4px;font-size:1.5rem;color:#fff}
+.clmid p{margin:0;opacity:.85}
+.clwrap.vid.live .clmid{margin-top:calc(env(safe-area-inset-top,0px) + 14px)}
+.clwrap.vid.live .clmid #clav{display:none}
+.clwrap.vid.live .clmid h2{font-size:1.05rem;margin:0}
+.cllv{position:absolute;right:14px;top:calc(env(safe-area-inset-top,0px) + 14px);width:96px;height:132px;object-fit:cover;border-radius:14px;border:2px solid rgba(255,255,255,.5);background:#222;transform:scaleX(-1);z-index:2}
+.clwrap.voice .cllv{display:none}
+.cltap{position:relative;z-index:3;margin:0 0 12px;padding:10px 18px;border-radius:99px;background:#fff;color:#000;font-weight:700}
+.clbar{position:relative;z-index:3;display:flex;gap:18px;justify-content:center;flex-wrap:wrap;padding:0 16px 28px}
+.clb{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;color:#fff;min-width:72px;padding:0}
+.clb span{display:flex;align-items:center;justify-content:center;width:62px;height:62px;border-radius:50%;background:rgba(255,255,255,.2);font-size:1.6rem;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.clb small{font-size:.78rem;opacity:.9}
+.clb.red span{background:#e5393b}.clb.grn span{background:#22a559}.clb.on span{background:#fff;color:#000}
+</style>
 
 <style>
 /* floating Back: sticks under the header, left aligned, follows you while scrolling */
