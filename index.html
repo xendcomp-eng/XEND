@@ -3776,8 +3776,8 @@ async function xReg(nfc){var fill=function(c){xTone(true);if($('lgc'))$('lgc').v
 var cTab='friends',xA={},xGot=0,xPh=null,xPhC=-1,XIMG=/^data:image\/[a-z+]+;base64,[A-Za-z0-9+\/=]+$/;
 function xMuted(){try{return localStorage.getItem('x-mute')==='1'}catch(e){return false}}
 function xMute(){try{localStorage.setItem('x-mute',xMuted()?'0':'1')}catch(e){}render()}
-function xChime(k){if(xMuted())return;try{navigator.vibrate&&navigator.vibrate(k==='in'?[25,35,25]:20)}catch(e){}
-  try{var c=new (window.AudioContext||window.webkitAudioContext)(),f=k==='in'?[700,1000]:[500,760],t=c.currentTime;f.forEach(function(hz,i){var o=c.createOscillator(),g=c.createGain();o.frequency.value=hz;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.12,t+i*.09);g.gain.exponentialRampToValueAtTime(.001,t+i*.09+.12);o.start(t+i*.09);o.stop(t+i*.09+.13)});setTimeout(function(){c.close()},500)}catch(e){}}
+function xChime(k){if(xMuted())return;try{navigator.vibrate&&navigator.vibrate(k==='in'?[25,35,25]:k==='pop'?60:20)}catch(e){}
+  try{var c=new (window.AudioContext||window.webkitAudioContext)(),f=k==='in'?[700,1000]:k==='pop'?[880]:[500,760],t=c.currentTime;f.forEach(function(hz,i){var o=c.createOscillator(),g=c.createGain();o.frequency.value=hz;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.14,t+i*.09);g.gain.exponentialRampToValueAtTime(.001,t+i*.09+.12);o.start(t+i*.09);o.stop(t+i*.09+.13)});setTimeout(function(){c.close()},500)}catch(e){}}
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.xchat button,.xtile');if(b&&!xMuted())try{navigator.vibrate&&navigator.vibrate(12)}catch(x){}});
 /* profile pictures come from each person's business card; nothing is uploaded here */
 function xPhoto(n){if(wallet&&n===wallet.name){var m=photoOf(wallet.links);return XIMG.test(m)?m:''}
@@ -3797,7 +3797,7 @@ var chatBubble0=chatBubble;chatBubble=function(x){var h=chatBubble0(x),mine=x.fr
   return h.replace('<div style="display:flex;','<div class="xbub'+(mine?' xme':'')+(nw?' xnew':'')+'" style="display:flex;')};
 var paintChat0=paintChat;paintChat=function(){xGot=0;paintChat0.apply(this,arguments);if(xGot)xChime('in')};
 var chatOpenConv0=chatOpenConv;chatOpenConv=function(id){threadMsgs(id).forEach(function(m){xA[m.id]=1});return chatOpenConv0(id)};
-var chatSend0=chatSend;chatSend=async function(loc){var i=$('ctxt'),had=i&&i.value.trim();await chatSend0.apply(this,arguments);if(!loc&&had&&$('ctxt')&&!$('ctxt').value)xChime('out')};
+var chatSend0=chatSend;chatSend=async function(loc){var i=$('ctxt'),had=i&&i.value.trim();await chatSend0.apply(this,arguments);if(xSkip){xSkip=0}else if(!loc&&had&&$('ctxt')&&!$('ctxt').value)xChime('out')};
 function xTab(t){if(t==='bcast')return chatOpenConv('');cTab=t;chatView='list';chatTo='';render()}
 function xEmo(){var e=$('xemo');if(e)e.style.display=e.style.display==='none'?'flex':'none'}
 function xPre(sel,id){var n=0,t=setInterval(function(){var s=$(sel);if(s){s.value=id;clearInterval(t)}else if(++n>20)clearInterval(t)},100)}
@@ -3815,6 +3815,131 @@ vChat=function(){var conv=chatView==='conv',act=conv?(chatTo?'friends':'bcast'):
     '<p class="mut xcost">Messages vanish by themselves. Each one costs '+(fr?cM():cB())+' pt'+((fr?cM():cB())===1?'':'s')+(fr?'':' (broadcast to everyone)')+'.</p></div></div>'}
   if(cTab==='add')return head+(HAS?'<button class="go" style="width:100%" onclick="homeTap()">📲 Tap a bracelet to add a friend</button>':'<p class="mut">To add a friend, hold their bracelet to your phone, or use a code or QR below.</p>')+codePanel()+'<div id="creq"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div><button class="bad" style="margin-top:14px" onclick="chatLeave()">Leave chat &amp; delete my messages</button></div>';
   return head+'<div id="xst" class="xst">'+xStories()+'</div><input id="cfq" type="search" placeholder="Search friends" autocomplete="off" value="'+esc(chatQ)+'" oninput="chatQ=this.value;paintFriends()" style="width:100%;border-radius:99px"><div id="cflist"></div><div id="spot"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div></div>'};
+</script>
+
+<style>
+.xic{background:none!important;border:0!important;width:40px!important;height:40px!important;padding:0!important;display:inline-flex;align-items:center;justify-content:center;color:var(--ink);flex:none}
+.xsendb{background:var(--acc)!important;color:#111!important;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;border:0!important}
+.xshake{animation:xsh .4s}@keyframes xsh{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+#xw{position:fixed;z-index:97;width:56px;pointer-events:none}
+.xwe{width:56px;height:240px;background:rgba(120,120,130,.28);clip-path:polygon(44% 100%,56% 100%,100% 0,0 0);position:relative;backdrop-filter:blur(4px)}
+.xwf{position:absolute;left:0;right:0;bottom:0;height:6%;background:linear-gradient(0deg,var(--acc),#f472b6)}
+#xw.cn .xwf{background:#ef4444}
+.xwl{position:absolute;right:66px;bottom:0;text-align:right;white-space:nowrap}
+.xwl b{display:block;font-size:2rem;line-height:1}.xwl b.pop{animation:xpop .3s cubic-bezier(.34,1.56,.64,1)}
+.xwl span{font-size:.8rem;opacity:.8}
+.xghost{position:fixed;z-index:97;padding:8px 14px;border-radius:20px;background:var(--acc);color:#111;animation:xfly .5s ease-in forwards;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@keyframes xfly{to{transform:translateY(-150px) scale(.85);opacity:0}}
+.xsp{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);margin-bottom:10px;font-size:.85rem}
+.xsp .mut{flex:1}.xsp button{min-height:32px;padding:2px 12px}
+.xrow{border:1px solid var(--line)!important;border-radius:16px!important;background:var(--card)!important;margin-bottom:8px;padding:10px 12px!important}
+.xreqb{width:100%;margin-bottom:10px;border-radius:99px;position:relative}
+.xreqi{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:6px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+.xreqi .xtx{flex:1;min-width:0;display:flex;flex-direction:column}
+.xwrap{position:relative;display:inline-flex}
+.xwrap .xd{position:absolute;top:-2px;right:-4px}
+.xplus{position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;border-radius:50%;background:var(--acc);color:#111;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--card)}
+.xav.se{background:var(--line);opacity:.8}
+#xvw{position:fixed;inset:0;z-index:96;background:#000;color:#fff}
+.xvc{display:flex;flex-direction:column;height:100%;max-width:520px;margin:0 auto;padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom))}
+.xpbs{display:flex;gap:4px}.xpb{flex:1;height:3px;background:rgba(255,255,255,.3);border-radius:3px;overflow:hidden}
+.xpb i{display:block;height:100%;width:0;background:#fff}.xpb i.f{width:100%}.xpb i.a{animation:xpbar 5s linear forwards}
+@keyframes xpbar{to{width:100%}}
+.xvh{display:flex;align-items:center;gap:8px;padding:10px 0}.xvh button{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:99px;min-height:36px;padding:2px 12px}
+.xvi{flex:1;position:relative;min-height:0;display:flex;align-items:center;justify-content:center}.xvi img{max-width:100%;max-height:100%;border-radius:12px;object-fit:contain}
+.xz{position:absolute;top:0;bottom:0;width:35%}.xz.l{left:0}.xz.r{right:0;width:65%}
+.xvcap{text-align:center;padding:10px;margin:0;min-height:1.4em}
+.xdemo{position:relative;height:130px;display:flex;align-items:center;justify-content:center}
+.xdw{position:absolute;right:30%;bottom:0;width:44px;height:120px;background:rgba(120,120,130,.3);clip-path:polygon(44% 100%,56% 100%,100% 0,0 0)}
+.xdd{position:absolute;right:calc(30% + 10px);bottom:0;width:24px;height:24px;border-radius:50%;background:var(--acc);animation:xdm 2.2s ease-in-out infinite}
+@keyframes xdm{0%{transform:translateY(0)}60%,100%{transform:translateY(-92px)}}
+</style>
+<script>
+/* ===== v4 layer: swipe-to-send, stories, requests, slim snap strip, walkthrough ===== */
+var XS=[1,2,5,10,30,60,180,360,720,1440],xG=null,xSkip=0,xWalked=0,xReqOpen=false,xSt=[],xStAt=0,xStBusy=0,xV=null,xVT=null,xStc={},xStImg='';
+var XSVG={cam:'<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 14.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9zm0-2a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>',
+ pin:'<svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true"><path fill="#EA4335" d="M12 1.5C8 1.5 4.8 4.7 4.8 8.7c0 5.4 7.2 13.8 7.2 13.8s7.2-8.4 7.2-13.8c0-4-3.2-7.2-7.2-7.2z"/><circle cx="12" cy="8.7" r="3" fill="#fff"/></svg>',
+ send:'<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M2.5 21.5 23 12 2.5 2.5l-.01 7.4L16 12 2.49 14.1z"/></svg>'};
+function xLab(m){return m<60?m+' min':m<1440?(m/60)+(m===60?' hour':' hours'):'24 hours'}
+function xAgo(ts){var m=Math.floor((Date.now()-ts)/60000);return m<1?'now':m<60?m+'m':Math.floor(m/60)+'h'}
+/* press, hold and slide up on Send */
+function xShake(){var c=$('cbox');if(c){c.classList.remove('xshake');void c.offsetWidth;c.classList.add('xshake')}}
+function xWedge(on){var w=$('xw');if(w)w.remove();if(!on||!xG)return;var b=xG.btn.getBoundingClientRect();w=document.createElement('div');w.id='xw';
+  w.style.left=Math.min(innerWidth-70,Math.max(8,b.left+b.width/2-28))+'px';w.style.bottom=(innerHeight-b.top+10)+'px';
+  w.innerHTML='<div class="xwl"><b id="xwt">1 min</b><span id="xwh">Slide up for longer</span></div><div class="xwe"><div class="xwf" id="xwf"></div></div>';document.body.appendChild(w)}
+function xWUpd(dy){var f=$('xwf');if(f)f.style.height=Math.round(Math.max(.06,Math.min(1,dy/280))*100)+'%';var t=$('xwt'),l=xLab(XS[xG.i]);
+  if(t&&t.textContent!==l){t.textContent=l;t.classList.remove('pop');void t.offsetWidth;t.classList.add('pop')}
+  var h=$('xwh');if(h)h.textContent=xG.cancel?'Release to cancel':'Release to send';var w=$('xw');if(w)w.classList.toggle('cn',!!xG.cancel)}
+function xSD(e){var i=$('ctxt');if(!i||!i.value.trim()){xShake();note('Type a message first.');return}
+  e.preventDefault();try{e.currentTarget.setPointerCapture(e.pointerId)}catch(x){}
+  xG={y:e.clientY,t:Date.now(),i:0,cancel:false,dy:0,btn:e.currentTarget};
+  xG.iv=setInterval(function(){if(xG&&!xG.cancel&&!xMuted())try{navigator.vibrate&&navigator.vibrate(6+xG.i*5)}catch(x){}},110);
+  xWedge(true);xWUpd(0)}
+function xSM(e){if(!xG)return;var dy=xG.y-e.clientY;xG.cancel=dy<-50;var i=xG.cancel?0:Math.min(9,Math.max(0,Math.floor(dy/28)));
+  if(i!==xG.i){xG.i=i;if(!xMuted())try{navigator.vibrate&&navigator.vibrate(18+i*6)}catch(x){}}xWUpd(dy)}
+function xSU(e){if(!xG)return;var g=xG;xG=null;clearInterval(g.iv);xWedge(false);if(g.cancel){note('Cancelled.');return}
+  if(Date.now()-g.t<350){xShake();note('Press and hold the plane, slide up for longer, then let go.');return}
+  var i=$('ctxt'),t=i?i.value.trim():'';if(!t)return;$('cttl').value=XS[g.i];xSkip=1;xChime('pop');xFly(t);chatSend()}
+function xSC(){if(!xG)return;clearInterval(xG.iv);xG=null;xWedge(false)}
+function xSK(){$('cttl').value=60;chatSend()}
+function xFly(t){var c=$('cbox');if(!c)return;var r=c.getBoundingClientRect(),g=document.createElement('div');g.className='xghost';g.textContent=t;g.style.left=(r.left+50)+'px';g.style.top=r.top+'px';g.style.maxWidth=(r.width-120)+'px';document.body.appendChild(g);setTimeout(function(){g.remove()},520)}
+/* walkthrough */
+var XW=[['\u270D\uFE0F','Type your message','Write it in the box as usual.'],['\uD83D\uDC46','Press and hold Send','A quick tap does nothing. Hold the paper plane and your phone starts to buzz.'],['\u2B06\uFE0F','Slide up, then let go','The higher you slide, the longer your message stays, from 1 minute to 24 hours. Let go to send. Slide back down to cancel.']];
+function xWalk(n){var s=XW[n];xModal('<div style="text-align:center"><div class="xdemo">'+(n===2?'<div class="xdw"></div><div class="xdd"></div>':'<div style="font-size:3rem">'+s[0]+'</div>')+'</div><h2>'+s[1]+'</h2><p class="mut">'+s[2]+'</p><div class="row" style="justify-content:center;margin-top:10px">'+(n<2?'<button onclick="xWalkEnd()">Skip</button><button class="go" onclick="xWalk('+(n+1)+')">Next</button>':'<button class="go" onclick="xWalkEnd()">Got it</button>')+'</div><p class="mut" style="font-size:.78rem">'+(n+1)+' of 3</p></div>')}
+function xWalkEnd(){try{localStorage.setItem('x-wt','1')}catch(e){}xModal()}
+/* friend requests */
+function xReqTog(){xReqOpen=!xReqOpen;var p=$('xreq');if(p)p.style.display=xReqOpen?'block':'none'}
+async function xAns(id,a){xChime('out');await chatAns(id,a)}
+var paintReq0=paintReq;paintReq=function(){paintReq0();var p=$('xreq');if(p)p.innerHTML=(chatReqs||[]).map(function(x){return '<div class="xreqi">'+avh(x.name,40)+'<span class="xtx"><b>'+esc(x.name)+'</b><span class="mut">wants to chat</span></span><button class="go" onclick="xAns(\''+esc(x.id)+'\',\'ok\')">Accept</button><button onclick="xAns(\''+esc(x.id)+'\',\'no\')">Reject</button></div>'}).join('')||'<p class="mut" style="margin:6px">No friend requests right now.</p>'};
+/* slim snap earnings strip and XEND Chat header */
+snapPotCard=function(){var p=snapPot;if(!snapOk||!p)return '';var av=Number(p.avail)||0;return '<div class="xsp"><span>\uD83D\uDCF7 Snap earnings</span><b>'+av+' pts</b><span class="mut">\u2248 '+money(av)+'</span>'+(p.mode==='pot'?'<button class="go"'+(av>0?'':' disabled')+' onclick="snapRedeem()">Redeem</button>':'<span class="mut">paid to balance</span>')+'</div>'};
+var xBrand0=xBrand;xBrand=function(){xBrand0();if(wallet&&chatOpen){var b=document.querySelector('header b');if(b)b.textContent='XEND Chat';document.title='XEND Chat'}};
+/* stories: friends only, gone after 6 hours */
+function xSG(id){return (xSt||[]).filter(function(s){return s.owner===id})}
+function xRank(id){var g=xSG(id);return !g.length?2:g.some(function(s){return !s.seen})?0:1}
+function xRing(n,id){var g=id?xSG(id):[],c=!g.length?'':g.some(function(s){return !s.seen})?' un':' se';return '<span class="xav'+c+'">'+avh(n,52)+'</span>'}
+function xStories(){var me=wallet?wallet.name:'You',mine=xSG(chatMe),ok=xSt!==null,
+  h='<button onclick="'+(!ok?'chatClose();gSec=\'card\';render()':mine.length?'xView(\''+chatMe+'\')':'xAddStory()')+'"><span class="xwrap">'+xRing(me,chatMe)+(ok?'<span class="xplus" onclick="event.stopPropagation();xAddStory()">+</span>':'')+'</span><span>Your story</span></button>';
+  chatPeople.slice().sort(function(a,b){return xRank(a.id)-xRank(b.id)}).forEach(function(p){var u=unreadN(p.id);
+    h+='<button onclick="'+(xSG(p.id).length?'xView(\''+esc(p.id)+'\')':'chatOpenConv(\''+esc(p.id)+'\')')+'"><span class="xwrap">'+xRing(p.name,p.id)+(u?'<span class="dot xd">'+u+'</span>':'')+'</span><span>'+esc(String(p.name).split(' ')[0])+'</span></button>'});return h}
+async function xStLoad(){if(xStBusy)return;xStBusy=1;try{xSt=(await rpc('story_feed',{k:key,pin_:wpin}))||[]}catch(e){if(/story_feed|schema cache|Could not find/i.test(e.message))xSt=null}xStAt=Date.now();xStBusy=0;if(chatOpen)paintFriends()}
+var paintFriends0=paintFriends;paintFriends=function(){if(Date.now()-xStAt>25000&&!xStBusy)xStLoad();paintFriends0()};
+function xAddStory(){var i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=function(){var f=i.files&&i.files[0];if(!f)return;var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){
+  var s=Math.min(1,720/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+  var q=.7;xStImg=c.toDataURL('image/jpeg',q);while(xStImg.length>280000&&q>.3){q-=.1;xStImg=c.toDataURL('image/jpeg',q)}
+  xModal('<h2>New story</h2><img src="'+xStImg+'" alt="" style="width:100%;max-height:45vh;object-fit:contain;border-radius:12px"><input id="xscap" maxlength="120" placeholder="Add a caption (optional)" style="width:100%;margin-top:8px"><p class="mut">Only your friends can see it, and it disappears after 6 hours.</p><div class="row" style="margin-top:8px"><button onclick="xModal()">Cancel</button><button class="go" onclick="xPostStory()">Post story</button></div>')};im.src=r.result};r.readAsDataURL(f)};i.click()}
+async function xPostStory(){var c=$('xscap');try{await rpc('story_post',{k:key,pin_:wpin,photo:xStImg,cap:c?c.value.trim():''});xModal();xChime('out');toast('Story posted. It stays for 6 hours.',true);xStAt=0;await xStLoad()}catch(e){toast(e.message,false)}}
+function xQ(first){var seen={},q=[first];seen[first]=1;(xSt||[]).forEach(function(s){if(!seen[s.owner]&&s.owner!==chatMe&&xSG(s.owner).some(function(z){return !z.seen})){seen[s.owner]=1;q.push(s.owner)}});return q}
+function xView(id){xV={q:xQ(id),qi:0,si:0,y:0};var k=-1;xSG(id).forEach(function(s,i){if(k<0&&!s.seen)k=i});xV.si=k<0?0:k;xVShow()}
+async function xVShow(){clearTimeout(xVT);if(!xV)return;var o=xV.q[xV.qi],g=xSG(o);if(!g.length||xV.si>=g.length)return xVNext();var s=g[xV.si],mine=o===chatMe,
+  name=mine?'Your story':((chatPeople.filter(function(p){return p.id===o})[0]||{}).name||''),d=$('xvw');
+  if(!d){d=document.createElement('div');d.id='xvw';document.body.appendChild(d)}
+  d.innerHTML='<div class="xvc" onpointerdown="if(xV)xV.y=event.clientY" onpointerup="if(xV&&event.clientY-xV.y>90)xVClose()"><div class="xpbs">'+g.map(function(z,i){return '<span class="xpb"><i class="'+(i<xV.si?'f':i===xV.si?'w':'')+'"></i></span>'}).join('')+'</div><div class="xvh">'+avh(name,36)+'<b>'+esc(name)+'</b><span style="opacity:.7">'+xAgo(s.ts)+'</span><span style="flex:1"></span>'+(mine?'<button onclick="xVViews('+s.id+')">\uD83D\uDC41 '+(s.views||0)+'</button><button onclick="xVDel('+s.id+')" aria-label="Delete story">\uD83D\uDDD1</button>':'')+'<button onclick="xVClose()" aria-label="Close">\u2715</button></div><div class="xvi"><img id="xvimg" alt=""><div class="xz l" onclick="xVPrev()"></div><div class="xz r" onclick="xVNext()"></div></div><p class="xvcap" id="xvcap"></p></div>';
+  var p=xStc[s.id];if(!p){try{p=xStc[s.id]=await rpc('story_get',{k:key,pin_:wpin,sid:s.id})}catch(e){toast(e.message,false);return xVClose()}}
+  if(!xV||xV.q[xV.qi]!==o||!xSG(o)[xV.si]||xSG(o)[xV.si].id!==s.id)return;
+  var im=$('xvimg');if(im&&/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(p.photo||''))im.src=p.photo;var c=$('xvcap');if(c)c.textContent=s.cap||'';s.seen=true;
+  var w=document.querySelector('.xpb i.w');if(w)w.className='a';xVT=setTimeout(xVNext,5000)}
+function xVNext(){if(!xV)return;var g=xSG(xV.q[xV.qi]);xV.si++;if(xV.si>=g.length){xV.qi++;xV.si=0;if(xV.qi>=xV.q.length)return xVClose()}xVShow()}
+function xVPrev(){if(!xV)return;if(xV.si>0)xV.si--;else if(xV.qi>0){xV.qi--;xV.si=0}xVShow()}
+function xVClose(){clearTimeout(xVT);var d=$('xvw');if(d)d.remove();xV=null;if(chatOpen)paintFriends()}
+function xVDel(id){clearTimeout(xVT);xAsk('Delete this story?',null,async function(){try{await rpc('story_del',{k:key,pin_:wpin,sid:id});xSt=(xSt||[]).filter(function(s){return s.id!==id});delete xStc[id];xVShow()}catch(e){toast(e.message,false);xVShow()}})}
+async function xVViews(id){clearTimeout(xVT);try{var v=(await rpc('story_viewers',{k:key,pin_:wpin,sid:id}))||[];xModal('<h2>Seen by '+v.length+'</h2>'+(v.length?v.map(function(x){return '<div class="item row sp"><b>'+esc(x.name)+'</b><span class="mut">'+xAgo(x.ts)+' ago</span></div>'}).join(''):'<p class="mut">No one yet.</p>')+'<button style="width:100%;margin-top:10px" onclick="xModal();xVShow()">Close</button>')}catch(e){toast(e.message,false)}}
+/* the chat screen */
+vChat=function(){var conv=chatView==='conv',act=conv?(chatTo?'friends':'bcast'):cTab,uf=0,seen=false;chatPeople.forEach(function(p){uf+=unreadN(p.id)});
+  try{seen=localStorage.getItem('x-wt')==='1'}catch(e){}if(!seen&&!xWalked){xWalked=1;setTimeout(function(){xWalk(0)},400)}
+  function T(id,lb,bd){return '<button class="'+(act===id?'on':'')+'" onclick="xTab(\''+id+'\')">'+lb+(bd?'<span class="dot">'+bd+'</span>':'')+'</button>'}
+  var head='<div class="xchat"><div class="row sp" style="margin-bottom:8px"><h2 style="margin:0">XEND Chat</h2><span class="row" style="gap:6px"><button onclick="xWalk(0)" aria-label="How chat works">?</button><button onclick="xMute()" aria-label="'+(xMuted()?'Turn sound on':'Turn sound off')+'">'+(xMuted()?'\uD83D\uDD15':'\uD83D\uDD14')+'</button><button onclick="chatClose()">Close</button></span></div>'+(conv?'':'<div id="spot"></div>')+
+    '<div class="xct">'+T('friends','My friends',uf||'')+T('add','Add friend',reqN||'')+T('bcast','Broadcast',unreadN('')||'')+'</div>'+(conv?'':'<button class="xreqb" onclick="xReqTog()">\uD83D\uDCE8 Friend requests'+(reqN?'<span class="dot">'+reqN+'</span>':'')+'</button><div id="xreq" style="display:'+(xReqOpen?'block':'none')+'"></div>');
+  if(conv){var fr=!!chatTo;
+    return head+'<div class="xconv"><div class="xch"><button onclick="chatBack()" aria-label="Back">\u2039</button><span id="cwho" class="xwho"></span><button class="bad" id="cunf" onclick="chatUnfriend()">Remove</button></div><div id="cmsgs" class="xmsgs" aria-live="polite"></div><div id="cerr" class="mut" role="status" style="min-height:1.2em"></div>'+
+    ((fr&&feat('gifts'))||(fr&&mw!==false)?'<div class="xact">'+(feat('gifts')?'<button onclick="xGoGift()">\uD83C\uDF81 Gift tokens</button>':'')+(mw!==false?'<button onclick="xGoMoney()">\uD83D\uDCB8 Send money</button>':'')+'</div>':'')+
+    '<div id="xemo" class="xemo" style="display:none">'+EMO.map(function(e){return '<button onclick="chatEmoji(\''+e+'\')">'+e+'</button>'}).join('')+'</div>'+
+    '<select id="cttl" hidden>'+XS.map(function(m){return '<option value="'+m+'"'+(m===60?' selected':'')+'>'+xLab(m)+'</option>'}).join('')+'</select>'+
+    '<div id="cbox" class="xcomp">'+(fr?'<button class="xic" onclick="snapCam()" aria-label="Send a snap">'+XSVG.cam+'</button>':'')+'<button class="xic" onclick="chatSend(true)" aria-label="Share my location">'+XSVG.pin+'</button><input id="ctxt" maxlength="500" autocomplete="off" enterkeyhint="send" placeholder="Message" onkeydown="if(event.key===\'Enter\')xSK()"><button class="xic" onclick="xEmo()" aria-label="Emoji">\uD83D\uDE0A</button>'+
+    '<button id="xsend" class="xsendb" aria-label="Send. Press and hold, then slide up to choose how long it stays" onpointerdown="xSD(event)" onpointermove="xSM(event)" onpointerup="xSU(event)" onpointercancel="xSC()" oncontextmenu="return false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();xSK()}">'+XSVG.send+'</button></div>'+
+    '<p class="mut xcost">Press and hold the plane, slide up for longer, let go to send. Each message costs '+(fr?cM():cB())+' pt'+((fr?cM():cB())===1?'':'s')+(fr?'':' (broadcast to everyone)')+'.</p></div></div>'}
+  if(cTab==='add')return head+(HAS?'<button class="go" style="width:100%" onclick="homeTap()">\uD83D\uDCF2 Tap a bracelet to add a friend</button>':'<p class="mut">To add a friend, hold their bracelet to your phone, or use a code or QR below.</p>')+codePanel()+'<div id="creq"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div><button class="bad" style="margin-top:14px" onclick="chatLeave()">Leave chat &amp; delete my messages</button></div>';
+  return head+'<div id="xst" class="xst">'+xStories()+'</div><input id="cfq" type="search" placeholder="Search friends" autocomplete="off" value="'+esc(chatQ)+'" oninput="chatQ=this.value;paintFriends()" style="width:100%;border-radius:99px;margin-bottom:8px"><div id="cflist"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div></div>'};
 </script>
 
 </body>
