@@ -1754,9 +1754,9 @@ async function pollSales(silent){if(!me||me.role!=='vendor')return;
     if(lastSale===null||silent)lastSale=Math.max(lastSale||0,top);
     else if(top>lastSale){var fresh=d.recent.filter(function(x){return x.id>lastSale}).reverse();lastSale=top;pushPop(fresh)}
     paintSales()}catch(e){}}
-function paintSales(){var a=$('vsum'),b=$('vrec');if(!a||!b||!vs)return;
-  a.innerHTML='<div class="card"><div class="mut">Your sales today</div><div class="bal">'+vs.today+' pts</div><p class="mut" style="margin:10px 0 0">All time: <b>'+vs.total+' pts</b> · '+vs.count+' sales · 1 pt = '+money(1)+'</p></div>';
-  b.innerHTML='<div class="card"><h2>Recent sales</h2>'+(vs.recent.length?vs.recent.map(function(x){return '<div class="item row sp"><span>'+esc(x.guest)+(x.note?' · '+esc(x.note):'')+'<br><span class="mut">'+when(x.ts)+'</span></span><b>+'+x.amt+'</b></div>'}).join(''):'<p class="mut">No sales yet.</p>')+'</div>'}
+function paintSales(){var a=$('vsum'),b=$('vrec');if(!vs||(!a&&!b))return;
+  if(a)a.innerHTML='<div class="card"><div class="mut">Your sales today</div><div class="bal">'+vs.today+' pts</div><p class="mut" style="margin:10px 0 0">All time: <b>'+vs.total+' pts</b> · '+vs.count+' sales · 1 pt = '+money(1)+'</p></div>';
+  if(b)b.innerHTML='<div class="card"><h2>Recent sales</h2>'+(vs.recent.length?vs.recent.map(function(x){return '<div class="item row sp"><span>'+esc(x.guest)+(x.note?' · '+esc(x.note):'')+'<br><span class="mut">'+when(x.ts)+'</span></span><b>+'+x.amt+'</b></div>'}).join(''):'<p class="mut">No sales yet.</p>')+'</div>'}
 function beep(){try{var c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.15;o.start();setTimeout(function(){o.stop();c.close()},200)}catch(e){}}
 function pushPop(items){popItems=popItems.concat(items);drawPop();beep();var t=items.reduce(function(a,x){return a+x.amt},0);notify('Payment received','+'+t+' pts'+(items.length===1&&items[0].guest?' from '+items[0].guest:' ('+items.length+' payments)'),'sale',[120,80,120])}
 function drawPop(){var t=popItems.reduce(function(a,x){return a+x.amt},0),h='<div class="popcard" role="alertdialog"><div style="font-weight:700">Payment received</div><div class="bal">+'+t+' pts</div>';
@@ -3705,9 +3705,22 @@ vStaff=function(){if(!me)return vStaff1();if(me.role==='vendor')return xVendor()
     return '<div class="xtg">'+o+'</div>'}
   var lb='';tabs.forEach(function(t){if(t[0]===tab)lb=t[1]});
   return xBar(lb||'Back','setTab(\'tiles\')')+rest};
-function xVendor(){var s=armed?'charge':gSec;
-  if(s==='charge')return xBar('Charge','tGo(\'\')')+vTill();if(s==='sales')return xBar('Today\u2019s sales','tGo(\'\')')+'<div id="vsum"></div>';if(s==='recent')return xBar('Recent sales','tGo(\'\')')+'<div id="vrec"></div>';
-  return '<div id="vsum"></div><div class="xtg">'+tileBtn('tGo','charge','🧾','Charge','Wait for a tap')+tileBtn('tGo','sales','📈','Today\u2019s sales')+tileBtn('tGo','recent','🕘','Recent sales')+'</div>'}
+function vdLoadIf(){if(vdat&&vdat.sid&&me&&vdat.sid!==me.id)vdat=undefined;if(vdat===undefined){vdat=null;setTimeout(vdLoad,0)}}
+function vdWait(){var d=vdat;if(d===null||d===undefined)return '<div class="card"><p class="mut">Loading\u2026</p></div>';if(d===false)return '<div class="card"><h2>Not available yet</h2><p class="mut">Ask an admin to run xend-tokens-v2.sql.</p></div>';return ''}
+function vdBal(){var w=vdWait();if(w)return w;var d=vdat,tot=d.paid_avail+d.admin_avail;
+  return '<div class="card"><div class="mut">Available to withdraw</div><div class="bal">'+tokVal(tot,d.rate)+'</div><p class="mut" style="margin:10px 0 0">'+tot+' pts \u00B7 1 pt = '+money(1)+'</p></div>'+
+  '<div class="card"><h2>Where your earnings come from</h2><div class="xk"><div><span class="mut">Paid tokens<br>(real money)</span><b>'+d.paid_avail+' pts</b><span class="mut">'+tokVal(d.paid_avail,d.rate)+' \u00B7 paid automatically</span></div><div><span class="mut">Admin-loaded tokens<br>(event tokens)</span><b>'+d.admin_avail+' pts</b><span class="mut">'+tokVal(d.admin_avail,d.rate)+' \u00B7 needs admin approval</span></div></div>'+
+  '<p class="mut">'+(d.closed?'Your section is closed. You can request your payout.':'To withdraw, close your section after the event is closed.')+'</p><button class="go" style="width:100%" onclick="tGo(\'withdraw\')">Go to withdraw</button></div>'}
+function vdHist(){var w=vdWait();if(w)return w;var P=vdat.payouts||[];
+  return '<div class="card"><h2>Payout requests</h2>'+(P.length?P.map(function(x){return '<div class="item row sp"><span>'+esc(mny(x.amount))+' \u00B7 '+(x.bucket==='paid'?'paid tokens':'admin-loaded tokens')+'<br><span class="mut">'+when(x.created_at)+(x.note?' \u00B7 '+esc(x.note):'')+'</span></span><span class="tag">'+esc(PST[x.status]||x.status)+'</span></div>'}).join('')+'<p class="mut">Usually reflects within 1 to 24 hours.</p>':'<p class="mut">No payout requests yet.</p>')+'</div>'}
+function xVendor(){vdLoadIf();var s=armed?'charge':gSec,d=vdat&&vdat.rate!==undefined?vdat:null,tot=d?d.paid_avail+d.admin_avail:null,T=function(t){return xBar(t,'tGo(\'\')')};
+  if(s==='charge')return T('Charge')+vTill();
+  if(s==='sales')return T('Today\u2019s sales')+'<div id="vsum"></div>';
+  if(s==='recent')return T('Recent sales')+'<div id="vrec"></div>';
+  if(s==='balance')return T('My balance')+vdBal();
+  if(s==='withdraw')return T('Withdraw money')+(vdWait()||vdCard());
+  if(s==='payouts')return T('Payout history')+vdHist();
+  return '<div id="vsum"></div><div class="xtg">'+tileBtn('tGo','charge','\uD83E\uDDFE','Charge',d&&d.closed?'Section closed':'Wait for a tap')+tileBtn('tGo','sales','\uD83D\uDCC8','Today\u2019s sales','Totals and all time')+tileBtn('tGo','recent','\uD83D\uDD58','Recent sales','Latest payments')+tileBtn('tGo','balance','\uD83D\uDCB0','My balance',tot===null?'Loading\u2026':tokVal(tot,d.rate)+' available')+tileBtn('tGo','withdraw','\uD83C\uDFE6','Withdraw','Cash out to MoMo or bank',d&&d.closed&&tot>0?'Ready':'')+tileBtn('tGo','payouts','\uD83D\uDCCB','Payout history','Requests and status')+'</div>'}
 var setTabT=setTab;setTab=function(t){if(t==='tiles'){tab='tiles';render();scrollTo(0,0);return}var r=setTabT.apply(this,arguments);render();scrollTo(0,0);return r};
 
 /* ---- bags: scan to claim, claim from business card ---- */
