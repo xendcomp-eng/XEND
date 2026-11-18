@@ -3963,6 +3963,344 @@ function vFinder(){var f=lgFinder;
 /* a tag link opened from a phone: staff go straight to the desk, everyone else sees the finder page */
 var render9=render;render=function(){render9.apply(this,arguments);if(pendingBag&&sb){var t=pendingBag;pendingBag=null;lgOnTag(t)}};
 
+/* ===== v4: grouped admin menu, guest tabs, card-only mode, offline luggage queue, alerts, PIN throttle, privacy, activity log, setup checklist, accessibility ===== */
+(function(){var st=document.createElement('style');st.id='v4css';st.textContent=[
+':focus-visible{outline:3px solid #1d4ed8;outline-offset:2px;border-radius:6px}',
+'button:not(.tag):not(.chip),select,input:not([type=checkbox]):not([type=radio]){min-height:44px}',
+'.mut{color:color-mix(in srgb,var(--ink) 72%,var(--bg))}',
+'@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}',
+'html.tx1 body{zoom:1.12}html.tx2 body{zoom:1.25}',
+'#aa{min-width:44px;font-weight:800}',
+'.tabs.sub{margin-top:-6px}.tabs.sub button{font-size:.86rem;min-height:40px}',
+'.gnav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;gap:2px;background:var(--card);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}',
+'.gnav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:0;background:transparent;color:var(--mut);font-size:.72rem;min-height:54px;border-radius:12px;padding:4px 2px;position:relative}',
+'.gnav button.on{color:var(--ink);background:color-mix(in srgb,var(--acc) 38%,transparent);font-weight:800}',
+'.gnav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}',
+'.gnav .dot{position:absolute;top:6px;right:calc(50% - 20px);width:10px;height:10px;border-radius:50%;background:#dc2626;border:2px solid var(--card)}',
+'.v4bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:8px 0 12px}.v4bar i{display:block;height:100%;background:var(--acc)}',
+'.v4chk{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}',
+'.v4chk .ck{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-weight:800}',
+'.v4chk.v4done .ck{background:#16a34a;border-color:#16a34a;color:#fff}.v4chk.v4done b{text-decoration:line-through;opacity:.6}',
+'.v4tbl{width:100%;border-collapse:collapse;font-size:.88rem}.v4tbl td,.v4tbl th{text-align:left;padding:8px 6px;border-top:1px solid var(--line);vertical-align:top}'
+].join('');document.head.appendChild(st)})();
+
+/* ---------- text size toggle ---------- */
+function aaApply(){var n=+ld('fb-tx')||0,c=document.documentElement.classList;c.remove('tx1','tx2');if(n)c.add('tx'+n);var b=$('aa');if(b){b.textContent=n===0?'Aa':(n===1?'Aa+':'Aa++');b.title='Text size'}}
+function aaTap(){var n=((+ld('fb-tx')||0)+1)%3;sv('fb-tx',n);aaApply()}
+(function(){try{var b=document.getElementById('bell');if(b&&!document.getElementById('aa')){var a=document.createElement('button');a.id='aa';a.type='button';a.setAttribute('aria-label','Change text size');a.onclick=aaTap;b.parentNode.insertBefore(a,b.nextSibling)}aaApply()}catch(e){}})();
+
+/* ---------- RPC wrapper: PIN throttle + admin activity log ---------- */
+var PIN_RPC=/^(wallet|guest_login|claim_login|claim_with_id|serial_claim_with_id|change_pin)$/;
+var LOG_RPC={admin_set_plan:'Plan changed',bag_price_set:'Luggage slot price set',admin_bag_slots_add:'Free luggage slots added',bag_tags_generate:'Luggage tags created',admin_bag_tag_replace:'Bag tag replaced',retention_set:'Data retention days saved',retention_run:'Data cleanup run',cfg_set:'Settings or tiles saved'};
+function pinLeft(){var f=ld('fb-pinf');return f&&f.until?Math.max(0,Math.ceil((f.until-Date.now())/1000)):0}
+function pinFail(){var f=ld('fb-pinf')||{n:0,until:0};if(f.until&&f.until<Date.now()-600000)f={n:0,until:0};f.n=(f.n||0)+1;if(f.n%5===0){var s=f.n>=15?900:f.n>=10?300:60;f.until=Date.now()+s*1000}sv('fb-pinf',f)}
+function pinOk(){sv('fb-pinf',null)}
+function logDetail(a){try{return JSON.stringify(a||{}).replace(/data:image[^"]{0,}/g,'[image]').slice(0,300)}catch(e){return ''}}
+var rpc10=rpc;rpc=async function(n,a){
+  var guard=PIN_RPC.test(n)&&!(wallet&&a&&a.pin_===wpin&&wpin);
+  if(guard){var l=pinLeft();if(l>0)throw new Error('Too many wrong PIN tries. Please wait '+(l>60?Math.ceil(l/60)+' minutes':l+' seconds')+' and try again.')}
+  var r;
+  try{r=await rpc10.apply(this,arguments)}
+  catch(e){if(guard&&/pin|wrong|incorrect|invalid/i.test(e.message))pinFail();throw e}
+  if(guard){if(r)pinOk();else if(n==='wallet'||n==='guest_login')pinFail()}
+  if(LOG_RPC[n]&&me&&me.role==='admin'){rpc10('admin_log_add',{p_action:LOG_RPC[n],p_detail:n+' '+logDetail(a)}).catch(function(){})}
+  return r};
+
+/* ---------- card-only mode ---------- */
+function cardOnly(){return !!(FX.btn&&FX.btn.t&&FX.btn.t.cardonly)}
+var feat10=feat;feat=function(n){if((n==='chat'||n==='gifts')&&cardOnly())return false;return feat10(n)};
+function vCardOnlyCard(){var on=cardOnly();
+  return '<div class="card"><div class="row sp"><span style="flex:1;min-width:200px"><b>Card-only mode</b> <span class="tag '+(on?'ok':'')+'">'+(on?'On':'Off')+'</span><br><span class="mut">Turns off chat, token gifts and event tokens for everyone, so XEND-CARD is just the business card, QR share, lost mode, luggage and the money wallet. Tapped cards are not affected.</span></span><button class="'+(on?'bad':'go')+'" onclick="coToggle()">'+(on?'Turn off':'Turn on')+'</button></div></div>'}
+async function coToggle(){try{await tilesPatch(function(o,C,t){t.cardonly=!t.cardonly})}catch(e){toast(e.message,false)}render()}
+
+/* ---------- admin: grouped menu ---------- */
+var AG=[['ops','Operations',['home','cards','top','till','events','groups','import','team']],['money','Money',['money','tokens','orders','vendors','buys','ledger']],['store','Storefront',['site','brand','icons','shop','secs','btns','theme']],['plans','Plans',['plans']],['lug','Luggage',['lug']],['set','Settings',['set','priv','alog']]],
+  AXTRA={priv:'Privacy & data',alog:'Activity log'},AMEM={};
+function agGroups(){var have={};XALL.forEach(function(t){have[t[0]]=1});Object.keys(AXTRA).forEach(function(k){have[k]=1});var seen={};
+  var G=AG.map(function(g){var L=g[2].filter(function(id){return have[id]});L.forEach(function(id){seen[id]=1});return [g[0],g[1],L]});
+  XALL.forEach(function(t){if(!seen[t[0]])G[G.length-1][2].push(t[0])});return G.filter(function(g){return g[2].length})}
+function agLbl(id){var f=XALL.filter(function(x){return x[0]===id})[0];return xv('label_'+id,f?f[1]:(AXTRA[id]||id))}
+function agGo(g){var G=agGroups().filter(function(x){return x[0]===g})[0];if(!G)return;var m=AMEM[g];setTab(m&&G[2].indexOf(m)>-1?m:G[2][0])}
+function agNav(){var G=agGroups(),cur=G.filter(function(g){return g[2].indexOf(tab)>-1})[0]||G[0];
+  return '<nav aria-label="Admin sections"><div class="row tabs" style="margin-bottom:14px">'+G.map(function(g){return '<button class="'+(g===cur?'on':'')+'" onclick="agGo(\''+g[0]+'\')">'+esc(g[1])+'</button>'}).join('')+'</div>'+
+  (cur[2].length>1?'<div class="row tabs sub" style="margin-bottom:14px" role="tablist">'+cur[2].map(function(id){return '<button class="'+(tab===id?'on':'')+'" onclick="setTab(\''+id+'\')">'+esc(agLbl(id))+'</button>'}).join('')+'</div>':'')+'</nav>'}
+var setTab10=setTab;setTab=function(t){var G=agGroups().filter(function(g){return g[2].indexOf(t)>-1})[0];if(G)AMEM[G[0]]=t;
+  setTab10.apply(this,arguments);if(t==='priv')pvLoad();else if(t==='alog')alLoad();else if(t==='home')suLoad()};
+var XI5={home:'🏠',top:'💳',till:'🧾',cards:'🪪',events:'🎪',vendors:'💰',buys:'🛍️',team:'👥',groups:'🗂️',import:'📥',set:'⚙️',ledger:'📒',site:'🌐',brand:'🎨',icons:'🧩',shop:'🏪',secs:'🧱',btns:'🔘',orders:'📦',money:'💵',tokens:'🪙',theme:'🌗',plans:'💎',lug:'🧳',priv:'🛡️',alog:'📜'};
+function q5AdminTiles(){suLoad();var o='';agGroups().forEach(function(g){o+='<div class="qh">'+esc(g[1])+'</div>'+g[2].map(function(id){return q5Tile('setTab',id,XI5[id]||'📄',esc(agLbl(id)))}).join('')});return '<div class="qtg">'+o+'</div>'+vSetupCard()}
+var vStaff10=vStaff;vStaff=function(){
+  if(!me||me.role==='vendor')return vStaff10.apply(this,arguments);
+  if(!q5Init){q5Init=1;tab='tiles'}
+  if(me.role!=='admin'){
+    var on=tab==='tiles',keep=tab;if(on)tab='top';
+    var h0=vStaff10.apply(this,arguments),i0=h0.indexOf('</div>');if(on)tab='tiles';else if(tab!==keep&&keep!=='top')tab=keep;
+    if(h0.indexOf('<div class="row tabs"')!==0||i0<0)return h0;
+    var strip=h0.slice(0,i0),rest=h0.slice(i0+6),tabs=[],re=/setTab\('([a-z0-9_]+)'\)">([^<]*)</g,m;while((m=re.exec(strip)))tabs.push([m[1],m[2]]);
+    if(on)return '<div class="qtg"><div class="qh">Your tools</div>'+tabs.map(function(t){return q5Tile('setTab',t[0],XI5[t[0]]||'📄',esc(t[1]))}).join('')+'</div>';
+    var lb='';tabs.forEach(function(t){if(t[0]===tab)lb=t[1]});return q5Bar(lb||'Back',"setTab('tiles')")+rest}
+  if(tab==='tiles')return q5AdminTiles();
+  var real=tab,cust=(tab==='priv'||tab==='alog');if(cust)tab='set';
+  var h=vStaff10.apply(this,arguments);tab=real;
+  var i=h.indexOf('</div>');if(h.indexOf('<div class="row tabs"')!==0||i<0)return h;
+  var body=h.slice(i+6);
+  if(cust)body=tab==='priv'?vPrivacy():vAdmLog();
+  else if(tab==='home'){suLoad();body=vSetupCard()+body}
+  else if(tab==='plans')body+=vCardOnlyCard();
+  return q5Bar(agLbl(real),"setTab('tiles')")+body};
+var setTab11=setTab;setTab=function(t){
+  if(t==='tiles'){if(tab==='lug')lgLeave();tab='tiles';render();scrollTo(0,0);return}
+  var r=setTab11.apply(this,arguments);try{scrollTo(0,0)}catch(e){}return r};
+
+/* ---------- admin: privacy & data retention ---------- */
+var pvS={d:null,err:'',busy:false,res:null};
+async function pvLoad(){try{pvS.d=await rpc('retention_get');pvS.err=''}catch(e){pvS.d=null;pvS.err=/retention_get|schema cache|Could not find/i.test(e.message)?'Not set up yet. Run xend_step6_ops.sql in Supabase.':e.message}render()}
+function vPrivacy(){var d=pvS.d;
+  if(pvS.err)return '<div class="card"><h2>Privacy &amp; data</h2><p class="mut">'+esc(pvS.err)+'</p><button onclick="pvLoad()">Try again</button></div>';
+  if(!d)return '<div class="card"><h2>Privacy &amp; data</h2><p class="mut">Loading…</p></div>';
+  var f=function(id,l,v,h){return '<div style="margin:14px 0"><label for="'+id+'"><b>'+l+'</b></label><br><span class="mut">'+h+'</span><br><input id="'+id+'" type="number" min="1" max="3650" value="'+esc(v)+'" style="width:120px;max-width:100%;flex:none;margin-top:6px"></div>'};
+  return '<div class="card"><h2>Privacy &amp; data</h2><p class="mut">Keep only what you need. Old location points and finder contact details are wiped automatically when you press Clean up now. Bag history stays, only the sensitive parts go.</p>'+
+   f('pv_h','Card visit log (days)',d.hits_days,'Who tapped or scanned a card, and when.')+f('pv_g','GPS points on luggage scans (days)',d.gps_days,'After this, scans keep the time and place name but lose exact coordinates.')+f('pv_n','Finder notes and contact details (days)',d.note_days,'What a stranger typed when they found a bag.')+
+   '<div class="row" style="margin-top:12px"><button class="go" '+(pvS.busy?'disabled':'')+' onclick="pvSave()">Save days</button><button '+(pvS.busy?'disabled':'')+' onclick="pvRun()">Clean up now</button></div>'+
+   (pvS.res?'<p class="mut" style="margin-top:10px" role="status">Done: '+pvS.res.hits_deleted+' visit records deleted, '+pvS.res.gps_cleared+' GPS points cleared, '+pvS.res.notes_cleared+' finder notes cleared.</p>':'')+
+   '<p class="mut" style="margin-top:10px">Cleanup runs when you press the button. To run it by itself every night, ask your Supabase admin to schedule <code>select retention_run()</code> with pg_cron.</p></div>'}
+async function pvSave(){var g=function(i){return parseInt(($(i)||{}).value,10)};pvS.busy=true;render();
+  try{pvS.d=await rpc('retention_set',{p_hits:g('pv_h'),p_gps:g('pv_g'),p_note:g('pv_n')});var dn=ld('setup-done')||{};dn.ret=true;sv('setup-done',dn);toast('Saved.',true)}catch(e){toast(e.message,false)}pvS.busy=false;render()}
+function pvRun(){q5Ask('Delete old visit records and wipe old GPS points and finder notes now? This cannot be undone.',null,pvRun2)}
+async function pvRun2(){pvS.busy=true;pvS.res=null;render();
+  try{pvS.res=await rpc('retention_run')}catch(e){toast(e.message,false)}pvS.busy=false;render()}
+var vFinder10=vFinder;vFinder=function(){return vFinder10.apply(this,arguments)+'<p class="mut" style="font-size:.8rem;text-align:center;margin:10px 14px">Privacy: your location and note are shared only with the bag owner and the hotel or transport staff, and are deleted automatically after a short time.</p>'};
+
+/* ---------- admin: activity log ---------- */
+var alS={rows:null,err:''};
+async function alLoad(){try{alS.rows=await rpc('admin_log_list',{p_limit:200});alS.err=''}catch(e){alS.rows=null;alS.err=/admin_log_list|schema cache|Could not find/i.test(e.message)?'Not set up yet. Run xend_step6_ops.sql in Supabase.':e.message}render()}
+function vAdmLog(){if(alS.err)return '<div class="card"><h2>Activity log</h2><p class="mut">'+esc(alS.err)+'</p></div>';
+  if(!alS.rows)return '<div class="card"><h2>Activity log</h2><p class="mut">Loading…</p></div>';
+  return '<div class="card"><div class="row sp"><h2 style="margin:0">Activity log</h2><button onclick="alLoad()">Refresh</button></div><p class="mut">Who changed plans, prices, tiles, tags and cleanup, and when.</p>'+
+   (alS.rows.length?'<div style="overflow-x:auto"><table class="v4tbl"><tr><th>When</th><th>Who</th><th>What</th></tr>'+alS.rows.map(function(r){return '<tr><td style="white-space:nowrap">'+esc(when(r.at))+'</td><td>'+esc(r.who||'')+'</td><td><b>'+esc(r.action)+'</b><br><span class="mut" style="word-break:break-all">'+esc((r.detail||'').slice(0,140))+'</span></td></tr>'}).join('')+'</table></div>':'<p class="mut">Nothing logged yet.</p>')+'</div>'}
+
+/* ---------- admin: first-time setup checklist ---------- */
+var suS={price:null,tags:null,loaded:false,busy:false};
+async function suLoad(){if(suS.loaded||suS.busy||!me||me.role!=='admin'||ld('setup-off'))return;suS.busy=true;
+  try{var i=await rpc('bag_admin_info');suS.price=i&&i.price;suS.tags=i&&i.tags}catch(e){}
+  suS.loaded=true;suS.busy=false;if(tab==='home')render()}
+function suItems(){var P=(xcms&&xcms.products)||[],t=(FX.btn&&FX.btn.t)||{},dn=ld('setup-done')||{},
+    any=function(o){return o&&Object.keys(o).some(function(k){return o[k]})};
+  return [
+   {id:'prod',t:'Add your products and give each a plan',d:'Base or Pro on every product, so limits are set automatically when someone buys.',ok:P.length>0&&P.some(function(p){return p.plan}),go:'shop'},
+   {id:'tiles',t:'Choose which tiles each plan gets',d:'Switch tiles off for everyone, or only for Base or Pro.',ok:any(t.off)||any(t.offp&&t.offp.base)||any(t.offp&&t.offp.pro)||!!dn.tiles,go:'plans',man:true},
+   {id:'price',t:'Set the luggage slot price',d:'Guests buy slots to register bags.',ok:suS.price>0,go:'lug',view:'over'},
+   {id:'tags',t:'Create luggage tags',d:'Generate codes, print labels or write NFC tags.',ok:suS.tags>0,go:'lug',view:'tags'},
+   {id:'staff',t:'Add hotel and transport staff',d:'They need an account to scan bags.',ok:!!(adm.staff&&adm.staff.length),go:'team'},
+   {id:'ret',t:'Review privacy and data cleanup',d:'Pick how long GPS points and finder notes are kept.',ok:!!dn.ret,go:'priv',man:true},
+   {id:'test',t:'Tap a test bracelet and a test bag end to end',d:'Check the card, QR, upgrade and a luggage scan on a real phone.',ok:!!dn.test,go:null,man:true}]}
+function suMark(id){var dn=ld('setup-done')||{};dn[id]=true;sv('setup-done',dn);render()}
+function suGo(g,v){setTab(g);if(v&&g==='lug')setTimeout(function(){lgSetView(v)},60)}
+function suHide(){sv('setup-off',true);render()}
+function vSetupCard(){if(ld('setup-off'))return '';var L=suItems(),n=L.filter(function(x){return x.ok}).length;
+  if(n===L.length)return '<div class="card"><div class="row sp"><span><b>Setup complete</b><br><span class="mut">Everything on the first-time list is done.</span></span><button onclick="suHide()">Hide</button></div></div>';
+  return '<div class="card"><div class="row sp"><h2 style="margin:0">Get ready for your first guests</h2><span class="tag">'+n+' of '+L.length+'</span></div><div class="v4bar"><i style="width:'+Math.round(100*n/L.length)+'%"></i></div>'+
+   L.map(function(x){return '<div class="v4chk '+(x.ok?'v4done':'')+'"><span class="ck">'+(x.ok?'✓':'')+'</span><div style="flex:1"><b>'+esc(x.t)+'</b><br><span class="mut">'+esc(x.d)+'</span></div>'+(x.ok?'':'<div class="row" style="gap:6px;flex-wrap:nowrap">'+(x.go?'<button class="go" onclick="suGo(\''+x.go+'\''+(x.view?',\''+x.view+'\'':'')+')">Go</button>':'')+(x.man?'<button onclick="suMark(\''+x.id+'\')">Done</button>':'')+'</div>')+'</div>'}).join('')+
+   '<div style="text-align:right;margin-top:8px"><button onclick="suHide()">Hide this list</button></div></div>'}
+
+/* ---------- guest home: bottom tabs ---------- */
+var gTab=ld('gtab')||'card';
+function gIc(n){var P={card:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M14 10h4M14 14h4M6.5 16.5c1-1.6 4-1.6 5 0"/>',share:'<path d="M12 15V3M8 7l4-4 4 4M5 13v6h14v-6"/>',wal:'<path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l2-3h12M16 14h2"/>',me:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 15-5 16 0"/>'};
+  return n==='lug'?lgIco('bag',22):'<svg viewBox="0 0 24 24" aria-hidden="true">'+P[n]+'</svg>'}
+function v4chunks(h){var out=[],re=/<(\/?)div\b[^>]*>/g,m,d=0,st=0,pos=0;
+  while((m=re.exec(h))){if(m[1]===''){if(d===0){if(m.index>pos)out.push(h.slice(pos,m.index));st=m.index}d++}else{d--;if(d===0){out.push(h.slice(st,m.index+m[0].length));pos=m.index+m[0].length}}}
+  if(pos<h.length)out.push(h.slice(pos));return out.filter(function(x){return x.replace(/\s/g,'')})}
+function v4kind(c){
+  if(/onclick="guestOut\(\)"/.test(c)&&c.length<200)return 'out';
+  if(/Luggage tracking/.test(c))return 'drop';
+  if(/Share my card|qrOpen|My QR/i.test(c))return 'qr';
+  if(/Card activity|card visits|Who looked|visits to your card/i.test(c))return 'stats';
+  if(/Chat|Send tokens|id="clkt"/.test(c)&&!/MONEY WALLET/.test(c))return 'chat';
+  if(/xmny|MONEY WALLET/.test(c))return 'mon';
+  if(/Welcome to|Getting started|first steps/i.test(c))return 'welcome';
+  if(/Lost mode|lost or stolen|Lost your bracelet/i.test(c))return 'lost';
+  if(/business card|Edit my business card/i.test(c))return 'card';
+  if(/XEND Base|XEND Pro|Your plan|Upgrade to Pro|plan_upgrade|upSheet/i.test(c))return 'plan';
+  if(/Change PIN|<h2>PIN<\/h2>/.test(c))return 'pin';
+  if(/event is not active/i.test(c))return 'inactive';
+  if(/your event tokens|Not cash/i.test(c))return 'tok';
+  if(/<h2>Activities/.test(c))return 'acts';
+  if(/Event token activity|Show every transaction|×\d/i.test(c))return 'hist';
+  return 'other'}
+function gTabSet(t){gTab=t;sv('gtab',t);if(t==='lug'&&!lgG.data&&!lgG.err)lgGLoad();render();try{window.scrollTo(0,0)}catch(e){}}
+function gProblem(){var b=(lgG.data&&lgG.data.bags)||[];return b.some(function(x){return x.problem||x.found_at})}
+function gNav(){var T=[['card','Card'],['share','Share'],['lug','Luggage'],['wal','Wallet'],['me','Account']];
+  if(lgG.err&&/not available/i.test(lgG.err))T=T.filter(function(t){return t[0]!=='lug'});
+  return '<nav class="gnav" aria-label="Main">'+T.map(function(t){return '<button type="button" class="'+(gTab===t[0]?'on':'')+'" aria-current="'+(gTab===t[0]?'page':'false')+'" onclick="gTabSet(\''+t[0]+'\')">'+gIc(t[0])+'<span>'+t[1]+'</span>'+(t[0]==='lug'&&gProblem()?'<i class="dot" aria-label="Needs attention"></i>':'')+'</button>'}).join('')+'</nav>'}
+
+/* ===== v5: tile launcher interface (ported from the XEND-CASH layout), floating Back, in-page dialogs, QR scanner fallback ===== */
+(function(){var st=document.createElement('style');st.id='v5css';st.textContent=[
+'.gnav{display:none!important}',
+'.qtg{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:0 0 14px}',
+'@media(min-width:700px){.qtg{grid-template-columns:repeat(3,1fr)}}@media(min-width:1000px){.qtg{grid-template-columns:repeat(4,1fr)}}',
+'.qtile{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:10px;min-height:96px;padding:14px;border-radius:18px;text-align:left;position:relative;border:1px solid var(--line);background:linear-gradient(145deg,var(--card),color-mix(in srgb,var(--card) 80%,var(--bg)));color:var(--ink);box-shadow:0 6px 18px rgba(15,23,42,.07);transition:transform .12s}',
+'.qtile:active{transform:scale(.97)}.qtile .qi{font-size:1.7rem;line-height:1}.qtile b{font-size:.98rem}',
+'.qtile .qb{position:absolute;top:10px;right:10px;min-width:22px;padding:2px 7px;border-radius:99px;background:#ef4444;color:#fff;font-size:.72rem;font-weight:700;text-align:center}',
+'.qeven>.qtile:last-child:nth-child(odd){grid-column:1/-1;min-height:72px}',
+'@media(min-width:700px){.qeven>.qtile:last-child:nth-child(odd){grid-column:auto;min-height:96px}}',
+'.qh{grid-column:1/-1;margin:14px 2px 0;font-weight:700;opacity:.7}.qh:first-child{margin-top:2px}',
+'.qcmp{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px;align-items:stretch}@media(min-width:640px){.qcmp{grid-template-columns:1fr 1fr}}.qcmp.one{grid-template-columns:1fr}',
+'.qcmp>.card{margin:0;padding:12px 14px;display:flex;flex-direction:column}.qcard .bal{font-size:1.5rem;margin:2px 0}.qsub{font-size:.82rem;margin:2px 0 0}',
+'.qbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:10px}.qbtns button{flex:1 1 auto;min-height:44px;padding:6px 10px;font-size:.85rem}',
+'.qbar{border-radius:16px;padding-left:2px!important;display:flex;align-items:center;gap:12px;position:sticky;top:calc(var(--hh,60px) + 6px);z-index:14;margin:0 0 14px;padding:6px 0;background:color-mix(in srgb,var(--bg) 82%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}',
+'.qbar h2{margin:0;font-size:1.15rem}.qbar button{flex:none;min-height:44px;padding:8px 18px;border-radius:99px;font-weight:700}',
+'.qmw{position:fixed;inset:0;z-index:98;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}.qmw .card{max-width:420px;width:100%;margin:0}',
+'#q5scan{position:fixed;inset:0;z-index:99;background:#000e;color:#fff}.qsc{display:flex;flex-direction:column;gap:10px;height:100%;padding:14px;padding-top:max(14px,env(safe-area-inset-top));padding-bottom:max(14px,env(safe-area-inset-bottom))}',
+'.qsc video{width:100%;flex:1;min-height:0;object-fit:cover;border-radius:16px;background:#111}.qsc .qb2{display:flex;align-items:center;gap:10px}'
+].join('');document.head.appendChild(st)})();
+(function(){function hh(){var h=document.querySelector('header');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px')}
+hh();addEventListener('resize',hh);addEventListener('load',hh);try{var h=document.querySelector('header');if(h&&window.ResizeObserver)new ResizeObserver(hh).observe(h)}catch(e){}})();
+function q5Tile(fn,id,ic,lb,sub,bd){return '<button class="qtile" onclick="'+fn+'(\''+id+'\')"><span class="qi" aria-hidden="true">'+ic+'</span><span><b>'+lb+'</b>'+(sub?'<br><span class="mut">'+sub+'</span>':'')+'</span>'+(bd?'<span class="qb">'+bd+'</span>':'')+'</button>'}
+function q5Bar(t,fn){return '<div class="qbar"><button type="button" onclick="'+fn+'" aria-label="Back">← Back</button><h2>'+esc(t)+'</h2></div>'}
+function q5Modal(h){var d=$('q5modal');if(!d){d=document.createElement('div');d.id='q5modal';document.body.appendChild(d)}d.innerHTML=h?'<div class="qmw" role="dialog" aria-modal="true"><div class="card">'+h+'</div></div>':''}
+function q5Ask(msg,word,fn){window.q5Fn=fn;q5Modal('<h2>Please confirm</h2><p>'+esc(msg)+'</p>'+(word?'<input id="q5cw" placeholder="Type '+word+'" autocapitalize="characters" style="width:100%">':'')+'<div class="row" style="margin-top:12px"><button onclick="q5Modal()">Cancel</button><button class="bad" onclick="q5Yes(\''+(word||'')+'\')">Confirm</button></div>')}
+function q5Yes(w){if(w&&$('q5cw').value.trim()!==w)return toast('Type '+w+' to confirm.',false);var f=window.q5Fn;q5Modal();f()}
+function q5Tone(ok){if(ld('fb-mute'))return;try{navigator.vibrate&&navigator.vibrate(ok?30:[60,40,60])}catch(e){}
+  try{var c=new (window.AudioContext||window.webkitAudioContext)(),t=c.currentTime;(ok?[660,880]:[300,220]).forEach(function(hz,i){var o=c.createOscillator(),g=c.createGain();o.frequency.value=hz;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.12,t+i*.1);g.gain.exponentialRampToValueAtTime(.001,t+i*.1+.14);o.start(t+i*.1);o.stop(t+i*.1+.15)});setTimeout(function(){c.close()},600)}catch(e){}}
+var q5ScanH=null;
+function q5Scan(title,cb,keep){q5ScanStop();var d=document.createElement('div');d.id='q5scan';d.innerHTML='<div class="qsc"><div class="qb2"><b style="flex:1">'+esc(title)+'</b><button onclick="q5ScanStop()">Close</button></div><video id="q5sv" playsinline muted></video><p id="q5sm" style="margin:0">Point the camera at the QR code.</p></div>';document.body.appendChild(d);
+  var h={on:true,stream:null,det:null,last:'',at:0,cv:document.createElement('canvas')};q5ScanH=h;
+  function lib(){return new Promise(function(ok,no){if(window.jsQR)return ok();var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+  (async function(){try{h.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});var v=$('q5sv');v.srcObject=h.stream;await v.play();
+    if(window.BarcodeDetector){try{h.det=new BarcodeDetector({formats:['qr_code']})}catch(e){}}
+    if(!h.det)await lib();
+    (function tick(){if(!h.on)return;var p;
+      if(h.det)p=h.det.detect(v).then(function(r){return r[0]&&r[0].rawValue}).catch(function(){});
+      else{var t=null;if(v.videoWidth){var c=h.cv,x=c.getContext('2d');c.width=v.videoWidth;c.height=v.videoHeight;x.drawImage(v,0,0);var r=jsQR(x.getImageData(0,0,c.width,c.height).data,c.width,c.height);t=r&&r.data}p=Promise.resolve(t)}
+      p.then(function(t){if(!h.on)return;if(t&&(t!==h.last||Date.now()-h.at>2500)){h.last=t;h.at=Date.now();if(!keep)q5ScanStop();cb(t)}setTimeout(tick,h.det?120:250)})})()
+  }catch(e){q5Tone(false);var m=$('q5sm');if(m)m.textContent=e&&e.name==='NotAllowedError'?'Camera permission was denied. Allow it in your browser settings.':'Could not start the camera.'}})()}
+function q5ScanStop(){var h=q5ScanH;q5ScanH=null;if(h){h.on=false;if(h.stream)h.stream.getTracks().forEach(function(t){t.stop()})}var d=$('q5scan');if(d)d.remove()}
+var lgCamStart10=lgCamStart;lgCamStart=function(){if('BarcodeDetector' in window&&navigator.mediaDevices)return lgCamStart10.apply(this,arguments);
+  q5Scan('Scan the bag label',function(t){var tag=lgTagFrom(t);if(tag)lgOnTag(tag);else{q5Tone(false);toast('That is not a luggage tag.',false)}})};
+var vWallet10=vWallet;
+var gSec='',q5Init=0;
+function q5Mon(){
+  if(mw===null){setTimeout(mwLoad,0);return '<div class="card xmny qcard"><b>Money wallet</b><p class="mut qsub">Loading…</p></div>'}
+  if(mw===false)return '<div class="card qcard"><b>Money wallet</b><p class="mut qsub">Not available yet'+(mwErr?': '+esc(mwErr):'')+'.</p><div class="qbtns"><button onclick="mw=null;render()">Try again</button></div></div>';
+  var pend=(mw.pending||[]).map(function(p){return '<p class="mut qsub"><span class="tag xm">'+esc(PST[p.status]||p.status)+'</span> '+esc(mny(p.amount))+' to '+esc(p.momo_number)+'</p>'}).join(''),tx=(mw.tx||[]).slice(0,15);
+  return '<div class="card xmny qcard"><div class="row sp"><b>Money wallet</b><span class="tag xm">Real GH₵</span></div><div class="bal">'+esc(mny(mw.balance))+'</div><p class="mut qsub">Real cash. Fee on add, send or withdraw: '+esc(feeTxt('money'))+'.</p>'+pend+
+  '<div class="qbtns"><button class="go" onclick="mwOpen(\'deposit\')">Add money</button><button onclick="mwOpen(\'send\')">Send</button><button onclick="mwOpen(\'withdraw\')">Withdraw</button>'+(mw.pts_rate>0?'<button onclick="mwOpen(\'convert\')">Get event tokens</button>':'')+'</div>'+
+  (tx.length?'<details style="margin-top:10px"><summary><b>Money activity</b></summary>'+tx.map(mwRow).join('')+'</details>':'')+'</div>'}
+function q5Tok(w){if(tsp===null)setTimeout(tsLoad,0);var can=tsp&&tsp.can_cashout&&tsp.paid>0;
+  return '<div class="card qcard"><div class="row sp"><b>Event tokens</b><span class="tag">Not cash</span></div><div class="bal">'+w.balance+'</div>'+
+  (tsp?'<p class="mut qsub">Admin-loaded '+tsp.admin+' · Paid '+tsp.paid+'. Admin-loaded tokens are spent first.</p>':'<p class="mut qsub">Spend at stalls or send to friends.</p>')+
+  '<div class="qbtns">'+(feat('gifts')?'<button class="go" onclick="giftOpenUI()">Gift tokens</button>':'')+(mw&&mw.pts_rate>0?'<button onclick="mwOpen(\'convert\')">Get tokens</button>':'')+(can?'<button onclick="tokCash('+tsp.paid+')">Tokens to money</button>':'')+'<button onclick="refreshWallet()">Refresh</button></div></div>'}
+function q5Freeze(){if(wallet&&wallet.frozen)return freeze();q5Ask('Freeze your bracelet? It will stop working at stalls and for gifts until you unfreeze it.',null,freeze)}
+function tGo(id){if(!id&&cdirty){return q5Ask('Leave without saving your card changes?',null,function(){cdirty=false;gEdit=null;gSec='';render();scrollTo(0,0)})}
+  if(!id&&gEdit)gEdit=null;gSec=id;if(id==='lug'&&!lgG.data&&!lgG.err)lgGLoad();render();scrollTo(0,0)}
+vWallet=function(){
+  var h=vWallet10.apply(this,arguments);if(mwMode||!wallet)return h;
+  var w=wallet,live=w.live!==false,by={card:[],qr:[],stats:[],chat:[],mon:[],welcome:[],lost:[],plan:[],pin:[],inactive:[],tok:[],acts:[],hist:[],other:[],out:[]};
+  v4chunks(h).forEach(function(c){var k=v4kind(c);if(k==='drop')return;(by[k]||by.other).push(c)});
+  var lugOK=!(lgG.err&&/not available/i.test(lgG.err)),clock=by.chat.filter(function(c){return /id="clkt"/.test(c)}).join('');
+  var S={card:['My business card',by.card.join('')],qr:['Share my card',by.qr.join('')],stats:['Card activity',by.stats.join('')],lost:['Lost mode',by.lost.join('')],plan:['My plan',by.plan.join('')],
+    pin:['PIN and security',by.pin.join('')+'<div class="card"><h2>Display</h2><p class="mut">Make text bigger if it is hard to read.</p><button onclick="aaTap();render()" style="width:100%">Text size: '+['Normal','Larger','Largest'][+ld('fb-tx')||0]+' (tap to change)</button></div>'],
+    acts:['Activities',by.acts.join('')],hist:['History',by.hist.join('')]};
+  if(lugOK)S.lug=['Luggage',vLugGuest().replace(/<button onclick="lgGClose\(\)">Back<\/button>/,'')];
+  if(!live){delete S.acts;delete S.hist}
+  if(gSec&&S[gSec])return q5Bar(S[gSec][0],"tGo('')")+S[gSec][1];
+  gSec='';
+  var T=function(id,ic,lb,sub,bd){return S[id]&&S[id][1]?q5Tile('tGo',id,ic,lb,sub,bd):''},bags=(lgG.data&&lgG.data.bags)||[],prob=bags.filter(function(b){return b.problem||b.found_at}).length;
+  var plan=(function(){try{return planKey(w.plan)==='pro'?'XEND Pro':'XEND Base'}catch(e){return 'Your plan and upgrades'}})();
+  var tiles=T('card','🪪','My card','Edit your business card')+T('qr','📱','Share my card','Show a QR for friends without NFC')+
+    (lugOK?q5Tile('tGo','lug','🧳','Luggage',bags.length?bags.length+' bag'+(bags.length===1?'':'s')+(prob?' · needs attention':''):'Tag and track your bags',prob||''):'')+
+    (live&&feat('chat')?'<button class="qtile" onclick="chatOpenUI()"><span class="qi" aria-hidden="true">💬</span><span><b>Chat</b><br><span class="mut">Friends and messages</span></span>'+(reqN?'<span class="qb">'+reqN+'</span>':'')+'</button>':'')+
+    T('acts','✅','Activities',(w.acts||[]).filter(function(a){return a.done}).length+' of '+(w.acts||[]).length+' done')+T('stats','📊','Card activity','Who looked at your card')+
+    T('lost','🚨','Lost mode','Freeze and show a contact page')+T('plan','💎','My plan',plan)+T('pin','🔒','PIN and security','PIN and text size')+
+    (live?'<button class="qtile" onclick="q5Freeze()"><span class="qi" aria-hidden="true">'+(w.frozen?'🧊':'🟢')+'</span><span><b>Bracelet</b><br><span class="mut">'+(w.frozen?'Frozen. Tap to unfreeze':'Active. Tap to freeze')+'</span></span></button>':'')+
+    T('hist','📜','History','Tokens in and out');
+  return by.welcome.join('')+by.inactive.join('')+'<div class="qcmp'+(live?'':' one')+'">'+(live?q5Tok(w):'')+q5Mon()+'</div>'+(live?clock:'')+'<div class="qtg qeven">'+tiles+'</div>'+by.other.join('')+by.out.join('')};
+var guestOut10=guestOut;guestOut=function(){gSec='';return guestOut10.apply(this,arguments)};
+var logout10=logout;logout=function(){q5Init=0;gSec='';return logout10.apply(this,arguments)};
+
+/* ---------- luggage: offline scan queue ---------- */
+function lgNet(e){return !navigator.onLine||/failed to fetch|networkerror|network request|load failed|fetch|timed? ?out|offline/i.test(String(e&&e.message||e))}
+function lgQ(){var a=ld('lg-q');return Array.isArray(a)?a:[]}
+function lgQSave(a){sv('lg-q',a.slice(-400))}
+function lgCid(){return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+lgLog=async function(tag,code,info){
+  var fix=await lgFix(),place=lgS.place.trim(),note=lgS.quick?null:(lgS.note.trim()||null),s=lgStMap[code]||{},r,queued=false,at=new Date().toISOString();
+  var args={p_tag:tag,p_status:code,p_lat:fix?fix.lat:null,p_lng:fix?fix.lng:null,p_acc:fix?fix.acc:null,p_place:place||null,p_note:note};
+  try{if(!navigator.onLine)throw new Error('offline');r=await rpc('bag_scan',args)}
+  catch(e){if(!lgNet(e))throw e;
+    var q=lgQ();q.push({cid:lgCid(),tag:tag,status:code,lat:args.p_lat,lng:args.p_lng,acc:args.p_acc,place:args.p_place,note:note,at:at});lgQSave(q);
+    r={bag:(info&&info.name)||tag,status:s.label||code,gps:!!fix,queued:true};queued=true}
+  var lab=r.status||s.label||code;
+  lgS.log.unshift({t:Date.now(),bag:r.bag,owner:info&&info.owner,status:lab,place:place,gps:!!r.gps,dup:!!r.dup,problem:!!s.problem,queued:queued});lgS.log=lgS.log.slice(0,40);
+  if(lgS.quick)lgS.quickN++;
+  lgS.done={bag:r.bag,status:lab,gps:!!r.gps,place:place,dup:!!r.dup,problem:!!s.problem,queued:queued};
+  if(place)lgPlaceSave(place);
+  q5Tone(!r.dup);
+  if(!lgS.quick){lgS.bag=null;lgS.status=null;lgS.note=''}
+  return r};
+lgOnTag=async function(tag){
+  if(!me){lgFinderOpen(tag);return}
+  if(tab!=='lug'){tab='lug';lgView='desk';lgEnter()}
+  if(lgS.busy)return;lgS.busy=true;lgS.done=null;
+  try{var r=null,off=false;
+    try{if(!navigator.onLine)throw new Error('offline');r=await rpc('bag_lookup',{p_tag:tag})}catch(e){if(!lgNet(e))throw e;off=true}
+    if(off)r={linked:true,offline:true,bag:null,name:tag,owner:'Owner details load when you are back online',status:'Offline',recent:[]};
+    if(!r||!r.linked){lgS.bag=null;toast('This tag is not linked to a bag yet.',false);q5Tone(false)}
+    else if(lgS.quick){await lgLog(tag,lgS.quick.code,r)}
+    else{lgS.bag=r;lgS.tag=tag;lgS.status=null;lgS.note='';if(navigator.vibrate)navigator.vibrate(60)}}
+  catch(e){toast(e.message,false)}
+  lgS.busy=false;render()};
+var lgEnter10=lgEnter;lgEnter=async function(){
+  if(!lgSt){var c=ld('lg-st');if(Array.isArray(c)&&c.length){lgSt=c;lgStMap={};c.forEach(function(s){lgStMap[s.code]=s})}}
+  var r=await lgEnter10.apply(this,arguments);
+  if(navigator.onLine)rpc('bag_statuses').then(function(s){if(Array.isArray(s)&&s.length){lgSt=s;lgStMap={};s.forEach(function(x){lgStMap[x.code]=x});sv('lg-st',s)}}).catch(function(){});
+  lgSync();return r};
+var lgSyncing=false;
+async function lgSync(manual){if(lgSyncing||!me)return;var q=lgQ();if(!q.length)return;
+  if(!navigator.onLine){if(manual)toast('Still offline. Scans stay saved on this phone.',false);return}
+  lgSyncing=true;if(tab==='lug')render();
+  try{var batch=q.slice(0,100),rest=q.slice(100),r;
+    try{r=await rpc('bag_scan_batch',{p_items:batch})}
+    catch(e){if(/bag_scan_batch|schema cache|Could not find/i.test(e.message)){r={ok:0,failed:[]};
+        for(var i=0;i<batch.length;i++){var x=batch[i];try{var hh=new Date(x.at);await rpc('bag_scan',{p_tag:x.tag,p_status:x.status,p_lat:x.lat,p_lng:x.lng,p_acc:x.acc,p_place:x.place,p_note:((x.note||'')+' [saved offline '+hh.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+']').trim()});r.ok++}catch(e2){if(lgNet(e2)){rest=batch.slice(i).concat(rest);break}r.failed.push({cid:x.cid,error:e2.message})}}}
+      else throw e}
+    var bad=r.failed||[];lgQSave(rest);
+    if(bad.length){var b=ld('lg-qbad')||[];sv('lg-qbad',b.concat(bad).slice(-50))}
+    toast((r.ok||0)+' offline scan'+((r.ok||0)===1?'':'s')+' synced'+(bad.length?', '+bad.length+' could not be saved ('+esc(bad[0].error)+')':'')+'.',!bad.length)}
+  catch(e){if(manual||!lgNet(e))toast(lgNet(e)?'Still offline. Scans stay saved on this phone.':e.message,false)}
+  lgSyncing=false;if(tab==='lug')render()}
+window.addEventListener('online',function(){lgSync();if(tab==='lug')render()});
+window.addEventListener('offline',function(){if(tab==='lug')render()});
+setInterval(function(){if(me&&lgQ().length&&navigator.onLine)lgSync()},30000);
+var vLugDesk10=vLugDesk;vLugDesk=function(){var q=lgQ(),off=!navigator.onLine,b='';
+  if(off||q.length){b='<div class="lg-card" role="status" style="border-left:4px solid '+(off?'#b45309':'#2563eb')+'"><div class="row sp"><span><b>'+(off?'You are offline':'Back online')+'</b><br><span class="mut">'+(q.length?q.length+' scan'+(q.length===1?'':'s')+' saved on this phone, waiting to sync.':'Scans are saved on this phone and sent when the signal returns.')+'</span></span>'+(q.length?'<button class="go" '+(lgSyncing?'disabled':'')+' onclick="lgSync(true)">'+(lgSyncing?'Syncing…':'Sync now')+'</button>':'')+'</div></div>'}
+  var h=vLugDesk10.apply(this,arguments);
+  if(!('BarcodeDetector' in window)&&navigator.mediaDevices)h=h.replace(/(<button type="button" class="lg-sb[^"]*" onclick="lgS\.codeOpen)/,'<button type="button" class="lg-sb" onclick="lgCamStart()">'+lgIco('camera',28)+'Scan QR label</button>$1');
+  if(lgS.done&&lgS.done.queued)h=h.replace('Logged: ','Saved on this phone: ').replace('GPS saved','Will sync when online');
+  var bg=lgS.bag;if(bg&&bg.bag&&me&&(me.role==='admin'||me.role==='organizer')){var mark='<div class="lg-grp" style="margin-top:20px">Choose the new status';var i=h.indexOf(mark);
+    if(i>-1)h=h.slice(0,i)+'<div style="margin-top:12px"><button type="button" onclick="lgMsgOwner(\''+esc(bg.bag)+'\')" style="width:100%">Message owner on WhatsApp</button></div>'+h.slice(i)}
+  return b+h};
+async function lgMsgOwner(id){
+  try{var o=await rpc('admin_bag_owner',{p_bag:id}),ph=String((o&&o.phone)||'').replace(/[^0-9]/g,'');
+    if(!ph){toast('No phone number on file for this guest.',false);return}
+    if(ph.charAt(0)==='0')ph='233'+ph.slice(1);
+    var b=lgS.bag||{},msg='Hello '+((o.name||'').split(' ')[0]||'')+', this is the hotel luggage desk about your bag "'+(b.name||'')+'". ';
+    window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(msg),'_blank')}
+  catch(e){toast(/admin_bag_owner|schema cache|Could not find/i.test(e.message)?'Run xend_step6_ops.sql to enable this.':e.message,false)}}
+
+/* ---------- owner alerts: in-app check for bag updates ---------- */
+var lgAlertOff=false;
+async function lgAlertTick(){if(lgAlertOff||!wallet||!key||!wpin||wmode!=='open'||mwMode)return;
+  try{var d=await rpc('bags_get',{k:key,pin_:wpin});if(!d||!d.bags)return;lgG.data=d;
+    var seen=ld('lg-seen')||{},first=!ld('lg-seen'),ns={},msgs=[];
+    d.bags.forEach(function(b){var sig=(b.status||'')+'|'+(b.last_at||'')+'|'+(b.found_at||'');ns[b.id]=sig;
+      if(!first&&seen[b.id]!==undefined&&seen[b.id]!==sig){var m=b.name+': '+b.status+(b.place?' · '+b.place:'');msgs.push({m:m,prob:b.problem||!!b.found_at,id:b.id})}});
+    sv('lg-seen',ns);
+    msgs.forEach(function(x){toast(x.m,!x.prob);notify(x.prob?'Luggage needs attention':'Luggage update',x.m,'bag-'+x.id,x.prob?[300,100,300,100,300]:[150,80,150],x.prob)});
+    if(msgs.length||gTab==='lug')render()}
+  catch(e){if(/not available|schema cache|Could not find|bags_get/i.test(e.message))lgAlertOff=true}}
+setInterval(lgAlertTick,60000);setTimeout(lgAlertTick,8000);
+var guestOut11=guestOut;guestOut=function(){sv('lg-seen',null);lgAlertOff=false;return guestOut11.apply(this,arguments)};
+
 </script>
 </body>
 </html>
