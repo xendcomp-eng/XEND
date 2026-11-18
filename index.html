@@ -24,13 +24,7 @@ window.addEventListener('orientationchange',function(){setTimeout(function(){win
 })();
 </script>
 <meta name="theme-color" content="#111111">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-180.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="XEND">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>XEND-CASH</title>
+<title>XEND-CARD</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
@@ -1239,17 +1233,9 @@ html[data-short="1"] .popcard .bal { font-size: 2.1rem; }
 html[data-short="1"] .popcard { padding: 14px 16px !important; }
 html, body { overflow-x: clip; }
 </style>
-<style>.lgph{width:56px;height:56px;border-radius:12px;display:grid;place-items:center;font-size:26px;color:#fff;overflow:hidden;flex:none}.lgph img{width:100%;height:100%;object-fit:cover}.lgav{border-radius:50%;background:#475569;font-size:18px;font-weight:700}
-.lgrow{display:flex;gap:10px;align-items:center}.lgsw{width:11px;height:11px;border-radius:50%;display:inline-block}.lgwait{background:#fef3c7;color:#92400e}.lgbad{background:var(--bad);color:#fff}
-.lgcard{border-radius:22px;overflow:hidden;border:1px solid var(--line);background:var(--card);max-width:440px;margin:0 auto 14px}.lghd{padding:14px;color:#fff;display:flex;justify-content:space-between;font-weight:700}.lgbd{padding:14px}
-.lgbig{height:170px;border-radius:14px;display:grid;place-items:center;font-size:64px;color:#fff;overflow:hidden}.lgbig img{width:100%;height:100%;object-fit:cover}.lgwho{display:flex;gap:12px;align-items:center;margin:14px 0}.lgwho .lgph{width:60px;height:60px}
-.lgrw{background:#fef3c7;color:#92400e;border-radius:10px;padding:8px 10px;font-weight:600;font-size:.85rem;margin:8px 0}.lgal{border-left:4px solid var(--bad);padding:6px 10px;margin-bottom:6px;font-size:.85rem}
-.lgtl{border-left:2px solid var(--line);padding-left:12px;font-size:.85rem}.lgtl div{margin-bottom:6px}.lgchk{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:.9rem}.lgchk input{width:auto}
-.lgpair{display:grid;grid-template-columns:1fr 1fr;gap:8px}.lgw{width:100%;height:130px;border-radius:12px}.lgb{display:inline-block;padding:11px 14px;border-radius:12px;border:1px solid var(--line);text-decoration:none;text-align:center}
-</style>
 </head>
 <body>
-<header><div class="hin"><b>XEND-CASH</b><span class="mut" id="nfc"></span><button id="bell" onclick="bellTap()" aria-label="Alerts"></button><span id="who"></span></div></header>
+<header><div class="hin"><b>XEND-CARD</b><span class="mut" id="nfc"></span><button id="bell" onclick="bellTap()" aria-label="Alerts"></button><span id="who"></span></div></header>
 <main>
 <div id="msg"></div><div id="view"></div>
 </main>
@@ -1352,7 +1338,7 @@ async function loadAdm(){try{adm.guests=(await rpc('list_guests'))||[];if(me.rol
 function setTab(t){tab=t;if(t!=='top')loadAdm();else render()}
 async function createGuest(){var n=$('gn').value.trim();if(!n){say('Enter a guest name.',false);return render()}
   var a=$('ga').value.split(',').map(function(x){return x.trim()}).filter(Boolean).map(function(x){return {name:x,done:false}});
-  try{var r=await rpc('create_guest',{n:n,r:$('gr').value.trim(),a:a,p_event:$('ge').value||null});say('Card created for '+n+'.'+(r.pin?' Guest PIN '+r.pin+'.':''),true);await loadAdm();if(HAS)writeTag(r.token)}catch(e){say(e.message,false);render()}}
+  try{var r=await rpc('create_guest',{n:n,r:$('gr').value.trim(),a:a,p_event:$('ge').value||null});say('Card created for '+n+'. Guest PIN '+r.pin+'.',true);await loadAdm();if(HAS)writeTag(r.token)}catch(e){say(e.message,false);render()}}
 async function markDone(i){try{await rpc('mark_done',{k:key,i:i});scanInfo=await rpc('scan',{k:key});say('Marked done.',true)}catch(e){say(e.message,false)}render()}
 
 /* ---- guest wallet ---- */
@@ -1660,16 +1646,12 @@ async function snapRedeem(){var p=snapPot,av=p?Number(p.avail)||0:0;if(!(av>0))r
 /* ---- alerts: notifications + vibration for messages, transactions and scans ---- */
 var NOTIF=ld('fb-notif')!==false,ownAt=0,lastBal=null,bgMsgId=null;
 if('serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(function(){})}catch(e){}}
-function isIOS(){var u=navigator.userAgent||'';return /iPhone|iPad|iPod/.test(u)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)}
-function isStandalone(){return window.navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)}
-function iosInstallHelp(){xModal('<h2>Turn on alerts on iPhone</h2><p class="mut">iPhone only allows alerts for apps added to the Home Screen.</p><ol style="margin:8px 0 8px 18px;padding:0;line-height:1.6"><li>Open this page in <b>Safari</b>.</li><li>Tap the <b>Share</b> button, then <b>Add to Home Screen</b>.</li><li>Open <b>XEND</b> from your Home Screen and log in.</li><li>Tap the bell and choose <b>Allow</b>.</li></ol><p class="mut">Your iPhone controls the alert sound and vibration. Check Settings \u203A Notifications \u203A XEND.</p><button class="go" style="width:100%" onclick="xModal()">Got it</button>')}
 function notifyOK(){return 'Notification' in window&&Notification.permission==='granted'}
 function buzz(p){if(NOTIF&&navigator.vibrate){try{navigator.vibrate(p||[120,80,120])}catch(e){}}}
 function bellPaint(){var b=$('bell');if(!b)return;var p='Notification' in window?Notification.permission:'none';
   b.textContent=!NOTIF?'\uD83D\uDD15 Off':(p==='granted'?'\uD83D\uDD14 On':'\uD83D\uDD14 Enable');b.title='Notifications and vibration for messages, points and scans'}
 function bellSet(v){NOTIF=v;sv('fb-notif',v);bellPaint()}
 async function bellTap(){
-  if(!('Notification' in window)&&isIOS()&&!isStandalone()){iosInstallHelp();return}
   if(!('Notification' in window)){bellSet(!NOTIF);toast(NOTIF?'Vibration alerts on. This browser cannot show notifications (on iPhone, add the app to your Home Screen first).':'Alerts off.',true);if(NOTIF)buzz(80);return}
   if(Notification.permission==='denied'){toast('Notifications are blocked. Allow them for this site in your browser settings.',false);return}
   if(Notification.permission==='default'){var r='denied';try{r=await Notification.requestPermission()}catch(e){}
@@ -1754,9 +1736,9 @@ async function pollSales(silent){if(!me||me.role!=='vendor')return;
     if(lastSale===null||silent)lastSale=Math.max(lastSale||0,top);
     else if(top>lastSale){var fresh=d.recent.filter(function(x){return x.id>lastSale}).reverse();lastSale=top;pushPop(fresh)}
     paintSales()}catch(e){}}
-function paintSales(){var a=$('vsum'),b=$('vrec');if(!vs||(!a&&!b))return;
-  if(a)a.innerHTML='<div class="card"><div class="mut">Your sales today</div><div class="bal">'+vs.today+' pts</div><p class="mut" style="margin:10px 0 0">All time: <b>'+vs.total+' pts</b> · '+vs.count+' sales · 1 pt = '+money(1)+'</p></div>';
-  if(b)b.innerHTML='<div class="card"><h2>Recent sales</h2>'+(vs.recent.length?vs.recent.map(function(x){return '<div class="item row sp"><span>'+esc(x.guest)+(x.note?' · '+esc(x.note):'')+'<br><span class="mut">'+when(x.ts)+'</span></span><b>+'+x.amt+'</b></div>'}).join(''):'<p class="mut">No sales yet.</p>')+'</div>'}
+function paintSales(){var a=$('vsum'),b=$('vrec');if(!a||!b||!vs)return;
+  a.innerHTML='<div class="card"><div class="mut">Your sales today</div><div class="bal">'+vs.today+' pts</div><p class="mut" style="margin:10px 0 0">All time: <b>'+vs.total+' pts</b> · '+vs.count+' sales · 1 pt = '+money(1)+'</p></div>';
+  b.innerHTML='<div class="card"><h2>Recent sales</h2>'+(vs.recent.length?vs.recent.map(function(x){return '<div class="item row sp"><span>'+esc(x.guest)+(x.note?' · '+esc(x.note):'')+'<br><span class="mut">'+when(x.ts)+'</span></span><b>+'+x.amt+'</b></div>'}).join(''):'<p class="mut">No sales yet.</p>')+'</div>'}
 function beep(){try{var c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.15;o.start();setTimeout(function(){o.stop();c.close()},200)}catch(e){}}
 function pushPop(items){popItems=popItems.concat(items);drawPop();beep();var t=items.reduce(function(a,x){return a+x.amt},0);notify('Payment received','+'+t+' pts'+(items.length===1&&items[0].guest?' from '+items[0].guest:' ('+items.length+' payments)'),'sale',[120,80,120])}
 function drawPop(){var t=popItems.reduce(function(a,x){return a+x.amt},0),h='<div class="popcard" role="alertdialog"><div style="font-weight:700">Payment received</div><div class="bal">+'+t+' pts</div>';
@@ -1776,20 +1758,10 @@ async function mkAcct(kind){var pf=kind==='vendor'?'v':'s',fn=kind==='vendor'?'c
 function createVendor(){return mkAcct('vendor')}
 function createStaffAcct(){return mkAcct('staff')}
 function acctForm(pf,title,hint,btn,fn,ph){return '<div class="card"><h2>'+title+'</h2><p class="mut">'+hint+'</p><div class="row"><input id="'+pf+'n" placeholder="'+ph+'"><input id="'+pf+'u" placeholder="Username" autocapitalize="none" autocomplete="off"><input id="'+pf+'p" placeholder="Password (6+ characters)" autocapitalize="none" autocomplete="off"><button class="go" onclick="'+fn+'()">'+btn+'</button></div></div>'}
-var credShow={},pinShow={};
-function credBox(id){var c=credShow[id];if(!c)return '';
-  return '<div class="mut" style="margin:6px 0;padding:8px;border-radius:8px;background:rgba(127,127,127,.12)">Username: <b>'+esc(c.username||'?')+'</b><br>Password: '+(c.password?'<b>'+esc(c.password)+'</b>':'not stored (this account was made before the eye feature)')+'<div class="row" style="margin-top:6px"><button onclick="credSet(\''+id+'\')">Set new password</button></div></div>'}
-async function credEye(id){if(!me||me.role!=='admin')return;if(credShow[id]){delete credShow[id];return render()}
-  try{credShow[id]=(await rpc('admin_reveal_creds',{p_id:id}))||{username:'',password:null}}catch(e){say(e.message,false)}render()}
-async function credSet(id){if(!me||me.role!=='admin')return;var p=prompt('New password (6 or more characters)');if(!p)return;
-  if(p.length<6){say('Password must be 6 or more characters.',false);return render()}
-  try{await rpc('admin_set_password',{p_id:id,p_password:p});credShow[id]=await rpc('admin_reveal_creds',{p_id:id});say('Password changed.',true)}catch(e){say(e.message,false)}render()}
-async function pinEye(id){if(!me||me.role!=='admin')return;if(pinShow[id]!=null){delete pinShow[id];return render()}
-  try{var v=await rpc('admin_guest_pin',{gid:id});pinShow[id]=(v==null?'?':String(v))}catch(e){say(e.message,false)}render()}
 function vTeam(){var st=adm.staff,ad=me.role==='admin';
   return acctForm('v','New vendor','Vendors charge guests and see their own sales. They log in with the username and password you set here.','Create vendor','createVendor','Vendor name (e.g. Jollof Stand)')+
   (ad?acctForm('s','New staff','Staff top up points, create guest cards and add vendors. They log in with the username and password you set here.','Create staff','createStaffAcct','Staff name'):'')+
-  '<div class="card"><h2>'+(ad?'Team':'Vendors')+'</h2>'+(st===null?'<p class="mut">Run setup.sql in Supabase first.</p>':st.length?st.map(function(x){return '<div class="item"><div class="row sp"><b>'+esc(x.name)+'</b><span class="row"><span class="tag">'+roleLabel(x.role)+'</span>'+(ad?'<button title="Show login" onclick="credEye(\''+x.id+'\')">'+(credShow[x.id]?'\uD83D\uDE48':'\uD83D\uDC41')+'</button>':'')+'</span></div>'+(ad?credBox(x.id):'')+(x.role==='vendor'?'<select onchange="setSE(\''+x.id+'\',this.value)" style="margin-top:6px">'+evOpts(x.event_id)+'</select>':'')+'</div>'}).join(''):'<p class="mut">None yet.</p>')+'</div>'}
+  '<div class="card"><h2>'+(ad?'Team':'Vendors')+'</h2>'+(st===null?'<p class="mut">Run setup.sql in Supabase first.</p>':st.length?st.map(function(x){return '<div class="item"><div class="row sp"><b>'+esc(x.name)+'</b><span class="tag">'+roleLabel(x.role)+'</span></div>'+(x.role==='vendor'?'<select onchange="setSE(\''+x.id+'\',this.value)" style="margin-top:6px">'+evOpts(x.event_id)+'</select>':'')+'</div>'}).join(''):'<p class="mut">None yet.</p>')+'</div>'}
 function vVendors(){var v=adm.vendors;
   if(v===null)return '<div class="card"><h2>Sales by vendor</h2><p class="mut">Run setup.sql in Supabase first.</p></div>';
   var tot=v.reduce(function(a,x){return a+x.total},0),td=v.reduce(function(a,x){return a+x.today},0);
@@ -1819,7 +1791,7 @@ function render(){
   $('who').innerHTML=me?esc(me.name)+' <span class="mut">('+roleLabel(me.role)+')</span> <button onclick="logout()">Log out</button>':'';
   $('msg').innerHTML=flash?'<div class="msg '+(flash.ok?'ok':'err')+'" role="status">'+esc(flash.t)+'</div>':'';flash=null;
   if(writeCtl)$('msg').innerHTML+='<button class="bad" onclick="writeCtl.abort()" style="margin-bottom:12px">Cancel writing</button>';
-  $('view').innerHTML=LB?vBagPublic():!cfg?vCfg():!me?vPublic():vStaff();
+  $('view').innerHTML=!cfg?vCfg():!me?vPublic():vStaff();
   if(me&&me.role==='vendor')paintSales();
   if(chatOpen&&($('cmsgs')||$('cflist')))paintChat();
 }
@@ -1872,7 +1844,7 @@ async function runImport(){if(!impRows.length){say('Choose a file first.',false)
   var out=[],ev=$('imev')?$('imev').value:'';
   for(var i=0;i<impRows.length;i++){var r=impRows[i];
     try{if(impKind==='guest'){var a=(r[2]||'').split(/[;|]/).map(function(x){return x.trim()}).filter(Boolean).map(function(x){return {name:x,done:false}});
-        var g=await rpc('create_guest',{n:r[0],r:r[1]||'',a:a,p_event:ev||null});out.push([r[0],g.pin?'PIN '+g.pin:'Created','ok'])}
+        var g=await rpc('create_guest',{n:r[0],r:r[1]||'',a:a,p_event:ev||null});out.push([r[0],'PIN '+g.pin,'ok'])}
       else{var u=(r[1]||r[0].toLowerCase().replace(/[^a-z0-9]/g,'')+Math.floor(10+Math.random()*90)).toLowerCase().replace(/[^a-z0-9._-]/g,''),p=r[2]||pw();
         await rpc(impKind==='vendor'?'create_vendor':'create_staff',{p_username:u,p_password:p,p_name:r[0]});out.push([r[0],u+' / '+p,'ok'])}}
     catch(e){out.push([r[0],e.message,'fail'])}}
@@ -1977,7 +1949,7 @@ async function icoSave(){if(!icoDraft&&!custDraft){toast('Nothing to save.',fals
   if(await xCfgSave({brand:nb},'brand')){for(k in prev)if(prev[k]!==out[k])assetDrop(prev[k],'');
     var keep={};cs.forEach(function(x){if(x.i)keep[x.i]=1});pc.forEach(function(x){if(x.i&&!keep[x.i])assetDrop(x.i,'')});
     icoDraft=null;custDraft=null;render()}}
-function vLanding(){return '<div class="card" style="text-align:center"><h2 style="font-size:1.6rem;margin-bottom:4px">XEND-CASH</h2><p class="mut">Hold a bracelet to the back of the phone to see its card, or open your wallet.</p><div class="row" style="justify-content:center"><button class="go" onclick="lmode=\'guest\';showLogin=true;render()">My wallet</button><button onclick="showLogin=!showLogin;render()">Log in</button></div></div>'}
+function vLanding(){return '<div class="card" style="text-align:center"><h2 style="font-size:1.6rem;margin-bottom:4px">XEND-CARD</h2><p class="mut">Hold a bracelet to the back of the phone to see its card, or open your wallet.</p><div class="row" style="justify-content:center"><button class="go" onclick="lmode=\'guest\';showLogin=true;render()">My wallet</button><button onclick="showLogin=!showLogin;render()">Log in</button></div></div>'}
 function vPublic(){var h='';
   if(wmode==='pin')h+='<div class="card"><h2>My wallet</h2><div class="row"><input id="pin" type="password" inputmode="numeric" placeholder="PIN" style="width:120px"><button class="go" onclick="openWallet()">Open</button><button onclick="wmode=null;render()">Back</button></div></div>';
   else if(wallet)h+=chatOpen?vChat():giftOpen?vGift():vWallet();
@@ -2251,7 +2223,7 @@ function buyCsv(){if(!buyOut)return;var q=function(v){v=String(v==null?'':v);ret
 var xcms=null,xerr=false,xbusy=false,xclk=0,xclt=null,ordP=null,ordLink='',
   vLandingOld=vLanding,vStaff0=vStaff,setTab0=setTab,render0=render,
   XPAGES=['site','shop','secs','orders','btns','theme','brand','icons'],
-  XCFG=[['site_name','Site name (public store)','XEND'],['cash_app_name','App / wallet name','XEND-CASH'],
+  XCFG=[['site_name','Site name (public store)','XEND'],['cash_app_name','App / wallet name','XEND-CARD'],
     ['hero_title','Hero title',''],['hero_subtitle','Hero subtitle','',1],['banner_text','Promo banner (empty = hidden)',''],
     ['about_title','About heading',''],['about_text','About text','',1],['shop_title','Shop heading',''],['wallet_title','Wallet button label','My wallet'],
     ['low_stock_at','Low-stock threshold (units)','3']],
@@ -2262,9 +2234,9 @@ function xhtml(s){return esc(s).replace(/\n/g,'<br>')}
 function xMoney(p){var s=(FX.cur&&FX.cur.sym)||'GH\u20B5';return s+' '+Number(p||0).toLocaleString(undefined,{maximumFractionDigits:2})}
 var xmsg='';
 async function loadCms(){try{xcms=await rpc('cms_get');xerr=!xcms;xmsg=''}catch(e){xerr=true;xmsg=e.message||String(e);try{console.error('cms_get failed',e)}catch(x){}}}
-/* context-aware branding: XEND on the public store, XEND-CASH (or the configured name) inside the app */
+/* context-aware branding: XEND on the public store, XEND-CARD (or the configured name) inside the app */
 function xStore(){return !me&&!wallet&&!card&&!claimTok&&actStep!=='code'&&wmode!=='pin'}
-function xBrand(){var n=xStore()?xv('site_name','XEND'):xv('cash_app_name','XEND-CASH'),b=document.querySelector('header b');
+function xBrand(){var n=xStore()?xv('site_name','XEND'):xv('cash_app_name','XEND-CARD'),b=document.querySelector('header b');
   if(b){b.textContent='';var lg=brandLogo(),lp=(FX.brand&&FX.brand.lp)||'header';if(lg&&lp!=='hero'){var im=document.createElement('img');im.className='xlogo';im.alt='';im.src=lg;im.style.height=logoPx(false)+'px';im.style.maxWidth='200px';b.appendChild(im)}if(!(lg&&lp==='header_only'))b.appendChild(document.createTextNode(n))}
   document.title=n}
 render=function(){render0();xBrand();themeApply((me&&me.role==='admin'&&tab==='theme'&&themeDraft)?themeDraft:FX.theme)};
@@ -3020,7 +2992,7 @@ function sChips(items,cur,fn){return items.map(function(c){return '<button class
 
 /* ---- guests: smart search, and each card shows the ID the guest claimed their bracelet with ---- */
 function gHay(g){var c=g.claim||{},ev=(adm.events||[]).filter(function(e){return e.id===g.event_id})[0];
-  return sHay([g.name,g.room,g.uid,c.code,c.username,c.bracelet,ev&&ev.name,g.frozen?'frozen':'',c.code?'claimed':'by staff'])}
+  return sHay([g.name,g.room,g.pin,g.uid,c.code,c.username,c.bracelet,ev&&ev.name,g.frozen?'frozen':'',c.code?'claimed':'by staff'])}
 function gList(){var P=sParse(gq),fl=P.is.slice();if(gf!=='all')fl.push(gf);
   return (adm.guests||[]).filter(function(g){
     for(var i=0;i<fl.length;i++){var k=fl[i];
@@ -3029,7 +3001,7 @@ function gList(){var P=sParse(gq),fl=P.is.slice();if(gf!=='all')fl.push(gf);
     return sHit(gHay(g),P.toks)})}
 function gCard(g,toks){var c=g.claim,isA=me&&me.role==='admin';
   return '<div class="item"><div class="row sp"><b>'+sMark(g.name,toks)+'</b><span>'+g.balance+' pts</span></div>'+
-  '<div class="mut">'+sMark(g.room||'',toks)+(isA?' · PIN '+(pinShow[g.id]!=null?'<b>'+esc(pinShow[g.id])+'</b>':'\u2022\u2022\u2022\u2022')+' <button title="Show PIN" style="padding:2px 8px" onclick="pinEye(\''+g.id+'\')">'+(pinShow[g.id]!=null?'\uD83D\uDE48':'\uD83D\uDC41')+'</button>':'')+(g.uid?' · tag '+sMark(g.uid,toks):'')+(g.frozen?' · <span class="tag">Frozen</span>':'')+'</div>'+
+  '<div class="mut">'+sMark(g.room||'',toks)+' · PIN '+esc(g.pin)+(g.uid?' · tag '+sMark(g.uid,toks):'')+(g.frozen?' · <span class="tag">Frozen</span>':'')+'</div>'+
   (c?'<div class="row sp" style="margin-top:6px"><span class="mut">ID <b>'+sMark(c.code||'',toks)+'</b> · @'+sMark(c.username||'',toks)+(c.bracelet?' · bracelet '+sMark(c.bracelet,toks):'')+(c.at?'<br>Activated '+esc(new Date(c.at).toLocaleString()):'')+'</span><span class="row"><span class="tag ok">Claimed</span>'+(isA?'<button class="bad" onclick="xndReset(\''+esc(g.token)+'\')">Reset</button>':'')+'</span></div>':'')+
   '<div class="row" style="margin-top:6px"><button onclick="writeTag(\''+g.token+'\')">Write tag</button><button onclick="pairTag(\''+g.id+'\')">Pair tag</button><button onclick="editG=\''+g.id+'\';render();scrollTo(0,0)">Edit card</button><button onclick="copyLink(\''+g.token+'\')">Copy link</button>'+(feat('remote_credit')?'<button class="go" onclick="creditG(\''+g.token+'\')">Credit</button>':'')+'</div>'+
   '<div class="row" style="margin-top:6px"><select onchange="setGE(\''+g.id+'\',this.value,'+g.spend_on+')">'+evOpts(g.event_id)+'</select><button class="'+(g.spend_on?'on':'bad')+'" onclick="setGE(\''+g.id+'\',\''+(g.event_id||'')+'\','+!g.spend_on+')">Spending '+(g.spend_on?'ON':'OFF')+'</button></div></div>'}
@@ -3039,7 +3011,7 @@ function gResults(){var G=adm.guests||[],L=gList(),P=sParse(gq);
   return '<p class="mut" style="margin:0">'+L.length+(L.length===1?' guest':' guests')+((gq||gf!=='all')?' shown of '+G.length:'')+'</p>'+L.slice(0,gLim).map(function(g){return gCard(g,P.toks)}).join('')+
     (L.length>gLim?'<button style="width:100%;margin-top:8px" onclick="gLim+=60;var e=$(\'gres\');if(e)e.innerHTML=gResults()">Show more</button>':'')}
 function guestsCard(){var G=adm.guests||[],n=G.length,cl=G.filter(function(g){return g.claim}).length,fr=G.filter(function(g){return g.frozen}).length;
-  return '<div class="card" id="gcard"><h2>Guests</h2>'+sBar('gs',gq,'Search name, room, ID code, username, bracelet\u2026','gType')+
+  return '<div class="card" id="gcard"><h2>Guests</h2>'+sBar('gs',gq,'Search name, room, PIN, ID code, username, bracelet\u2026','gType')+
     '<div class="row" style="margin-top:8px">'+sChips([['all','All',n],['claimed','Claimed',cl],['manual','By staff',n-cl],['frozen','Frozen',fr]],gf,'gChip')+'</div>'+
     '<p class="mut" style="margin:8px 0 0;font-size:.8rem">Words are combined. Dashes in codes are ignored. Try is:frozen, is:off or is:paired.</p>'+
     '<div id="gres" style="margin-top:6px">'+gResults()+'</div></div>'}
@@ -3349,7 +3321,7 @@ async function qrReveal(){
   qrBusy=false}
 function qrShow(tok,name){
   var p=$('pop');if(!p)return;qrStop();
-  var u=base()+'#b='+tok,q='';
+  var u=base()+'#b='+tok+'&via=qr',q='';
   try{if(typeof qrcode==='function'){var x=qrcode(0,'M');x.addData(u);x.make();q=x.createSvgTag({cellSize:4,margin:2,scalable:true})}}catch(e){q=''}
   qrEnd=Date.now()+120000;p.dataset.qr='1';
   p.innerHTML='<div class="popcard" role="dialog" aria-label="My QR"><div style="font-weight:700">'+esc(name||'My card')+'</div>'+
@@ -3448,753 +3420,549 @@ var saveGuestCard1=saveGuestCard;saveGuestCard=async function(){var m=planCheck(
 var vWallet1=vWallet;vWallet=function(){return planCard(wallet)+vWallet1.apply(this,arguments)};
 /* admin: load plans with the guest list */
 var loadAdm9=loadAdm;loadAdm=async function(){var r=await loadAdm9.apply(this,arguments);try{var d=await rpc('plans_admin');planMap=d.plans||{};planFee=d.upgrade_fee}catch(e){}return r};
-</script>
-<script>
-/* ===== LUGGAGE CARDS (staff register, owner claims, anyone scans) ===== */
-var LG=ld('lg-bags')||[],LB=null,LGU={},LGP=null,LGC=null,LGO=null;
-var LGG={A:['Group A','#2563eb'],B:['Group B','#ea580c'],C:['Group C','#16a34a'],D:['Group D','#9333ea']};
-function lgSave(){sv('lg-bags',LG)}
-function lgGet(c){return LG.filter(function(x){return x.code===c})[0]}
-function lgNow(){return new Date().toLocaleString([],{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
-function lgCol(b){return (LGG[b.group]||['','#475569'])[1]}
-function lgUrl(c){return base()+'#l='+c}
-function lgPhoto(inp,cb){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;var r=new FileReader();r.onload=function(){var i=new Image();i.onload=function(){var s=Math.min(1,480/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.7));toast('Photo added.',true)};i.src=r.result};r.readAsDataURL(f)}
-function lgPh(b,s){return '<div class="lgph" style="background:'+lgCol(b)+(s?';width:'+s+'px;height:'+s+'px':'')+'">'+(b.photo?'<img src="'+b.photo+'" alt="">':'\uD83E\uDDF3')+'</div>'}
-function lgAv(o){return '<div class="lgph lgav">'+(o.photo?'<img src="'+o.photo+'" alt="">':esc(o.name.split(/\s+/).map(function(w){return w[0]}).join('').slice(0,2).toUpperCase()))+'</div>'}
-function lgPill(b){return b.owner?(b.owner.missing?'<span class="tag lgbad">Missing</span>':'<span class="tag">Claimed</span>'):'<span class="tag lgwait">Waiting for its owner</span>'}
-function lgQR(u){var q=qrcode(0,'M');q.addData(u);q.make();return q.createSvgTag(4,0)}
-function lgIdx(b){var L=LG.filter(function(x){return x.owner&&x.owner.phone===b.owner.phone});return [L.indexOf(b)+1,L.length]}
+/* ===== v3: plan rules, per-plan tiles, upgrade sheet, lost mode, card activity, admin overview ===== */
+var PLANS={
+  base:{name:'XEND Base',soc:4,custom:false,feats:['Instant Contact Share','Emergency Safety','4 Social Media Buttons','Your Website Link']},
+  pro:{name:'XEND Pro 1',soc:999,custom:true,feats:['Instant Contact Share','Emergency Safety','Unlimited Social Media Buttons','Your Website Link','Custom buttons','Priority Support','No Ads']}};
+var bizMode=false,plQ='',plScope='all',cardPlan=null,cardMeta=null,ownMeta=null,ownStats=null,ownKey=null,adminOv=null,ovBusy=false,
+  pendingVia=/[#&?]via=qr/.test(String(location.hash||'')+String(location.search||''))?'qr':null;
+curPlan=function(pfx){if(pfx==='a')return planMap[editG]||'base';return (wallet&&wallet.plan)||'base'};
+planName=function(p){return p==='pro'?'XEND Pro 1':'XEND Base'};
+function planKey(p){return p==='base'||!p?'base':'pro'}
 
-/* ---- staff tab ---- */
-function vBags(){var un=LG.filter(function(b){return !b.owner}).length,al=[];
-  LG.forEach(function(b){(b.alerts||[]).forEach(function(a){al.push([a,b])})});
-  return (al.length?'<div class="card"><h2>Finder alerts</h2>'+al.slice(-5).reverse().map(function(x){return '<div class="lgal">\uD83D\uDD14 '+esc(x[0].t)+' \u00B7 '+x[1].code+' ('+esc(x[1].owner.name)+') \u00B7 '+esc(x[0].loc)+'</div>'}).join('')+'</div>':'')+
-  '<div class="card"><h2>Register a bag</h2><p class="mut">Add the chip code, photo, label, trip and group. The bag then shows \u201CWaiting for its owner\u201D.</p>'+
-  '<div class="row"><input id="lgc" placeholder="Chip code" value="'+lgNext()+'" aria-label="Chip code"><button onclick="lgChip()">'+(HAS?'Scan chip':'New code')+'</button></div>'+
-  '<div class="row" style="margin-top:8px"><button onclick="$(\'lgf\').click()">'+(LGP?'Photo added \u2713':'Take bag photo')+'</button><input type="file" id="lgf" accept="image/*" capture="environment" hidden onchange="lgPhoto(this,function(d){LGP=d})"></div>'+
-  '<input id="lgl" placeholder="Label, e.g. Black duffel" style="width:100%;margin-top:8px"><input id="lgt" placeholder="Trip, e.g. Cape Coast tour, 14 Dec" style="width:100%;margin-top:8px">'+
-  '<div class="row" style="margin-top:8px"><select id="lgg">'+Object.keys(LGG).map(function(k){return '<option value="'+k+'">'+LGG[k][0]+'</option>'}).join('')+'</select><input id="lgs" placeholder="Seat (optional)"></div>'+
-  '<p><button class="go" onclick="lgReg()">Register bag</button></p></div>'+
-  '<div class="card"><div class="row sp"><span><b>Unclaimed: '+un+'</b><br><span class="mut">Owners see a reminder banner when they scan.</span></span><button onclick="lgNudge()">Nudge unclaimed</button></div></div>'+
-  '<div class="card"><h2>Bags ('+LG.length+')</h2>'+(LG.length?LG.map(function(b){var o=b.owner;return '<div class="item lgrow">'+lgPh(b)+'<div style="flex:1;min-width:0"><b>'+(o?esc(o.name):'Unclaimed')+'</b> '+lgPill(b)+'<div class="mut"><span class="lgsw" style="background:'+lgCol(b)+'"></span> '+LGG[b.group][0]+(b.seat?' \u00B7 seat '+esc(b.seat):'')+' \u00B7 '+esc(b.trip||'No trip')+'</div><div class="mut">'+b.code+' \u00B7 '+esc(b.label)+' \u00B7 '+esc(b.status)+(b.claimed?' \u00B7 claimed '+esc(b.claimed):'')+'</div><div class="row" style="margin-top:6px"><button onclick="lgOpen(\''+b.code+'\')">Open card</button><button onclick="lgLabel(\''+b.code+'\')">Label</button>'+(HAS?'<button onclick="lgWrite(\''+b.code+'\')">Write chip</button>':'')+'<button class="bad" onclick="lgDel(\''+b.code+'\')">Delete</button></div></div>'+(o?lgAv(o):'')+'</div>'}).join(''):'<p class="mut">No bags yet.</p>')+'</div>'}
-function lgNext(){return 'XB-'+String(LG.length+431).padStart(4,'0')}
-function lgChip(){if(!HAS){$('lgc').value='XB-'+Math.floor(1000+Math.random()*9000);return}
-  toast('Hold the new chip to the phone.',true);var n=new NDEFReader(),a=new AbortController();n.scan({signal:a.signal}).then(function(){n.onreading=function(e){a.abort();$('lgc').value=('XB-'+e.serialNumber.replace(/[^0-9A-Fa-f]/g,'').slice(-6)).toUpperCase();toast('Chip read.',true)}}).catch(function(e){toast(e.message,false)})}
-function lgReg(){var c=$('lgc').value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');if(!c)return toast('Enter a chip code.',false);if(lgGet(c))return toast('That code is already registered.',false);
-  LG.unshift({code:c,label:$('lgl').value.trim()||'Unlabelled bag',trip:$('lgt').value.trim(),group:$('lgg').value,seat:$('lgs').value.trim(),photo:LGP,status:'Registered by staff',claimed:null,owner:null,pin:null,tl:[lgNow()+' Registered by '+me.name],scans:[],alerts:[]});LGP=null;lgSave();toast(c+' registered.',true);render()}
-function lgDel(c){if(!confirm('Delete bag '+c+'?'))return;LG=LG.filter(function(b){return b.code!==c});lgSave();render()}
-function lgNudge(){var n=0;LG.forEach(function(b){if(!b.owner){b.nudged=lgNow();n++}});lgSave();toast(n?'Reminder set on '+n+' unclaimed bag'+(n>1?'s':'')+'.':'Everyone has claimed.',true);render()}
-function lgWrite(c){new NDEFReader().write({records:[{recordType:'url',data:lgUrl(c)}]}).then(function(){toast('Link written to chip.',true)}).catch(function(e){toast(e.message,false)});toast('Hold the chip to the phone.',true)}
-function lgLabel(c){var b=lgGet(c),k=lgCol(b),w=window.open('','_blank');if(!w)return toast('Allow pop-ups to print.',false);
-  w.document.write('<title>'+c+'</title><body style="font-family:sans-serif;text-align:center"><div style="display:inline-block;border:6px solid '+k+';border-radius:16px;padding:12px;width:260px"><div style="background:'+k+';color:#fff;font-weight:700;padding:6px;border-radius:8px">'+LGG[b.group][0]+'</div><div style="width:200px;margin:12px auto">'+lgQR(lgUrl(c))+'</div><div style="font-weight:700;font-size:18px">'+esc(b.label)+'</div><div style="font:700 26px monospace">'+c+'</div><div style="font-size:12px">Scan with any phone camera</div></div><script>setTimeout(function(){print()},300)<\/script>');w.document.close()}
-function lgOpen(c){LB=c;try{history.replaceState(null,'','#l='+c)}catch(e){}render();scrollTo(0,0)}
-function lgBack(){LB=null;if(me)tab='bags';try{history.replaceState(null,'',location.pathname)}catch(e){}render()}
+/* ---- tile switches: FX.btn.t.off = everyone, FX.btn.t.offp.base / .pro = one plan only ---- */
+function TILE_SOC(){return PL.filter(function(p){return p[0]!=='title'&&p[0]!=='bio'})}
+var TILE_X=[['bars','Custom link bars','Wide buttons added in the Icons tab'],['icons','Custom icon tiles','Round tiles added in the Icons tab'],['qr','Show my QR button','Under the card, for friends without NFC'],['chat','Message and friend request','Message button on the card and the add-friend prompt'],['login','Login form under the card','The wallet login that opens below a tapped card']];
+function tOff(k,plan){var t=FX.btn&&FX.btn.t;if(!t)return false;if(t.off&&t.off[k])return true;var p=plan?planKey(plan):null;return !!(p&&t.offp&&t.offp[p]&&t.offp[p][k])}
+function cardBtns(){return xBtnList().filter(function(b){return b.pg==='card'||b.pg==='both'})}
+function bizOnly(plan){
+  if(TILE_SOC().some(function(p){return !tOff(p[0],plan)}))return false;
+  if(TILE_X.some(function(x){return !tOff(x[0],plan)}))return false;
+  return !cardBtns().some(function(b){return b.v&&!tOff('btn:'+b.id,plan)})}
+function tileCard(c,biz,plan){
+  var L=(c.links||[]).filter(function(l){
+    if(l.t==='photo'||l.t==='title'||l.t==='bio')return true;
+    if(biz)return false;
+    if(l.t==='cbtn')return !tOff('bars',plan)&&!(plan&&!PLANS[plan].custom);
+    return !tOff(l.t,plan)});
+  if(!biz&&plan==='base'){var n=0;L=L.filter(function(l){if(SOCK.indexOf(l.t)<0||!l.on)return true;n++;return n<=PLANS.base.soc})}
+  var o={};for(var k in c)o[k]=c[k];o.links=L;return o}
+function metaFor(){return cardMeta&&cardMeta.k===tappedKey?cardMeta:null}
+function lostBanner(m){var ph=String(m.phone||''),tel=ph?hrefOf('phone',ph):null,wa=ph?hrefOf('whatsapp',ph):null,
+  b='display:inline-block;padding:10px 16px;text-decoration:none';
+  return '<div class="card" style="text-align:center;border:2px solid #c0392b"><h2 style="margin:0 0 6px">⚠ This bracelet was reported lost</h2>'+(m.msg?'<p style="margin:0 0 10px">'+esc(m.msg)+'</p>':'')+
+  '<div class="row" style="justify-content:center">'+(tel?'<a class="go" style="'+b+'" href="'+esc(tel)+'">Call the owner</a>':'')+(wa?'<a style="'+b+'" href="'+esc(wa)+'" target="_blank" rel="noopener">WhatsApp</a>':'')+'</div><p class="mut" style="margin:10px 0 0">Thank you for helping it find its way home.</p></div>'}
+var vCardView4=vCardView;
+vCardView=function(c){
+  var m=metaFor(),plan=c.plan?planKey(c.plan):(m&&m.plan?planKey(m.plan):null),lost=!!(m&&m.lost),biz=lost||bizOnly(plan),c2=tileCard(c,biz,plan),
+    had=Object.prototype.hasOwnProperty.call(FX,'chat'),old=FX.chat;
+  bizMode=biz;cardPlan=plan;if(biz||tOff('chat',plan))FX.chat=false;
+  try{return (lost?lostBanner(m):'')+vCardView4.call(this,c2)}
+  finally{bizMode=false;cardPlan=null;if(had)FX.chat=old;else delete FX.chat}};
+xBtns=function(pg,pl){return xBtnList().filter(function(b){return b.v&&(b.pg===pg||b.pg==='both')&&b.p===pl&&!(pg==='card'&&cardPlan&&tOff('btn:'+b.id,cardPlan))}).map(function(b){return '<button class="'+esc(b.s)+'" onclick="xBtn(\''+esc(b.id)+'\')">'+esc(b.l)+'</button>'}).join('')};
+var xBtnRow4=xBtnRow;xBtnRow=function(pg,pl,mt){if(bizMode&&pg==='card')return '';return xBtnRow4(pg,pl,mt)};
+var xCust4=xCust;xCust=function(){var a=xCust4();if(bizMode)return [];return a.filter(function(x){return x.k==='bar'?!tOff('bars',cardPlan):!tOff('icons',cardPlan)})};
+qrBtnRow=function(){return (bizMode||tOff('qr',cardPlan))?'':'<div class="row" style="justify-content:center;margin-top:12px"><button onclick="qrOpen()">📱 Show my QR (no NFC needed)</button></div>'};
+/* QR links carry via=qr so owners can see QR scans apart from taps */
+var vPublic8=vPublic;vPublic=function(){
+  var m=metaFor(),plan=card&&(card.plan||(m&&m.plan))||null;
+  if(!me&&!wallet&&card&&wmode!=='pin'&&(bizOnly(plan)||tOff('login',plan)||(m&&m.lost)))return vCardView(card);
+  return vPublic8.apply(this,arguments)};
+var offerFriend4=offerFriend;offerFriend=function(){var m=metaFor(),plan=m&&m.plan;if(tOff('chat',plan)||bizOnly(plan)||(m&&m.lost))return;return offerFriend4.apply(this,arguments)};
+/* every tap: record it, and learn the owner's plan and lost status */
+var onKey9=onKey;onKey=async function(k){
+  var via=pendingVia;pendingVia=null;cardMeta=null;
+  await onKey9.apply(this,arguments);
+  if(me||!card||!/^[0-9a-f]{32}$/i.test(String(k||'')))return;
+  try{var m=await rpc('card_meta',{k:String(k).toLowerCase(),p_via:via||'tap'});if(m&&typeof m==='object'){m.k=tappedKey;cardMeta=m;if(m.plan&&!card.plan)card.plan=m.plan}}catch(e){cardMeta=null}
+  render()};
 
-/* ---- the luggage card (anyone / owner / staff) ---- */
-function vBagPublic(){var b=lgGet(LB),back=me?'<p><button onclick="lgBack()">\u2190 Back to bags</button></p>':'';
-  if(!b)return back+'<div class="card"><h2>Unknown tag</h2><p class="mut">This luggage tag is not registered. Ask the tour desk.</p></div>';
-  var R=me&&me.role!=='vendor'?'staff':LGU[b.code]?'owner':'anyone',o=b.owner,k=lgCol(b),ow=R!=='anyone',head='<div class="lghd" style="background:'+k+'"><span>'+(o?'Luggage card':'Luggage tag')+'</span><span>';
-  var big='<div class="lgbig" style="background:'+k+'">'+(b.photo?'<img src="'+b.photo+'" alt="">':'\uD83E\uDDF3')+'</div>';
-  if(!o)return back+'<div class="lgcard">'+head+LGG[b.group][0]+'</span></div><div class="lgbd">'+big+'<h2 style="margin:12px 0 4px">Waiting for its owner</h2><p>'+esc(b.label)+'. Photo added by staff.</p>'+(b.nudged?'<div class="lgrw">Reminder from staff: please claim this bag.</div>':'')+'<p class="mut">Tag '+b.code+'. Owner: enter your details and a PIN below to claim it. Lost? Call the tour desk.</p></div></div>'+vClaimBag(b);
-  var n=lgIdx(b),show=o.privacy==='show'||ow||(o.privacy==='missing'&&o.missing),t=o.phone.replace(/[^\d+]/g,'');
-  var h=back+'<div class="lgcard">'+head+(n[1]>1?'Bag '+n[0]+' of '+n[1]:LGG[b.group][0])+'</span></div><div class="lgbd">'+big+
-  '<p style="margin:10px 0 0"><b>'+esc(b.label)+'</b> <span class="mut">\u00B7 '+b.code+'</span> '+lgPill(b)+'</p><div class="lgwho">'+lgAv(o)+'<div><div class="mut">This bag belongs to</div><h2 style="margin:0">'+esc(o.name)+'</h2></div></div>'+
-  (o.reward?'<div class="lgrw">\uD83C\uDF81 '+esc(o.reward)+'</div>':'')+'<div class="row">'+(show?'<a class="go lgb" href="tel:'+t+'">\uD83D\uDCDE Call owner</a>'+(o.wa?'<a class="lgb" href="https://wa.me/'+t.replace('+','')+'">WhatsApp</a>':'')+(o.email?'<a class="lgb" href="mailto:'+esc(o.email)+'">Email</a>':''):'<button class="go" onclick="lgFound(\''+b.code+'\',1)">\uD83D\uDD14 Notify owner</button>')+'</div>'+
-  (show?'':'<p class="mut">The owner\u2019s number stays private.'+(o.privacy==='missing'?' It shows if the bag is marked missing.':'')+'</p>')+
-  '<p class="mut">Last status: '+esc(b.status)+'</p>'+(R==='anyone'?'<button class="bad" style="width:100%" onclick="lgFound(\''+b.code+'\')">I found this bag</button><label class="lgchk"><input type="checkbox" id="lgfl" checked> Share my location with the owner</label><p class="mut">No app needed.</p>':'')+'</div></div>';
-  if(R==='anyone')h+='<div class="card"><h3>Are you the owner?</h3><div class="row"><input id="lgpn" type="password" inputmode="numeric" maxlength="4" placeholder="PIN"><button onclick="lgPin(\''+b.code+'\')">Unlock</button></div></div>';
-  if(ow)h+='<div class="card"><h2>'+(R==='staff'?'Staff and owner view':'Owner view')+'</h2>'+(o.going?'<p>\uD83D\uDCCD Going to: <b>'+esc(o.going)+'</b></p>':'')+'<p class="mut">Trip: '+esc(b.trip||'n/a')+'</p><h3>Timeline</h3><div class="lgtl">'+b.tl.map(function(x){return '<div>'+esc(x)+'</div>'}).join('')+'</div>'+
-  '<h3>Map</h3>'+(b.loc?'<p><a href="https://www.google.com/maps?q='+b.loc+'" target="_blank" rel="noopener">Open last known position</a></p>':'<p class="mut">No position yet. A finder alert with location will appear here.</p>')+
-  (R==='owner'?'<h3>Your card settings</h3><select id="lgpv"><option value="show"'+(o.privacy==='show'?' selected':'')+'>Show my phone number</option><option value="notify"'+(o.privacy==='notify'?' selected':'')+'>Notify owner button only</option><option value="missing"'+(o.privacy==='missing'?' selected':'')+'>Show number only if missing</option></select><input id="lgrw" value="'+esc(o.reward)+'" placeholder="Reward note" style="width:100%;margin-top:8px"><input id="lggo" value="'+esc(o.going)+'" placeholder="Going to (hotel)" style="width:100%;margin-top:8px"><div class="row" style="margin-top:8px"><button class="go" onclick="lgOwn(\''+b.code+'\')">Save</button><button class="'+(o.missing?'':'bad')+'" onclick="lgMiss(\''+b.code+'\')">'+(o.missing?'Mark as found':'Mark as missing')+'</button></div>':'')+'</div>';
-  if(R==='staff')h+='<div class="card"><h2>Staff only</h2><p>'+LGG[b.group][0]+' \u00B7 Seat '+esc(b.seat||'n/a')+' \u00B7 Claimed '+esc(b.claimed)+'</p><h3>Scan history</h3><div class="mut">'+(b.scans.length?b.scans.map(esc).join('<br>'):'No scans yet')+'</div><h3>Status</h3><div class="row"><input id="lgst" placeholder="e.g. Loaded on bus 08" value="'+esc(b.status)+'"><button onclick="lgStat(\''+b.code+'\')">Update</button></div>'+
-  '<h3>Photo comparison at handover</h3><div class="lgpair"><div><div class="mut">Registration</div>'+lgPh(b,0).replace('class="lgph"','class="lgph lgw"')+'</div><div><div class="mut">Bag in front of you</div><div class="lgph lgw" style="background:var(--line)">'+(LGC?'<img src="'+LGC+'" alt="">':'\uD83D\uDCF7')+'</div></div></div><p><button onclick="$(\'lgcf\').click()">Take handover photo</button><input type="file" id="lgcf" accept="image/*" capture="environment" hidden onchange="lgPhoto(this,function(d){LGC=d;render()})"></p></div>';
-  return h}
-function vClaimBag(b){return '<div class="card"><h2>Claim this bag</h2><button onclick="lgBiz()">Use my business card details</button><input id="lgn" placeholder="Your name" style="width:100%;margin-top:8px"><input id="lgp" placeholder="Phone" inputmode="tel" style="width:100%;margin-top:8px"><input id="lge" placeholder="Email (optional)" style="width:100%;margin-top:8px">'+
-  '<label class="lgchk"><input type="checkbox" id="lgw"> Show a WhatsApp button</label><div class="row" style="margin-top:8px"><button onclick="$(\'lgof\').click()">Add my photo</button><input type="file" id="lgof" accept="image/*" hidden onchange="lgPhoto(this,function(d){LGO=d})"></div>'+
-  '<h3>Contact privacy</h3><label class="lgchk"><input type="radio" name="lgpr" value="show"> Show my phone number</label><label class="lgchk"><input type="radio" name="lgpr" value="notify" checked> Only a \u201CNotify owner\u201D button. Number never revealed</label><label class="lgchk"><input type="radio" name="lgpr" value="missing"> Show my number only if the bag is marked missing</label>'+
-  '<input id="lgrw" placeholder="Reward note (optional)" maxlength="60" style="width:100%;margin-top:8px"><input id="lggo" placeholder="Going to, e.g. hotel (owner and staff only)" style="width:100%;margin-top:8px"><input id="lgpin" type="password" inputmode="numeric" maxlength="4" placeholder="Choose a 4 digit PIN" style="width:100%;margin-top:8px">'+
-  '<label class="lgchk"><input type="checkbox" id="lgsb"> Save as my business card</label><p><button class="go" onclick="lgClaim(\''+b.code+'\')">Claim bag</button></p></div>'}
-function lgBiz(){var x=ld('lg-biz');if(!x)return toast('No saved card yet. Fill in once and tick \u201CSave as my business card\u201D.',false);$('lgn').value=x.name;$('lgp').value=x.phone;$('lge').value=x.email||'';$('lgw').checked=!!x.wa;if(x.photo)LGO=x.photo;toast('Filled from your business card.',true)}
-function lgClaim(c){var b=lgGet(c),n=$('lgn').value.trim(),p=$('lgp').value.trim(),pin=$('lgpin').value;if(!n||!p)return toast('Name and phone are required.',false);if(!/^\d{4}$/.test(pin))return toast('Choose a 4 digit PIN.',false);
-  var o={name:n,phone:p,email:$('lge').value.trim(),wa:$('lgw').checked,photo:LGO,privacy:document.querySelector('[name=lgpr]:checked').value,reward:$('lgrw').value.trim(),going:$('lggo').value.trim(),missing:false};
-  if($('lgsb').checked)sv('lg-biz',{name:o.name,phone:o.phone,email:o.email,wa:o.wa,photo:o.photo});
-  b.owner=o;b.pin=pin;b.claimed=lgNow();b.status='Claimed by owner';b.tl.push(b.claimed+' Claimed by '+n);LGU[c]=1;LGO=null;lgSave();toast('Claimed. Staff dashboard updated.',true);render()}
-function lgPin(c){var b=lgGet(c);if($('lgpn').value===b.pin){LGU[c]=1;render()}else toast('Wrong PIN.',false)}
-function lgOwn(c){var o=lgGet(c).owner;o.privacy=$('lgpv').value;o.reward=$('lgrw').value.trim();o.going=$('lggo').value.trim();lgSave();toast('Saved.',true);render()}
-function lgMiss(c){var b=lgGet(c);b.owner.missing=!b.owner.missing;b.tl.push(lgNow()+(b.owner.missing?' Marked missing by owner':' Marked found'));lgSave();render()}
-function lgStat(c){var b=lgGet(c);b.status=$('lgst').value.trim()||b.status;b.tl.push(lgNow()+' '+b.status);lgSave();toast('Status updated.',true);render()}
-function lgFound(c,n){var b=lgGet(c),w=$('lgfl')&&$('lgfl').checked||n;
-  function done(loc){var a={t:lgNow(),loc:loc?'location shared':'location not shared'};if(loc)b.loc=loc;b.alerts=(b.alerts||[]).concat(a);b.scans.push(a.t+' '+(n?'Notify tap':'Finder scan')+', '+a.loc);b.tl.push(a.t+' Someone reported finding it');b.status='Finder alert '+a.t;lgSave();toast('Thanks. The owner and staff have been alerted.',true);render()}
-  if(w&&navigator.geolocation&&(!n||confirm('Share your location with the owner?')))navigator.geolocation.getCurrentPosition(function(p){done(p.coords.latitude+','+p.coords.longitude)},function(){done(null)},{timeout:6000});else done(null)}
-(function(){var m=String(location.hash||'').match(/[#&]l=([A-Za-z0-9_-]{3,24})/);if(m)LB=m[1].toUpperCase()})();
-/* add the Bags tab on top of the app's existing (layered) staff view */
-var vStaffLG=vStaff;
-vStaff=function(){
-  if(!me||me.role==='vendor')return vStaffLG();
-  var on=tab==='bags',keep=tab;if(on)tab='cards';
-  var h=vStaffLG();if(on)tab=keep;
-  var i=h.indexOf('</div>');if(i<0)return h;
-  var row=h.slice(0,i);if(on)row=row.replace(' class="on"',' class=""');
-  row+='<button class="'+(on?'on':'')+'" onclick="setTab(\'bags\')">Bags</button>';
-  return on?row+'</div>'+vBags():row+h.slice(i)};
-</script>
-<script>
-/* ===== LUGGAGE: server-backed (run luggage.sql once in Supabase) ===== */
-var LGX={},LGXM={},LGB={},LGPIN={};
-lgSave=function(){};
-lgGet=function(c){return LGX[c]||LG.filter(function(x){return x.code===c})[0]};
-lgIdx=function(b){return b.idx||[1,1]};
-async function lgList(){try{LG=(await rpc('lg_list'))||[]}catch(e){toast(e.message,false)}render()}
-async function lgLoad(c,pin){LGB[c]=1;try{var r=await rpc('lg_card',{p_code:c,p_pin:pin||LGPIN[c]||null});LGXM[c]=!!me;
-  if(!r.found)LGX[c]=null;else{LGX[c]=r.bag;if(r.role==='owner'){LGU[c]=1;if(pin)LGPIN[c]=pin;var mm=ld('lg-mine')||[];if(mm.indexOf(c)<0){mm.push(c);sv('lg-mine',mm)}}else delete LGU[c];if(r.err)toast(r.err,false)}}
-  catch(e){LGX[c]=null;LGXM[c]=!!me;toast(e.message,false)}LGB[c]=0;render()}
-var vBagPublic1=vBagPublic,LGAF=0;
-vBagPublic=function(){if(LB&&(LGX[LB]===undefined||LGXM[LB]!==!!me)){if(!LGB[LB])lgLoad(LB);return '<div class="card"><p class="mut">Loading\u2026</p></div>'}
-  var h=vBagPublic1(),b=lgGet(LB);
-  if(!me)h='<p><button onclick="lgBack()">\u2190 Home</button></p>'+h;
-  if(b&&!b.owner&&(b.for||wallet)){var nm=(wallet&&wallet.name)||b.for;h=h.replace('<input id="lgn" placeholder="Your name"','<input id="lgn" value="'+esc(nm)+'" placeholder="Your name"').replace('<h2>Claim this bag</h2>','<h2>Claim this bag</h2>'+(b.for?'<p class="mut">Reserved for '+esc(b.for)+'.</p>':''))}
-  if(me&&me.role!=='vendor'&&b)h+=lgAssignCard(b);
+/* ---- saving: always send o, c and t together ---- */
+function tilesPatch(mut){var b=FX.btn||{},cp=function(x,d){return JSON.parse(JSON.stringify(x==null?d:x))},o=cp(b.o,{}),C=cp(b.c,[]),t=cp(b.t,{});t.off=t.off||{};t.offp=t.offp||{base:{},pro:{}};t.offp.base=t.offp.base||{};t.offp.pro=t.offp.pro||{};mut(o,C,t);return xCfgSave({btn:{o:o,c:C,t:t}},'btn')}
+async function tileSet(k,on){if(await tilesPatch(function(o,C,t){
+  if(plScope==='all'){if(on)delete t.off[k];else t.off[k]=1}else{if(on)delete t.offp[plScope][k];else t.offp[plScope][k]=1}}))render()}
+async function tileBtn(id,on){if(await tilesPatch(function(o,C,t){var b=xBtnList().filter(function(x){return x.id===id})[0];if(!b)return;
+  if(plScope!=='all'){if(on)delete t.offp[plScope]['btn:'+id];else t.offp[plScope]['btn:'+id]=1;return}
+  if(b.built){o[id]=o[id]||{};o[id].v=on?1:0}else C.forEach(function(c){if(c.id===id)c.v=on?1:0})}))render()}
+async function tilesAll(on){
+  var who=plScope==='all'?'everyone':plScope==='base'?'XEND Base users':'XEND Pro 1 users';
+  if(!on&&!confirm('Switch off every tile and card button for '+who+'? After a tap they will only show the business card.'))return;
+  if(await tilesPatch(function(o,C,t){
+    if(plScope==='all'){t.off={};if(!on){TILE_SOC().forEach(function(p){t.off[p[0]]=1});TILE_X.forEach(function(x){t.off[x[0]]=1})}
+      cardBtns().forEach(function(b){
+        if(b.built){o[b.id]=o[b.id]||{};if(on){var d=BTN.filter(function(r){return r[0]===b.id})[0];o[b.id].v=d?d[7]:1}else o[b.id].v=0}
+        else C.forEach(function(c){if(c.id===b.id)c.v=on?1:0})})}
+    else{var s=t.offp[plScope]={};if(!on){TILE_SOC().forEach(function(p){s[p[0]]=1});TILE_X.forEach(function(x){s[x[0]]=1});cardBtns().forEach(function(b){s['btn:'+b.id]=1})}}}))render()}
+xBtnsSave=async function(){var r=xBtnsRead();if(r.err){toast(r.err,false);return}
+  if(await xCfgSave({btn:{o:r.o,c:r.c,t:(FX.btn&&FX.btn.t)||{}}},'btn'))render()};
+xBtnDel=async function(id){if(!confirm('Delete this button?'))return;var r=xBtnsRead();if(r.err){toast(r.err,false);return}
+  r.c=r.c.filter(function(c){return c.id!==id});if(await xCfgSave({btn:{o:r.o,c:r.c,t:(FX.btn&&FX.btn.t)||{}}},'btn'))render()};
+
+/* ---- admin: overview, Plans & Tiles tab ---- */
+if(typeof XALL!=='undefined'&&!XALL.some(function(t){return t[0]==='plans'})){var bi=XALL.map(function(t){return t[0]}).indexOf('btns');XALL.splice(bi<0?XALL.length:bi+1,0,['plans','Plans & Tiles'])}
+async function loadOv(){if(ovBusy||adminOv!==null)return;ovBusy=true;try{adminOv=await rpc('admin_overview')||false}catch(e){adminOv=false}ovBusy=false;render()}
+function plCounts(){var g=adm.guests||[],b=0;g.forEach(function(x){if(planKey(planMap[x.id])==='base')b++});return {all:g.length,base:b,pro:g.length-b}}
+function ovCard(){var c=plCounts(),o=adminOv,stat=function(n,l){return '<div style="flex:1;min-width:110px;text-align:center"><div style="font-size:1.6rem;font-weight:800">'+esc(n)+'</div><div class="mut">'+esc(l)+'</div></div>'};
+  var act=o?stat(o.taps7,'Taps, 7 days')+stat(o.qr7,'QR scans, 7 days')+stat(o.total,'All taps and scans'):'<p class="mut" style="margin:8px 0 0">'+(o===false?'Run xend_step4_card_tools.sql in Supabase to see card activity and upgrades.':'Loading…')+'</p>';
+  var up=o&&o.upgrades7!=null?stat(o.upgrades7,'Upgrades, 7 days')+stat(mny(o.upgrade_rev7||0),'Upgrade income, 7 days'):'';
+  return '<div class="card"><h2>Overview</h2><div class="row" style="gap:6px">'+stat(c.base,'On XEND Base')+stat(c.pro,'On XEND Pro 1')+stat(c.all,'Cards')+'</div><div class="row" style="gap:6px;margin-top:10px">'+act+up+'</div></div>'}
+var vHome9=vHome;vHome=function(){var h=vHome9.apply(this,arguments);if(!me||me.role!=='admin')return h;loadOv();return ovCard()+h};
+var vStaff8=vStaff;vStaff=function(){var h=vStaff8.apply(this,arguments);
+  if(me&&me.role==='admin'&&tab==='plans'){var i=h.indexOf('</div>');if(i>-1){loadOv();return h.slice(0,i+6)+vPlansAdmin()}}
   return h};
-function lgAssignCard(b){if(!(adm.guests||[]).length&&!LGAF){LGAF=1;loadAdm()}
-  return '<div class="card"><h3>Linked guest</h3><p class="mut">'+(b.guest_id?'Linked to '+esc(b.guest_name||'a guest')+'.':'Not linked to a wallet guest.')+'</p><div class="row"><select id="lgga"><option value="">No guest</option>'+(adm.guests||[]).map(function(g){return '<option value="'+esc(g.id)+'"'+(String(g.id)===String(b.guest_id)?' selected':'')+'>'+esc(g.name)+'</option>'}).join('')+'</select><button onclick="lgAssign(\''+b.code+'\')">Link</button></div></div>'}
-async function lgAssign(c){var v=$('lgga').value,g=(adm.guests||[]).filter(function(x){return String(x.id)===v})[0];
-  try{await rpc('lg_assign',{p_code:c,p_guest_id:v||null,p_guest_name:g?g.name:null});toast(v?'Linked.':'Link removed.',true);await lgLoad(c)}catch(e){toast(e.message,false)}}
-function lgMine(){var L=ld('lg-mine')||[];return '<div class="card"><h2>My bag</h2><p class="mut">Type the code printed on your bag tag, or tap the tag with your phone.</p><div class="row"><input id="lgmc" placeholder="Chip code, e.g. XB-0432" autocapitalize="characters" style="flex:1;min-width:160px"><button class="go" onclick="lgGo()">Open</button></div>'+(L.length?'<p class="mut" style="margin:10px 0 4px">Your bags on this phone</p><div class="row">'+L.map(function(c){return '<button onclick="lgGo(\''+c+'\')">\uD83E\uDDF3 '+c+'</button>'}).join('')+'</div>':'')+'</div>'}
-function lgGo(c){c=(c||$('lgmc').value).trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');if(!c)return toast('Enter the chip code.',false);lgOpen(c)}
-/* business card page: My bag is a tile, shown only when Tour is ON for this card; tapping it opens the My bag feature */
-var cbagOpen=false;
-function cbagGo(v){cbagOpen=(v==='1');render();scrollTo(0,0)}
-var vPublic1=vPublic;vPublic=function(){
-  if(wallet||wmode==='pin'||!card){cbagOpen=false;return vPublic1()}
-  var tour=card.tour===true;
-  if(!tour){cbagOpen=false;return vPublic1()}
-  if(cbagOpen)return xBar('My bag','cbagGo(\'0\')')+lgMine();
-  var L=ld('lg-mine')||[];
-  return vPublic1()+'<div class="xtg" style="grid-template-columns:1fr">'+tileBtn('cbagGo','1','\uD83E\uDDF3','My bag',L.length?L.length+' on this phone':'Scan or type a tag code')+'</div>'};
-var vWallet2=vWallet;vWallet=function(){var h=vWallet2.apply(this,arguments);if(mwMode)return h;var i=h.lastIndexOf('<button onclick="guestOut()">Log out</button>');return i<0?h+lgMine():h.slice(0,i)+lgMine()+h.slice(i)};
-var setTab1=setTab;setTab=function(t){if(t==='bags')lgList();return setTab1.apply(this,arguments)};
-var lgBack1=lgBack;lgBack=function(){lgBack1();if(me)lgList()};
-lgOpen=function(c){LB=c;LGX[c]=undefined;try{history.replaceState(null,'','#l='+c)}catch(e){}render();scrollTo(0,0)};
-lgReg=async function(){var c=$('lgc').value.trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');if(!c)return toast('Enter a chip code.',false);
-  try{await rpc('lg_register',{p_code:c,p_label:$('lgl').value.trim(),p_trip:$('lgt').value.trim(),p_group:$('lgg').value,p_seat:$('lgs').value.trim(),p_photo:LGP});LGP=null;toast(c+' registered.',true);await lgList()}catch(e){toast(e.message,false)}};
-lgDel=async function(c){if(!confirm('Delete bag '+c+'?'))return;try{await rpc('lg_delete',{p_code:c});await lgList()}catch(e){toast(e.message,false)}};
-lgNudge=async function(){try{var n=await rpc('lg_nudge');toast(n?'Reminder set on '+n+' unclaimed bag'+(n>1?'s':'')+'.':'Everyone has claimed.',true);await lgList()}catch(e){toast(e.message,false)}};
-lgStat=async function(c){try{await rpc('lg_status',{p_code:c,p_status:$('lgst').value.trim()});toast('Status updated.',true);await lgLoad(c)}catch(e){toast(e.message,false)}};
-lgClaim=async function(c){var n=$('lgn').value.trim(),p=$('lgp').value.trim(),pin=$('lgpin').value;if(!n||!p)return toast('Name and phone are required.',false);if(!/^\d{4}$/.test(pin))return toast('Choose a 4 digit PIN.',false);
-  var a={p_code:c,p_name:n,p_phone:p,p_email:$('lge').value.trim(),p_wa:$('lgw').checked,p_photo:LGO,p_privacy:document.querySelector('[name=lgpr]:checked').value,p_reward:$('lgrw').value.trim(),p_going:$('lggo').value.trim(),p_pin:pin};
-  try{var r=await rpc('lg_claim',a);if(!r.ok)return toast(r.text,false);
-    if($('lgsb').checked)sv('lg-biz',{name:n,phone:p,email:a.p_email,wa:a.p_wa,photo:LGO});
-    LGO=null;toast('Claimed. Staff dashboard updated.',true);await lgLoad(c,pin)}catch(e){toast(e.message,false)}};
-lgPin=function(c){lgLoad(c,$('lgpn').value)};
-lgOwn=async function(c){try{var r=await rpc('lg_owner_save',{p_code:c,p_pin:LGPIN[c],p_privacy:$('lgpv').value,p_reward:$('lgrw').value.trim(),p_going:$('lggo').value.trim()});if(!r.ok)return toast(r.text,false);toast('Saved.',true);await lgLoad(c)}catch(e){toast(e.message,false)}};
-lgMiss=async function(c){try{var r=await rpc('lg_owner_missing',{p_code:c,p_pin:LGPIN[c]});if(!r.ok)return toast(r.text,false);await lgLoad(c)}catch(e){toast(e.message,false)}};
-lgFound=function(c,n){var w=$('lgfl')&&$('lgfl').checked||n;
-  async function done(loc){try{await rpc('lg_found',{p_code:c,p_notify:!!n,p_loc:loc});toast('Thanks. The owner and staff have been alerted.',true);await lgLoad(c)}catch(e){toast(e.message,false)}}
-  if(w&&navigator.geolocation&&(!n||confirm('Share your location with the owner?')))navigator.geolocation.getCurrentPosition(function(p){done(p.coords.latitude+','+p.coords.longitude)},function(){done(null)},{timeout:6000});else done(null)};
-</script>
-<style>
-.xtg{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:0 0 14px}
-@media(min-width:700px){.xtg{grid-template-columns:repeat(3,1fr)}}
-@media(min-width:1000px){.xtg{grid-template-columns:repeat(4,1fr)}}
-.xtile{display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:10px;min-height:96px;padding:14px;border-radius:18px;text-align:left;position:relative;border:1px solid var(--glass-edge,var(--line));background:linear-gradient(145deg,var(--glass-a),var(--glass-b));color:inherit;font:inherit;cursor:pointer;transition:transform .12s}
-.xtile:active{transform:scale(.97)}
-.xtile:focus-visible{outline:2px solid currentColor;outline-offset:2px}
-.xtile .xi{font-size:1.7rem;line-height:1}
-.xtile b{font-size:.98rem}
-.xtile .xb{position:absolute;top:10px;right:10px;min-width:22px;padding:2px 7px;border-radius:99px;background:#ef4444;color:#fff;font-size:.72rem;font-weight:700;text-align:center}
-.xeven>.xtile:last-child:nth-child(odd){grid-column:1/-1;min-height:72px}
-@media(min-width:700px){.xeven>.xtile:last-child:nth-child(odd){grid-column:auto;min-height:96px}}
-.xtile.hero{grid-column:1/-1;flex-direction:row;align-items:center;min-height:76px;gap:14px}
-.xtile.hero .xi{font-size:2rem}
-.xh{grid-column:1/-1;margin:14px 2px 0;font-weight:700;opacity:.7}
-.xbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.xbar h2{margin:0;font-size:1.15rem}
-.xcmp{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px;align-items:stretch}
-@media(min-width:640px){.xcmp{grid-template-columns:1fr 1fr}}
-.xcmp.one{grid-template-columns:1fr}
-.xcmp>.card{margin:0;padding:12px 14px;display:flex;flex-direction:column}
-.xcard .bal{font-size:1.5rem;margin:2px 0}
-.xcard .sub{font-size:.82rem;margin:2px 0 0}
-.xbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:10px}
-.xbtns button{flex:1 1 auto;min-height:40px;padding:6px 10px;font-size:.85rem}
-#xscan{position:fixed;inset:0;z-index:99;background:#000e;color:#fff}
-.xsc{display:flex;flex-direction:column;gap:10px;height:100%;padding:14px;padding-top:max(14px,env(safe-area-inset-top));padding-bottom:max(14px,env(safe-area-inset-bottom))}
-.xsc video{width:100%;flex:1;min-height:0;object-fit:cover;border-radius:16px;background:#111}
-.xmw{position:fixed;inset:0;z-index:98;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
-.xmw .card{max-width:420px;width:100%;margin:0}
-.xcnt{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
-.xcnt div{padding:10px;border-radius:14px;border:1px solid var(--line);text-align:center}
-.xcnt b{display:block;font-size:1.3rem}
-@media(prefers-reduced-motion:reduce){.xtile{transition:none}}
-</style>
-<script>
-/* ===== v2 layer: tiles, QR scanner, QR-to-NFC pairing, blank tags, claim from business card ===== */
-var gSec='',xInit=0,xScanH=null,xC,xN=0,xLast=null,xErrMsg='',TOUR;
-var XI={home:'🏠',top:'💳',till:'🧾',cards:'🪪',events:'🎪',vendors:'💰',buys:'🛍️',team:'👥',groups:'🗂️',import:'📥',set:'⚙️',ledger:'📒',site:'🌐',brand:'🎨',icons:'🧩',shop:'🏪',secs:'🧱',btns:'🔘',orders:'📦',money:'💵',tokens:'🪙',theme:'🌗',bags:'🧳'};
-var XG=[['Operations',['top','till','cards','bags','import','home']],['Money',['vendors','buys','ledger','money','tokens']],['People and events',['team','groups','events']],['Look and content',['site','brand','icons','shop','orders','secs','btns','theme','set']]];
-function tileBtn(fn,id,ic,lb,sub,bd,hero){return '<button class="xtile'+(hero?' hero':'')+'" onclick="'+fn+'(\''+id+'\')"><span class="xi" aria-hidden="true">'+ic+'</span><span><b>'+lb+'</b>'+(sub?'<br><span class="mut">'+sub+'</span>':'')+'</span>'+(bd?'<span class="xb">'+bd+'</span>':'')+'</button>'}
-function xBar(t,fn){return '<div class="xbk"><button type="button" onclick="'+fn+'" aria-label="Back">\u2190 Back</button></div><h2 class="xbkt">'+esc(t)+'</h2>'}
-/* alerts: tone + vibration */
-function tileBtnone(ok){try{var c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=ok?880:260;g.gain.value=.15;o.start();setTimeout(function(){o.stop();c.close()},ok?140:320)}catch(e){}try{navigator.vibrate&&navigator.vibrate(ok?60:[90,60,90])}catch(e){}}
-function xErr(m){xErrMsg=m;xTone(false)}
-function xCode(s){s=String(s||'');var m=s.match(/[#&?]l=([A-Za-z0-9_-]{3,24})/);return (m?m[1]:s).toUpperCase().replace(/[^A-Z0-9_-]/g,'')}
-/* in-page dialogs (no browser pop-ups) */
-function xModal(h){var d=$('xmodal');if(!d){d=document.createElement('div');d.id='xmodal';document.body.appendChild(d)}d.innerHTML=h?'<div class="xmw"><div class="card">'+h+'</div></div>':''}
-function xAsk(msg,word,fn){window.xFn=fn;xModal('<h2>Please confirm</h2><p>'+esc(msg)+'</p>'+(word?'<input id="xcw" placeholder="Type '+word+'" autocapitalize="characters" style="width:100%">':'')+'<div class="row" style="margin-top:12px"><button onclick="xModal()">Cancel</button><button class="bad" onclick="xYes(\''+(word||'')+'\')">Confirm</button></div>')}
-function xYes(w){if(w&&$('xcw').value.trim()!==w)return toast('Type '+w+' to confirm.',false);var f=window.xFn;xModal();f()}
-/* camera QR scanner: BarcodeDetector, falling back to jsQR */
-function xScan(title,cb,keep){xScanStop();var d=document.createElement('div');d.id='xscan';d.innerHTML='<div class="xsc"><div class="xbar"><b style="flex:1">'+esc(title)+'</b><button onclick="xScanStop()">Close</button></div><video id="xsv" playsinline muted></video><p id="xsm" style="margin:0">Point the camera at the QR code.</p></div>';document.body.appendChild(d);
-  var h={on:true,stream:null,det:null,last:'',at:0,cv:document.createElement('canvas')};xScanH=h;
-  function lib(){return new Promise(function(ok,no){if(window.jsQR)return ok();var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
-  (async function(){try{h.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});var v=$('xsv');v.srcObject=h.stream;await v.play();
-    if(window.BarcodeDetector){try{h.det=new BarcodeDetector({formats:['qr_code']})}catch(e){}}
-    if(!h.det)await lib();
-    (function tick(){if(!h.on)return;var p;
-      if(h.det)p=h.det.detect(v).then(function(r){return r[0]&&r[0].rawValue}).catch(function(){});
-      else{var t=null;if(v.videoWidth){var c=h.cv,x=c.getContext('2d');c.width=v.videoWidth;c.height=v.videoHeight;x.drawImage(v,0,0);var r=jsQR(x.getImageData(0,0,c.width,c.height).data,c.width,c.height);t=r&&r.data}p=Promise.resolve(t)}
-      p.then(function(t){if(!h.on)return;if(t&&(t!==h.last||Date.now()-h.at>2500)){h.last=t;h.at=Date.now();if(!keep)xScanStop();cb(t)}setTimeout(tick,h.det?120:250)})})()
-  }catch(e){xTone(false);var m=$('xsm');if(m)m.textContent=e&&e.name==='NotAllowedError'?'Camera permission was denied. Allow it in your browser settings.':'Could not start the camera.'}})()}
-function xScanStop(){var h=xScanH;xScanH=null;if(h){h.on=false;if(h.stream)h.stream.getTracks().forEach(function(t){t.stop()})}var d=$('xscan');if(d)d.remove()}
+function plCountHtml(){var c=plCounts();return '<span class="tag">Base: '+c.base+'</span> <span class="tag xm">Pro 1: '+c.pro+'</span> <span class="mut">of '+c.all+' cards</span>'}
+function plRows(){var q=plQ.trim().toLowerCase(),g=(adm.guests||[]).filter(function(x){return !q||(String(x.name||'')+' '+String(x.room||'')).toLowerCase().indexOf(q)>-1});
+  var more=g.length>60;g=g.slice(0,60);
+  if(!g.length)return '<p class="mut">No cards match.</p>';
+  return g.map(function(x){var p=planKey(planMap[x.id]);
+    return '<div class="item row sp"><span><b>'+esc(x.name)+'</b>'+(x.room?'<br><span class="mut">'+esc(x.room)+'</span>':'')+'</span><select onchange="plSet(\''+esc(x.id)+'\',this.value)"><option value="base"'+(p==='base'?' selected':'')+'>XEND Base</option><option value="pro"'+(p==='pro'?' selected':'')+'>XEND Pro 1</option></select></div>'}).join('')+(more?'<p class="mut">Showing the first 60. Search to narrow down.</p>':'')}
+function paintPl(){var e=$('plist');if(e)e.innerHTML=plRows();var c=$('plcnt');if(c)c.innerHTML=plCountHtml()}
+async function plSet(id,p){try{await rpc('admin_set_plan',{gid:id,p:p});planMap[id]=p;toast('Plan set to '+planName(p)+'.',true)}catch(e){toast(e.message,false)}paintPl()}
+async function plMoveAll(){var g=adm.guests||[];if(!g.length){toast('No cards loaded yet.',false);return}
+  if(!confirm('Move all '+g.length+' cards to XEND Base? They can upgrade to Pro 1 from their wallet.'))return;
+  var ok=0,bad=0,msg='';
+  for(var i=0;i<g.length;i++){try{await rpc('admin_set_plan',{gid:g[i].id,p:'base'});planMap[g[i].id]='base';ok++}catch(e){bad++;msg=e.message}
+    if(i%5===0)toast('Moving cards… '+(i+1)+' of '+g.length,true)}
+  toast(bad?ok+' moved, '+bad+' failed: '+msg:'All '+ok+' cards are now on XEND Base.',!bad);render()}
+function tSt(k,btn){var t=(FX.btn&&FX.btn.t)||{},g,p;
+  if(btn){if(plScope==='all')return {on:btn.v,lock:false};p=t.offp&&t.offp[plScope]&&t.offp[plScope]['btn:'+btn.id];return {on:btn.v&&!p,lock:!btn.v}}
+  if(plScope==='all')return {on:!tOff(k),lock:false};
+  g=tOff(k);p=t.offp&&t.offp[plScope]&&t.offp[plScope][k];return {on:!g&&!p,lock:g}}
+function tTgl(label,hint,st,fn){return '<div class="item row sp"><span><b>'+esc(label)+'</b>'+(hint?'<br><span class="mut">'+esc(hint)+'</span>':'')+'</span>'+(st.lock?'<span class="tag">Off for everyone</span>':'<button class="'+(st.on?'on':'bad')+'" onclick="'+fn+'">'+(st.on?'ON':'OFF')+'</button>')+'</div>'}
+function vPlansAdmin(){
+  var fee=planFee?' Upgrade price: '+esc(mny(planFee))+'.':'';
+  var planCols=['base','pro'].map(function(k){var P=PLANS[k];return '<div class="item"><b>'+P.name+'</b>'+P.feats.map(function(f){return '<div class="mut">✓ '+esc(f)+'</div>'}).join('')+'</div>'}).join('');
+  var sc=[['all','Everyone'],['base','XEND Base only'],['pro','XEND Pro 1 only']].map(function(s){return '<button class="'+(plScope===s[0]?'on':'')+'" onclick="plScope=\''+s[0]+'\';render()">'+s[1]+'</button>'}).join('');
+  var soc=TILE_SOC().map(function(p){var st=tSt(p[0]);return tTgl(p[1],'',st,'tileSet(\''+p[0]+'\','+!st.on+')')}).join('');
+  var ex=TILE_X.map(function(x){var st=tSt(x[0]);return tTgl(x[1],x[2],st,'tileSet(\''+x[0]+'\','+!st.on+')')}).join('');
+  var bt=xBtnList().map(function(b){var pgl=b.pg==='landing'?'Landing page':b.pg==='card'?'Business card':'Both pages',st=tSt(null,b);
+    if(plScope!=='all'&&b.pg==='landing')return '';return tTgl(b.l,pgl,st,'tileBtn(\''+esc(b.id)+'\','+!st.on+')')}).join('');
+  var biz=bizOnly(plScope==='all'?null:plScope);
+  return ovCard()+
+  '<div class="card"><h2>Plans</h2><p class="mut">A buyer gets the plan of the product they bought (set on each product in the Shop tab). Limits follow the plan automatically: Base keeps 4 social buttons and no custom buttons, Pro 1 has no limits. A Base user can upgrade from their wallet.'+fee+'</p>'+planCols+
+  '<p id="plcnt" style="margin:10px 0">'+plCountHtml()+'</p><button class="bad" style="width:100%" onclick="plMoveAll()">Move everyone to XEND Base</button></div>'+
+  '<div class="card"><h2>Business card tiles</h2><p class="mut">Choose who the switches below apply to. When every tile and card button is off, a tap shows only the business card: photo, name, title and bio. A plan-only rule needs the card to know its owner’s plan.</p>'+
+  '<div class="row tabs" style="margin-bottom:10px">'+sc+'</div>'+
+  (biz?'<div class="msg ok" role="status">Bizcard only is ON for this group.</div>':'')+
+  '<div class="row"><button class="go" onclick="tilesAll(false)">Bizcard only (everything off)</button><button onclick="tilesAll(true)">Turn everything on</button></div></div>'+
+  '<div class="card"><h2>Social and contact tiles</h2>'+soc+'</div>'+
+  '<div class="card"><h2>Extras</h2>'+ex+'</div>'+
+  '<div class="card"><h2>Buttons</h2><p class="mut">Rename or reorder them in the Buttons tab.</p>'+bt+'</div>'+
+  '<div class="card"><h2>People</h2><input placeholder="Search name or hotel" value="'+esc(plQ)+'" oninput="plQ=this.value;paintPl()" style="width:100%;margin-bottom:10px"><div id="plist">'+plRows()+'</div></div>'}
 
-function xMonCard(){
-  if(mw===null){setTimeout(mwLoad,0);return '<div class="card xmny xcard"><b>Money wallet</b><p class="mut sub">Loading\u2026</p></div>'}
-  if(mw===false)return '<div class="card xcard"><b>Money wallet</b><p class="mut sub">Not available yet'+(mwErr?': '+esc(mwErr):'')+'.</p><div class="xbtns"><button onclick="mw=null;render()">Try again</button></div></div>';
-  var pend=(mw.pending||[]).map(function(p){return '<p class="mut sub"><span class="tag">'+esc(PST[p.status]||p.status)+'</span> '+esc(mny(p.amount))+' to '+esc(p.momo_number)+'</p>'}).join(''),tx=(mw.tx||[]).slice(0,15);
-  return '<div class="card xmny xcard"><div class="row sp"><b>Money wallet</b><span class="tag">Real GH\u20B5</span></div><div class="bal">'+esc(mny(mw.balance))+'</div><p class="mut sub">Real cash. Fee on add, send or withdraw: '+esc(feeTxt('money'))+'.</p>'+pend+
-  '<div class="xbtns"><button class="go" onclick="mwOpen(\'deposit\')">Add money</button><button onclick="mwOpen(\'send\')">Send</button><button onclick="mwOpen(\'withdraw\')">Withdraw</button>'+(mw.pts_rate>0?'<button onclick="mwOpen(\'convert\')">Get event tokens</button>':'')+'</div>'+
-  (tx.length?'<details style="margin-top:10px"><summary><b>Money activity</b></summary>'+tx.map(mwRow).join('')+'</details>':'')+'</div>'}
-function xTokCard(w){if(tsp===null)setTimeout(tsLoad,0);
-  var can=tsp&&tsp.can_cashout&&tsp.paid>0;
-  return '<div class="card xcard"><div class="row sp"><b>Event tokens</b><span class="tag">Not cash</span></div><div class="bal">'+w.balance+'</div>'+
-  (tsp?'<p class="mut sub">Admin-loaded '+tsp.admin+' \u00B7 Paid '+tsp.paid+'. Admin-loaded tokens are spent first.</p>':'<p class="mut sub">Spend at stalls or send to friends.</p>')+
-  '<div class="xbtns">'+(feat('gifts')?'<button class="go" onclick="giftOpenUI()">Gift tokens</button>':'')+(mw&&mw.pts_rate>0?'<button onclick="mwOpen(\'convert\')">Get tokens</button>':'')+
-  (can?'<button onclick="tokCash('+tsp.paid+')">Tokens to money</button>':'')+'<button onclick="refreshWallet()">Refresh</button></div>'+
-  (tsp&&!can?'<p class="mut sub" style="margin-top:8px">After your event ends, unused paid tokens can be turned back into money.</p>':'')+'</div>'}
-/* ---- guest: tile home, My bag on top, compact balances ---- */
-var vWallet0=vWallet;
-vWallet=function(){var w=wallet;if(mwMode||!w)return vWallet0.apply(this,arguments);
-  var live=w.live!==false,L=ld('lg-mine')||[],S={card:['My card',function(){return cardEditBlock(w)}],pin:['PIN',function(){return pinEditBlock()}]};
-  if(w.tour)S.bag=['My bag',function(){return lgMine()}];
-  if(live){    S.acts=['Activities',function(){return '<div class="card">'+(w.acts||[]).map(function(a){return '<div class="item row sp"><span>'+esc(a.name)+'</span><span class="tag '+(a.done?'ok':'')+'">'+(a.done?'Done':'Not done')+'</span></div>'}).join('')+'</div>'}];
-    S.hist=['History',function(){return txCounters(w.tx,'Event token activity',w.tx.length?'<div>'+w.tx.map(function(t){return '<div class="item row sp"><span>'+esc(t.type)+' \u00B7 '+esc(t.who)+'<br><span class="mut">'+when(t.ts)+'</span></span><b>'+(t.amt>0?'+':'')+t.amt+'</b></div>'}).join('')+'</div>':'','')}]}
-  if(gSec&&S[gSec])return xBar(S[gSec][0],'tGo(\'\')')+S[gSec][1]();
-  gSec='';
-  var strip='<div class="xcmp'+(live?'':' one')+'">'+(live?xTokCard(w):'')+xMonCard()+'</div>';
-  var t=strip+(live?clockCard():'')+'<div class="xtg xeven">'+(w.tour?tileBtn('tGo','bag','🧳','My bag',L.length?L.length+' on this phone':'Scan or type a tag code'):'')+tileBtn('tGo','card','🪪','My card','Edit your business card')+
-    (live&&feat('chat')?'<button class="xtile" onclick="chatOpenUI()"><span class="xi" aria-hidden="true">💬</span><span><b>Chat</b><br><span class="mut">Friends and messages</span></span>'+(reqN?'<span class="xb">'+reqN+'</span>':'')+'</button>':'')+
-    (live&&(w.acts||[]).length?tileBtn('tGo','acts','✅','Activities',(w.acts.filter(function(a){return a.done}).length)+' of '+w.acts.length+' done'):'')+
-    tileBtn('tGo','pin','🔒','PIN and security')+(live?'<button class="xtile" onclick="xFreeze()"><span class="xi" aria-hidden="true">'+(w.frozen?'🧊':'🟢')+'</span><span><b>Bracelet</b><br><span class="mut">'+(w.frozen?'Frozen. Tap to unfreeze':'Active. Tap to freeze')+'</span></span></button>':'')+
-    (live?tileBtn('tGo','hist','📜','History'):'')+'</div><button onclick="guestOut()">Log out</button>';
-  return t};
-function xFreeze(){if(wallet&&wallet.frozen)return freeze();xAsk('Freeze your bracelet? It will stop working at stalls and for gifts until you unfreeze it.',null,freeze)}
-function tGo(id){if(!id&&cdirty){return xAsk('Leave without saving your card changes?',null,function(){cdirty=false;gSec='';render();scrollTo(0,0)})}gSec=id;render();scrollTo(0,0)}
-var guestOut0=guestOut;guestOut=function(){gSec='';return guestOut0.apply(this,arguments)};
-var logout0=logout;logout=function(){gSec='';xInit=0;xC=undefined;TOUR=undefined;return logout0.apply(this,arguments)};
+/* ---- guest: plan card, upgrade sheet, live limit ---- */
+planCard=function(w){if(!w)return '';var p=planKey(w.plan),P=PLANS[p],
+  used=(w.links||[]).filter(function(l){return SOCK.indexOf(l.t)>=0&&l.on}).length,
+  yes=P.feats.map(function(f){return '<div style="margin:4px 0">✓ '+esc(f)+'</div>'}).join('');
+  if(p==='pro')return '<div class="card"><div class="row sp" style="align-items:center"><h2 style="margin:0">'+P.name+'</h2><span class="tag xm">Your plan</span></div><div style="margin-top:8px">'+yes+'</div></div>';
+  var lock=PLANS.pro.feats.filter(function(f){return P.feats.indexOf(f)<0&&!/Social Media/.test(f)}).concat(['Unlimited Social Media Buttons']).map(function(f){return '<div class="mut" style="margin:4px 0">🔒 '+esc(f)+'</div>'}).join('');
+  return '<div class="card"><div class="row sp" style="align-items:center"><h2 style="margin:0">'+P.name+'</h2><span class="tag xm">Your plan</span></div><div style="margin-top:8px">'+yes+'</div><p class="mut" style="margin:8px 0 4px">Social buttons in use: <b>'+used+'</b> of '+P.soc+'</p>'+lock+planUpgradeBtn()+'</div>'};
+function upSheet(why){var p=$('pop');if(!p)return;var f=wallet&&wallet.upgrade_fee;p.dataset.up='1';
+  p.innerHTML='<div class="popcard" role="dialog" aria-label="Upgrade"><div style="font-weight:700;font-size:1.1rem">Upgrade to XEND Pro 1</div><p style="margin:8px 0">'+esc(why)+'</p>'+
+  '<div style="text-align:left;margin:8px 0">'+PLANS.pro.feats.map(function(x){return '<div style="margin:3px 0">✓ '+esc(x)+'</div>'}).join('')+'</div>'+
+  (f?'<button onclick="upGo()" style="width:100%;background:#111;color:#ffc400;border-color:#111">Upgrade · '+esc(mny(f))+'</button><p style="margin:6px 0 0;font-size:.85rem">Paid from your money wallet.</p>':'<p style="margin:8px 0">Ask the team about upgrading.</p>')+
+  '<button onclick="upClose()" style="width:100%;margin-top:8px">Not now</button></div>'}
+function upClose(){var p=$('pop');if(p&&p.dataset.up){delete p.dataset.up;p.innerHTML=''}}
+async function upGo(){upClose();await planUpgrade()}
+planCnt=function(pfx){return SOCK.filter(function(t){var e=$(pfx+'on_'+t);return e&&e.checked}).length};
+document.addEventListener('change',function(ev){var t=ev.target,m=/^([ga])on_(\w+)$/.exec((t&&t.id)||'');if(!m)return;
+  if(t.checked&&SOCK.indexOf(m[2])>=0&&planKey(curPlan(m[1]))==='base'&&planCnt(m[1])>PLANS.base.soc){t.checked=false;
+    if(m[1]==='g')upSheet('XEND Base allows '+PLANS.base.soc+' social media buttons. Pro 1 removes the limit.');else toast('XEND Base allows '+PLANS.base.soc+' social buttons.',false)}
+  var e=$('plc_'+m[1]);if(e)e.textContent=planCnt(m[1])});
+var saveCard9=saveCard;saveCard=async function(){var m=planCheck('g',readLinks('g'));if(m){upSheet(m);return}return saveCard9()};
 
-/* ---- admin and staff: tile home replaces the tab strip; vendor gets its own small home ---- */
-var vStaff1=vStaff;
-vStaff=function(){if(!me)return vStaff1();if(me.role==='vendor')return xVendor();
-  if(!xInit){xInit=1;tab='tiles'}
-  var on=tab==='tiles',keep=tab;if(on)tab='top';
-  var h=vStaff1(),i=h.indexOf('</div>');if(i<0){tab=keep;return h}
-  var strip=h.slice(0,i),rest=h.slice(i+6),tabs=[],re=/setTab\('([a-z0-9_]+)'\)">([^<]*)</g,m;while((m=re.exec(strip)))tabs.push([m[1],m[2]]);
-  if(on){tab='tiles';var by={},used={},o='';tabs.forEach(function(t){by[t[0]]=t[1]});
-    function badge(id){if(id==='bags'){var n=(LG||[]).filter(function(b){return !b.owner}).length;return n||''}return ''}
-    XG.forEach(function(g){var r=g[1].filter(function(id){return by[id]});if(!r.length)return;o+='<div class="xh">'+g[0]+'</div>'+r.map(function(id){used[id]=1;return tileBtn('setTab',id,XI[id]||'📄',esc(by[id]),'',badge(id))}).join('')});
-    var more=tabs.filter(function(t){return !used[t[0]]});if(more.length)o+='<div class="xh">More</div>'+more.map(function(t){return tileBtn('setTab',t[0],XI[t[0]]||'📄',esc(t[1]))}).join('');
-    return '<div class="xtg">'+o+'</div>'}
-  var lb='';tabs.forEach(function(t){if(t[0]===tab)lb=t[1]});
-  return xBar(lb||'Back','setTab(\'tiles\')')+rest};
-function vdLoadIf(){if(vdat&&vdat.sid&&me&&vdat.sid!==me.id)vdat=undefined;if(vdat===undefined){vdat=null;setTimeout(vdLoad,0)}}
-function vdWait(){var d=vdat;if(d===null||d===undefined)return '<div class="card"><p class="mut">Loading\u2026</p></div>';if(d===false)return '<div class="card"><h2>Not available yet</h2><p class="mut">Ask an admin to run xend-tokens-v2.sql.</p></div>';return ''}
-function vdBal(){var w=vdWait();if(w)return w;var d=vdat,tot=d.paid_avail+d.admin_avail;
-  return '<div class="card"><div class="mut">Available to withdraw</div><div class="bal">'+tokVal(tot,d.rate)+'</div><p class="mut" style="margin:10px 0 0">'+tot+' pts \u00B7 1 pt = '+money(1)+'</p></div>'+
-  '<div class="card"><h2>Where your earnings come from</h2><div class="xk"><div><span class="mut">Paid tokens<br>(real money)</span><b>'+d.paid_avail+' pts</b><span class="mut">'+tokVal(d.paid_avail,d.rate)+' \u00B7 paid automatically</span></div><div><span class="mut">Admin-loaded tokens<br>(event tokens)</span><b>'+d.admin_avail+' pts</b><span class="mut">'+tokVal(d.admin_avail,d.rate)+' \u00B7 needs admin approval</span></div></div>'+
-  '<p class="mut">'+(d.closed?'Your section is closed. You can request your payout.':'To withdraw, close your section after the event is closed.')+'</p><button class="go" style="width:100%" onclick="tGo(\'withdraw\')">Go to withdraw</button></div>'}
-function vdHist(){var w=vdWait();if(w)return w;var P=vdat.payouts||[];
-  return '<div class="card"><h2>Payout requests</h2>'+(P.length?P.map(function(x){return '<div class="item row sp"><span>'+esc(mny(x.amount))+' \u00B7 '+(x.bucket==='paid'?'paid tokens':'admin-loaded tokens')+'<br><span class="mut">'+when(x.created_at)+(x.note?' \u00B7 '+esc(x.note):'')+'</span></span><span class="tag">'+esc(PST[x.status]||x.status)+'</span></div>'}).join('')+'<p class="mut">Usually reflects within 1 to 24 hours.</p>':'<p class="mut">No payout requests yet.</p>')+'</div>'}
-function xVendor(){vdLoadIf();var s=armed?'charge':gSec,d=vdat&&vdat.rate!==undefined?vdat:null,tot=d?d.paid_avail+d.admin_avail:null,T=function(t){return xBar(t,'tGo(\'\')')};
-  if(s==='charge')return T('Charge')+vTill();
-  if(s==='sales')return T('Today\u2019s sales')+'<div id="vsum"></div>';
-  if(s==='recent')return T('Recent sales')+'<div id="vrec"></div>';
-  if(s==='balance')return T('My balance')+vdBal();
-  if(s==='withdraw')return T('Withdraw money')+(vdWait()||vdCard());
-  if(s==='payouts')return T('Payout history')+vdHist();
-  return '<div id="vsum"></div><div class="xtg">'+tileBtn('tGo','charge','\uD83E\uDDFE','Charge',d&&d.closed?'Section closed':'Wait for a tap')+tileBtn('tGo','sales','\uD83D\uDCC8','Today\u2019s sales','Totals and all time')+tileBtn('tGo','recent','\uD83D\uDD58','Recent sales','Latest payments')+tileBtn('tGo','balance','\uD83D\uDCB0','My balance',tot===null?'Loading\u2026':tokVal(tot,d.rate)+' available')+tileBtn('tGo','withdraw','\uD83C\uDFE6','Withdraw','Cash out to MoMo or bank',d&&d.closed&&tot>0?'Ready':'')+tileBtn('tGo','payouts','\uD83D\uDCCB','Payout history','Requests and status')+'</div>'}
-var setTabT=setTab;setTab=function(t){if(t==='tiles'){tab='tiles';render();scrollTo(0,0);return}var r=setTabT.apply(this,arguments);render();scrollTo(0,0);return r};
-
-/* ---- bags: scan to claim, claim from business card ---- */
-function xClaimScan(){xScan('Scan the bag QR',function(t){var c=xCode(t);if(!c){xTone(false);return toast('That QR is not a bag tag.',false)}xTone(true);lgOpen(c)})}
-var lgMine0=lgMine;lgMine=function(){var h=lgMine0.apply(this,arguments),k='<div class="row"><input id="lgmc"',i=h.indexOf(k),b='<div class="row"><button class="go" style="width:100%" onclick="xClaimScan()">📷 Scan QR to claim</button></div><div class="row" style="margin-top:8px"><input id="lgmc"';return i<0?b.replace('<input id="lgmc"','')+h:h.slice(0,i)+b+h.slice(i+k.length)};
-var lgClaim0=lgClaim;
-lgClaim=function(c){if(!wallet)return lgClaim0(c);
-  if(!wallet.tour){xTone(false);return toast('Bag claiming is not switched on for you. Please ask a staff member.',false)}
-  var L=wallet.links||[],g=function(t){var l=L.filter(function(x){return x.t===t&&String(x.v||'').trim()})[0];return l?l.v:''};
-  if(!g('phone'))return xNeedCard(c);
-  var f=function(i,v){var e=$(i);if(e&&!e.value&&v)e.value=v};f('lgn',wallet.name);f('lgp',g('phone'));f('lge',g('email'));if(g('whatsapp')&&$('lgw'))$('lgw').checked=true;if(!LGO&&photoOf(L))LGO=photoOf(L);if(/^\d{4}$/.test(wpin))f('lgpin',wpin);
-  return lgClaim0(c)};
-function xNeedCard(c){xModal('<h2>Add your details first</h2><p class="mut">Your business card needs a phone number before you can claim a bag. It also fills in your card.</p><input id="xcn" value="'+esc(wallet.name||'')+'" placeholder="Your name" style="width:100%"><input id="xcp" placeholder="Phone" inputmode="tel" style="width:100%;margin-top:8px"><input id="xce" placeholder="Email (optional)" style="width:100%;margin-top:8px"><div class="row" style="margin-top:12px"><button onclick="xModal()">Cancel</button><button class="go" onclick="xSaveCard(\''+c+'\')">Save and claim</button></div>')}
-async function xSaveCard(c){var p=$('xcp').value.trim(),e=$('xce').value.trim();if(!p)return toast('Phone is required.',false);
-  var L=(wallet.links||[]).filter(function(l){return l.t!=='phone'&&!(e&&l.t==='email')});L.push({t:'phone',v:p,on:true});if(e)L.push({t:'email',v:e,on:true});
-  try{await rpc('save_links',{k:key,pin_:wpin,l:L});wallet=await rpc('wallet',{k:key,pin_:wpin});xModal();render();lgClaim(c)}catch(err){toast(err.message,false)}}
+/* ---- guest: welcome, card activity (Pro 1), lost mode ---- */
+function welcomeCard(){if(!wallet||!key)return '';var seen=ld('xw-seen')||[];if(seen.indexOf(key.slice(0,12))>-1)return '';var p=planKey(wallet.plan);
+  var st=['Open My business card and add your photo, title and bio.',p==='base'?'Switch on up to '+PLANS.base.soc+' social buttons. Upgrade any time for unlimited.':'Switch on as many social buttons as you like, and add custom buttons.','Tap Show QR so friends without NFC can open your card.','Change your PIN to one only you know.'];
+  return '<div class="card"><div class="row sp" style="align-items:center"><h2 style="margin:0">Welcome to XEND-CARD</h2><span class="tag xm">'+planName(p)+'</span></div><ol style="margin:10px 0 12px;padding-left:20px">'+st.map(function(s){return '<li style="margin:4px 0">'+esc(s)+'</li>'}).join('')+'</ol><button class="go" onclick="welcomeDone()">Got it</button></div>'}
+function welcomeDone(){var s=ld('xw-seen')||[];if(key)s.push(key.slice(0,12));sv('xw-seen',s.slice(-30));render()}
+async function loadOwn(){if(!wallet||!key||ownKey===key)return;ownKey=key;ownMeta=null;ownStats=null;
+  try{ownMeta=await rpc('card_meta',{k:key,p_via:'self'})}catch(e){ownMeta=null}
+  try{ownStats=await rpc('owner_stats',{k:key,pin_:wpin})}catch(e){ownStats=false}
+  if(wallet&&!chatOpen&&!giftOpen)render()}
+function actCard(){if(!wallet)return '';var s=ownStats;
+  if(planKey(wallet.plan)==='base')return '<div class="card"><div class="row sp"><h2 style="margin:0">Card activity</h2><span class="tag">Pro 1</span></div><p class="mut" style="margin:8px 0 0">See how many people tapped your bracelet or scanned your QR each week.</p>'+planUpgradeBtn()+'</div>';
+  if(s===false)return '';if(!s)return '<div class="card"><h2>Card activity</h2><p class="mut">Loading…</p></div>';
+  var days=s.days||[],mx=Math.max(1,Math.max.apply(null,days.map(function(d){return d.n||0})));
+  return '<div class="card"><h2>Card activity</h2><div class="row" style="gap:6px"><div style="flex:1;text-align:center"><div style="font-size:1.6rem;font-weight:800">'+esc(s.taps7)+'</div><div class="mut">Taps, 7 days</div></div><div style="flex:1;text-align:center"><div style="font-size:1.6rem;font-weight:800">'+esc(s.qr7)+'</div><div class="mut">QR scans, 7 days</div></div><div style="flex:1;text-align:center"><div style="font-size:1.6rem;font-weight:800">'+esc(s.total)+'</div><div class="mut">All time</div></div></div>'+
+  '<div class="row" style="align-items:flex-end;gap:6px;height:70px;margin-top:12px;flex-wrap:nowrap">'+days.map(function(d){return '<div style="flex:1;text-align:center"><div title="'+esc(d.n)+'" style="background:var(--acc);border-radius:4px;height:'+Math.max(4,Math.round(50*(d.n||0)/mx))+'px"></div><div class="mut" style="font-size:.75rem">'+esc(d.d)+'</div></div>'}).join('')+'</div></div>'}
+function lostCard(){if(!wallet)return '';var m=ownMeta;
+  if(m&&m.lost)return '<div class="card" style="border:2px solid #c0392b"><h2>Lost mode is ON</h2><p class="mut">Your bracelet is frozen. Anyone who taps it sees your message and a way to reach you.</p><button class="go" onclick="lostOff()">I found it. Turn lost mode off</button></div>';
+  return '<div class="card"><h2>Lost your bracelet?</h2><p class="mut">Lost mode freezes the bracelet and turns its card into a contact-the-owner page.</p><input id="lmsg" maxlength="200" placeholder="Message, e.g. Please call me. Reward offered." style="width:100%;margin-bottom:8px"><input id="lph" type="tel" maxlength="30" placeholder="Phone number people can call" style="width:100%;margin-bottom:8px"><button class="bad" onclick="lostOn()">Turn on lost mode</button></div>'}
+async function lostOn(){var msg=($('lmsg')||{value:''}).value.trim(),ph=($('lph')||{value:''}).value.trim();if(!ph){toast('Enter a phone number people can call.',false);return}
+  try{await rpc('lost_set',{k:key,pin_:wpin,p_on:true,p_msg:msg,p_phone:ph});
+    if(!wallet.frozen)await rpc('set_frozen',{k:key,pin_:wpin,f:true});
+    wallet=await rpc('wallet',{k:key,pin_:wpin});ownMeta=await rpc('card_meta',{k:key,p_via:'self'});toast('Lost mode is on. Your bracelet is frozen.',true)}catch(e){toast(e.message,false)}render()}
+async function lostOff(){
+  try{await rpc('lost_set',{k:key,pin_:wpin,p_on:false,p_msg:'',p_phone:''});
+    wallet=await rpc('wallet',{k:key,pin_:wpin});if(wallet&&wallet.frozen){await rpc('set_frozen',{k:key,pin_:wpin,f:false});wallet=await rpc('wallet',{k:key,pin_:wpin})}
+    ownMeta=await rpc('card_meta',{k:key,p_via:'self'});toast('Welcome back. Lost mode is off and your bracelet is active.',true)}catch(e){toast(e.message,false)}render()}
+var vWallet8=vWallet;vWallet=function(){loadOwn();var h=vWallet8.apply(this,arguments);if(mwMode)return h;
+  var tail='<button onclick="guestOut()">Log out</button>',i=h.lastIndexOf(tail);
+  var mid=actCard()+lostCard();h=i>-1?h.slice(0,i)+mid+h.slice(i):h+mid;return welcomeCard()+h};
 
 
-/* ---- admin: Tour switch on every guest row (decides who gets My bag) ---- */
-var gCard0=gCard;
-gCard=function(g,t){var h=gCard0(g,t);if(!(me&&me.role==='admin'))return h;
-  if(TOUR===undefined){TOUR=null;xTourLoad()}
-  var on=TOUR&&TOUR[String(g.id)],b=TOUR===false?'<button class="bad" title="'+esc(TOURERR||'')+'" onclick="xTourRetry()">Tour: tap to retry</button>':'<button class="'+(on?'on':'bad')+'" onclick="xTour(\''+g.id+'\','+!on+')">Tour '+(on?'ON':'OFF')+'</button>',
-    i=h.lastIndexOf('</div></div>');return i<0?h:h.slice(0,i)+b+h.slice(i)};
-function xTourPaint(){var e=$('gres');if(e)e.innerHTML=gResults();else if(me&&me.role==='admin')render()}
-var TOURERR='';
-async function xTourLoad(){try{var r=await rpc('tour_ids');TOUR={};TOURERR='';(Array.isArray(r)?r:[]).forEach(function(id){TOUR[String(id)]=1})}catch(e){TOUR=false;TOURERR=(e&&e.message)||String(e)}xTourPaint()}
-async function xTourRetry(){TOUR=null;await xTourLoad();if(TOUR===false)toast('Tour could not load: '+TOURERR,false);else toast('Tour is ready. Tap Tour ON or OFF on a guest.',true)}
-async function xTour(id,on){try{await rpc('guest_set_tour',{gid:String(id),on_:on});TOUR=TOUR||{};if(on)TOUR[String(id)]=1;else delete TOUR[String(id)];xTone(true);toast('Tour '+(on?'switched on':'switched off')+'. My bag '+(on?'is now available to this guest.':'is hidden for this guest.'),true)}catch(e){xTone(false);toast(e.message,false)}xTourPaint()}
+/* ===== luggage: staff desk, admin screens, guest screens, finder page ===== */
+var LG_CSS=[
+'.lg-card{background:var(--card,#fff);border:1px solid var(--line,#e4e4e4);border-radius:16px;padding:16px;margin:0 0 12px;color:var(--ink,#111)}',
+'.lg-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px}',
+'.lg-hd h2{margin:0;font-size:1.15rem;letter-spacing:-.01em}',
+'.lg-sub{color:var(--mut,#5c5c5c);font-size:.85rem;margin:2px 0 0}',
+'.lg-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:.78rem;font-weight:700;background:rgba(47,111,228,.14);color:#4a82ee;white-space:nowrap}',
+'.lg-chip.ok{background:rgba(31,157,87,.16);color:#2bb66a}',
+'.lg-chip.bad{background:rgba(214,69,69,.16);color:#e25b5b}',
+'.lg-chip.warn{background:rgba(201,138,11,.18);color:#d39a1a}',
+'.lg-chip.mut{background:rgba(120,120,120,.16);color:var(--mut,#5c5c5c)}',
+'.lg-scan{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}',
+'.lg-sb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:84px;padding:12px;border-radius:14px;border:1px solid var(--line,#e4e4e4);background:var(--card,#fff);color:var(--ink,#111);font-weight:700;font-size:.9rem;cursor:pointer;text-align:center}',
+'.lg-sb.on{background:var(--acc,#ffc400);color:var(--onacc,#111);border-color:transparent}',
+'.lg-sb.pulse svg{animation:lgp 1.3s ease-in-out infinite}',
+'@keyframes lgp{50%{transform:scale(1.18)}}',
+'.lg-bag{display:flex;gap:14px;align-items:center}',
+'.lg-ph{width:72px;height:72px;border-radius:14px;background:rgba(120,120,120,.14);flex:none;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--mut,#5c5c5c)}',
+'.lg-ph img{width:100%;height:100%;object-fit:cover}',
+'.lg-ph.s{width:48px;height:48px;border-radius:12px}',
+'.lg-grp{display:flex;align-items:center;gap:8px;margin:18px 0 8px;font-weight:800;font-size:.75rem;letter-spacing:.07em;text-transform:uppercase;color:var(--mut,#5c5c5c)}',
+'.lg-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}',
+'.lg-tile{min-height:60px;text-align:left;padding:10px 12px;border-radius:14px;border:1px solid var(--line,#e4e4e4);border-left:5px solid var(--gc,#2f6fe4);background:var(--card,#fff);color:var(--ink,#111);font-weight:600;font-size:.92rem;cursor:pointer}',
+'.lg-tile.on{background:var(--gc,#2f6fe4);color:#fff;border-color:var(--gc,#2f6fe4)}',
+'.lg-bar{position:sticky;bottom:0;z-index:5;margin:16px -16px -16px;padding:12px 16px;background:var(--card,#fff);border-top:1px solid var(--line,#e4e4e4);border-radius:0 0 16px 16px;box-shadow:0 -8px 20px rgba(0,0,0,.08)}',
+'.lg-in{width:100%;min-height:46px;margin:0 0 8px;box-sizing:border-box}',
+'.lg-done{display:flex;gap:12px;align-items:center;background:rgba(31,157,87,.13);border:1px solid rgba(31,157,87,.45)}',
+'.lg-done .ic{width:40px;height:40px;border-radius:50%;background:#1f9d57;color:#fff;display:flex;align-items:center;justify-content:center;flex:none}',
+'.lg-quick{background:rgba(47,111,228,.1);border:1px solid rgba(47,111,228,.45)}',
+'.lg-tl{list-style:none;margin:0;padding:0 0 0 24px;position:relative}',
+'.lg-tl:before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:var(--line,#e4e4e4)}',
+'.lg-tl li{position:relative;margin:0 0 14px}',
+'.lg-tl li:before{content:"";position:absolute;left:-23px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--c,#2f6fe4);box-shadow:0 0 0 3px var(--card,#fff)}',
+'.lg-tl .r1{display:flex;justify-content:space-between;gap:10px;align-items:baseline}',
+'.lg-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px;margin:0 0 12px}',
+'.lg-stat{padding:14px;border-radius:14px;border:1px solid var(--line,#e4e4e4);background:var(--card,#fff);color:var(--ink,#111)}',
+'.lg-stat b{display:block;font-size:1.7rem;line-height:1.1}',
+'.lg-stat span{color:var(--mut,#5c5c5c);font-size:.8rem}',
+'.lg-stat.bad b{color:#e25b5b}',
+'.lg-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line,#e4e4e4);cursor:pointer}',
+'.lg-row:first-of-type{border-top:0}',
+'.lg-row .grow{flex:1;min-width:0}',
+'.lg-row .grow b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+'.lg-row .grow span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+'.lg-hd+.lg-row{border-top:0}',
+'.lg-bars .r{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:.85rem}',
+'.lg-bars .l{width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+'.lg-bars .t{flex:1;height:10px;background:rgba(120,120,120,.18);border-radius:6px;overflow:hidden}',
+'.lg-bars .t i{display:block;height:100%;background:var(--bc,#2f6fe4)}',
+'.lg-meter{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}',
+'.lg-meter i{width:22px;height:8px;border-radius:4px;background:rgba(120,120,120,.25)}',
+'.lg-meter i.f{background:var(--acc,#ffc400)}',
+'.lg-alert{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:rgba(201,138,11,.16);margin:10px 0 0;font-size:.88rem}',
+'.lg-alert.bad{background:rgba(214,69,69,.16)}',
+'#lgmodal{position:fixed;inset:0;z-index:35;background:rgba(9,9,11,.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:0}',
+'#lgmodal .lg-sheet{width:100%;max-width:560px;max-height:92vh;overflow:auto;background:var(--card,#fff);color:var(--ink,#111);border-radius:20px 20px 0 0;padding:18px 16px 24px}',
+'@media(min-width:700px){#lgmodal{align-items:center}#lgmodal .lg-sheet{border-radius:20px}}',
+'#lgcam{position:fixed;inset:0;z-index:40;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff}',
+'#lgcam video{width:100%;max-height:70vh;object-fit:cover}',
+'#lgprint{display:none}',
+'@media print{body>*:not(#lgprint){display:none!important}#lgprint{display:grid!important;grid-template-columns:repeat(3,1fr);gap:6mm;padding:8mm;background:#fff}.lg-label{border:1px solid #000;border-radius:3mm;padding:3mm;text-align:center;break-inside:avoid;font-family:Arial,sans-serif;color:#000;background:#fff}.lg-label svg{width:28mm;height:28mm}.lg-label b{display:block;font-size:12pt;letter-spacing:1px;margin-top:1mm}.lg-label span{font-size:7pt}}'
+].join('\n');
+(function(){var s=document.createElement('style');s.id='lgcss';s.textContent=LG_CSS;document.head.appendChild(s)})();
 
-/* ---- confirmation tone (was missing; Tour toggle and tag actions crashed without it) ---- */
-function xTone(ok){if(xMuted())return;try{navigator.vibrate&&navigator.vibrate(ok?30:[60,40,60])}catch(e){}
-  try{var c=new (window.AudioContext||window.webkitAudioContext)(),t=c.currentTime;(ok?[660,880]:[300,220]).forEach(function(hz,i){var o=c.createOscillator(),g=c.createGain();o.frequency.value=hz;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.12,t+i*.1);g.gain.exponentialRampToValueAtTime(.001,t+i*.1+.14);o.start(t+i*.1);o.stop(t+i*.1+.15)});setTimeout(function(){c.close()},600)}catch(e){}}
-/* ---- staff and admin: tags, pairing, register by scan ---- */
-async function xCnt(){try{xC=await rpc('lg_tag_counts')}catch(e){xC=null}render()}
-function xTagCard(){var ad=me&&me.role==='admin',c=xC||{blank:0,paired:0,total:0},un=xLast&&Date.now()-xLast.at<10000;
-  return (xErrMsg?'<div class="msg err" role="alert">'+esc(xErrMsg)+' <button onclick="xErrMsg=\'\';render()">Dismiss</button></div>':'')+
-  '<div class="card"><h2>Tags</h2><div class="xcnt"><div><b>'+c.blank+'</b><span class="mut">Blank</span></div><div><b>'+c.paired+'</b><span class="mut">Paired</span></div><div><b>'+xN+'</b><span class="mut">Paired today</span></div></div>'+
-  '<div class="row">'+(HAS?'<button class="go" onclick="xPair()">Pair QR to NFC</button>':'')+'<button onclick="xReg(0)">📷 Scan QR to register</button>'+(HAS?'<button onclick="xReg(1)">Tap chip to register</button>':'')+(un?'<button class="bad" onclick="xUndo()">Undo '+esc(xLast.code)+'</button>':'')+'</div>'+
-  (HAS?'':'<p class="mut">Pairing needs Chrome on Android with NFC on.</p>')+
-  (ad?'<h3>Admin</h3><div class="row"><input id="xq" type="number" min="1" max="99999" placeholder="How many (1 to 99999)" style="width:190px"><input id="xp" value="XB-" style="width:90px" aria-label="Prefix"><button class="go" onclick="xMake()">Create blank tags</button></div><div class="row" style="margin-top:8px"><button onclick="xCsv()">Export CSV</button><button onclick="xClear()">Delete unused blank tags</button><button class="bad" onclick="xWipe()">Full wipe</button></div>':'')+'</div>'}
-var vBags0=vBags;vBags=function(){if(xC===undefined){xC=null;xCnt()}return xTagCard()+vBags0.apply(this,arguments)};
-function xMake(){var q=parseInt($('xq').value,10),p=$('xp').value.trim()||'XB-';if(!(q>=1&&q<=99999)){xErr('Enter a quantity from 1 to 99999.');return render()}
-  xAsk('Create '+q+' blank tags with prefix '+p+'?',q>=5000?'CREATE':null,async function(){try{var r=await rpc('lg_blank_create',{p_qty:q,p_prefix:p});xTone(true);toast(r.created+' tags created: '+r.first+' to '+r.last+'.',true);xC=undefined}catch(e){xErr(e.message)}render()})}
-function xClear(){xAsk('Delete every blank tag that was never paired?',null,async function(){try{var n=await rpc('lg_tag_clear_blank');xTone(true);toast(n+' blank tags deleted.',true);xC=undefined}catch(e){xErr(e.message)}render()})}
-function xWipe(){xAsk('This deletes ALL bags and ALL tags. Export the CSV first.','DELETE',async function(){try{var B=(LG||[]).slice();for(var i=0;i<B.length;i++)await rpc('lg_delete',{p_code:B[i].code});await rpc('lg_tag_wipe');xTone(true);toast('Everything deleted.',true);xC=undefined;await lgList()}catch(e){xErr(e.message);render()}})}
-async function xCsv(){try{var rows=[],from=0,r;do{r=(await rpc('lg_tag_list',{p_from:from,p_limit:5000}))||[];rows=rows.concat(r);from+=5000}while(r.length===5000);
-  var s='code,link,chip,status\n'+rows.map(function(x){return [x.code,lgUrl(x.code),x.chip_uid||'',x.status].join(',')}).join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s],{type:'text/csv'}));a.download='xend-tags.csv';a.click();toast(rows.length+' tags exported.',true)}catch(e){xErr(e.message)}render()}
-async function xUndo(){try{await rpc('lg_unpair',{p_code:xLast.code});xN=Math.max(0,xN-1);toast(xLast.code+' unpaired.',true);xLast=null;xCnt()}catch(e){xErr(e.message);render()}}
-async function xPair(){if(!HAS){xErr('Pairing needs Chrome on Android with NFC on.');return render()}
-  var ac=new AbortController();toast('Hold the chip to the back of the phone.',true);
-  try{var n=new NDEFReader();await n.scan({signal:ac.signal});n.onreading=function(e){ac.abort();xTone(true);xPair2(e.serialNumber)}}catch(e){xErr('NFC could not start: '+e.message);render()}}
-function xPair2(uid){xScan('Now scan the QR on this chip',async function(t){var code=xCode(t);
-  try{await rpc('lg_pair',{p_code:code,p_uid:uid});xTone(true);xN++;xLast={code:code,at:Date.now()};var w='';
-    try{await new NDEFReader().write({records:[{recordType:'url',data:lgUrl(code)}]})}catch(e){w=' Link not written to the chip. It may be read-only.'}
-    toast(code+' paired.'+w,true);setTimeout(render,10500);xCnt()}
-  catch(e){xErr(e.message);render()}})}
-async function xReg(nfc){var fill=function(c){xTone(true);if($('lgc'))$('lgc').value=c;toast(c+' is ready. Add the details and press Register bag.',true)};
-  if(!nfc)return xScan('Scan the bag QR',function(t){fill(xCode(t))});
-  var ac=new AbortController();toast('Hold the chip to the back of the phone.',true);
-  try{var n=new NDEFReader();await n.scan({signal:ac.signal});n.onreading=async function(e){ac.abort();try{fill(await rpc('lg_tag_resolve',{p_text:e.serialNumber}))}catch(x){xErr(x.message);render()}}}catch(e){xErr('NFC could not start: '+e.message);render()}}
-</script>
+var LG_GRP={'Road trip':['#2f6fe4','truck'],'Hotel and airport':['#0f8b8d','hotel'],'Boat, train or bus':['#7a4fd1','boat'],'Problems':['#d64545','alert']};
+function lgGc(g){return (LG_GRP[g]||['#6b7280'])[0]}
+function lgIco(n,s){var P={scan:'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16',camera:'M3 8h4l2-3h6l2 3h4v11H3zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',keys:'M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M7 14h10',pin:'M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',truck:'M2 6h12v10H2zM14 10h4l4 3v3h-8zM4 19a2 2 0 1 0 4 0 2 2 0 0 0-4 0M16 19a2 2 0 1 0 4 0 2 2 0 0 0-4 0',hotel:'M4 21V3h11v18M15 9h5v12M8 7h2M8 11h2M8 15h2',boat:'M2 17l2 4h16l2-4zM12 3v10M12 5l6 7H12M6 13h12',alert:'M12 3l10 18H2zM12 10v4M12 17h.01',bag:'M6 8h12l1 13H5zM9 8V6a3 3 0 0 1 6 0v2',check:'M5 12l5 5 9-10',plus:'M12 5v14M5 12h14',clock:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',map:'M9 4l6 2 5-2v14l-5 2-6-2-5 2V6zM9 4v14M15 6v14',print:'M7 9V3h10v6M6 17H4v-6h16v6h-2M7 14h10v7H7z',down:'M12 4v11M7 11l5 5 5-5M5 20h14',x:'M6 6l12 12M18 6L6 18',nfc:'M6 8a8 8 0 0 1 0 8M10 6a11 11 0 0 1 0 12M14 4a14 14 0 0 1 0 16'};
+  return '<svg width="'+(s||20)+'" height="'+(s||20)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(P[n]||P.bag)+'"/></svg>'}
+function lgT(ts){var d=new Date(ts);return isNaN(d)?'':d.toLocaleString([],{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}
+function lgAgo(ts){var m=Math.round((Date.now()-new Date(ts))/60000);if(isNaN(m))return '';if(m<1)return 'just now';if(m<60)return m+' min ago';var h=Math.round(m/60);if(h<24)return h+' h ago';return lgT(ts)}
+function lgMap(la,ln){return (la==null||ln==null)?'':'https://www.google.com/maps?q='+encodeURIComponent(la+','+ln)}
+function lgChip(label,problem){var c=problem?'bad':/^(Delivered|Collected|Returned|Arrived|Checked)/.test(label||'')?'ok':'';return '<span class="lg-chip '+c+'">'+esc(label||'Registered')+'</span>'}
+function lgPh(src,small){return '<div class="lg-ph'+(small?' s':'')+'">'+(src?'<img src="'+esc(src)+'" alt="">':lgIco('bag',small?22:30))+'</div>'}
+function lgTimeline(rows){if(!rows||!rows.length)return '<p class="mut">No scans yet.</p>';
+  return '<ul class="lg-tl">'+rows.map(function(r){var c=r.problem?'#d64545':r.kind==='found'?'#c98a0b':r.kind==='owner'?'#6b7280':'#2f6fe4',m=lgMap(r.lat,r.lng);
+    return '<li style="--c:'+c+'"><div class="r1"><b>'+esc(r.label||r.status)+'</b><span class="mut">'+esc(lgT(r.at))+'</span></div>'+
+    (r.kind==='found'?'<div>Someone reported this bag'+(r.note?': '+esc(r.note):'')+(r.contact?' · contact '+esc(r.contact):'')+'</div>':(r.note?'<div>'+esc(r.note)+'</div>':''))+
+    '<div class="mut">'+[r.place?esc(r.place):'',r.staff_name?esc(r.staff_name):''].filter(Boolean).join(' · ')+(m?' <a href="'+esc(m)+'" target="_blank" rel="noopener">Map</a>':(r.kind==='staff'&&r.gps_ok===false?' · no GPS':''))+'</div></li>'}).join('')+'</ul>'}
+function lgCsv(name,head,rows){var q=function(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+  var t=[head.join(',')].concat(rows.map(function(r){return r.map(q).join(',')})).join('\r\n'),a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000)}
+function lgModal(html){var m=$('lgmodal');if(!m){m=document.createElement('div');m.id='lgmodal';m.onclick=function(e){if(e.target===m)lgModalClose()};document.body.appendChild(m)}m.innerHTML='<div class="lg-sheet" role="dialog">'+html+'</div>'}
+function lgModalClose(){var m=$('lgmodal');if(m)m.remove()}
 
-<style>
-.xchat{max-width:720px;margin:0 auto}
-.xct{display:flex;gap:4px;padding:4px;border-radius:99px;background:linear-gradient(145deg,var(--glass-a),var(--glass-b));border:1px solid var(--line);margin-bottom:12px}
-.xct button{flex:1;border:0;border-radius:99px;min-height:42px;background:transparent;font-weight:700;position:relative}
-.xct button.on{background:var(--acc);color:#111}
-.xct .dot{position:absolute;top:2px;right:6px}
-.xst{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 12px;scrollbar-width:none}
-.xst::-webkit-scrollbar{display:none}
-.xst button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:64px;font-size:.75rem;color:inherit}
-.xav{display:inline-flex;padding:3px;border-radius:50%;background:var(--line)}
-.xav.un{background:conic-gradient(var(--acc),#f472b6,var(--acc))}
-.xav .av{border:2px solid var(--card)}
-.xrow{display:flex;align-items:center;gap:12px;width:100%;padding:10px 6px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;color:inherit;border-radius:0}
-.xrow .xtx{flex:1;min-width:0;display:flex;flex-direction:column}
-.xrow .xtx .mut{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.xconv{display:flex;flex-direction:column;height:calc(100dvh - 200px);min-height:380px}
-.xch{display:flex;align-items:center;gap:10px;padding-bottom:8px}
-.xwho{flex:1;font-weight:800;display:flex;align-items:center;gap:8px;min-width:0}
-.xmsgs{flex:1;overflow-y:auto;padding:6px 2px;border-radius:16px;background:linear-gradient(180deg,transparent,var(--glass-b))}
-.xbub>div{border:0!important;border-radius:20px!important;box-shadow:0 1px 3px rgba(0,0,0,.14)}
-.xbub.xnew>div{animation:xpop .5s cubic-bezier(.34,1.56,.64,1)}
-.xbub.xme.xnew>div{transform-origin:100% 100%}.xbub:not(.xme).xnew>div{transform-origin:0 100%}
-@keyframes xpop{from{transform:scale(.55) translateY(16px);opacity:0}to{transform:none;opacity:1}}
-.xact{display:flex;gap:6px;overflow-x:auto;padding:8px 0;scrollbar-width:none}
-.xact button{white-space:nowrap;border-radius:99px;min-height:38px;padding:4px 14px}
-.xcomp{display:flex;gap:6px;align-items:center;padding:6px;border-radius:99px;border:1px solid var(--line);background:var(--card)}
-.xcomp input{flex:1;min-width:0;border:0;background:transparent;min-height:40px}
-.xcomp select{max-width:96px;border:0;background:transparent;font-size:.8rem}
-.xcomp button{border-radius:50%;width:42px;height:42px;padding:0;min-height:0}
-.xemo{display:flex;gap:6px;padding:8px 4px}
-.xemo button{min-height:40px;padding:4px 10px}
-.xcost{font-size:.78rem;margin:6px 6px 0}
-@media(prefers-reduced-motion:reduce){.xbub.xnew>div{animation:none}}
-</style>
-<script>
-/* ===== v3 layer: modern chat ===== */
-var cTab='friends',xA={},xGot=0,xPh=null,xPhC=-1,XIMG=/^data:image\/[a-z+]+;base64,[A-Za-z0-9+\/=]+$/;
-function xMuted(){try{return localStorage.getItem('x-mute')==='1'}catch(e){return false}}
-function xMute(){try{localStorage.setItem('x-mute',xMuted()?'0':'1')}catch(e){}render()}
-function xChime(k){if(xMuted())return;try{navigator.vibrate&&navigator.vibrate(k==='in'?[25,35,25]:k==='pop'?60:20)}catch(e){}
-  try{var c=new (window.AudioContext||window.webkitAudioContext)(),f=k==='in'?[700,1000]:k==='pop'?[880]:[500,760],t=c.currentTime;f.forEach(function(hz,i){var o=c.createOscillator(),g=c.createGain();o.frequency.value=hz;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.14,t+i*.09);g.gain.exponentialRampToValueAtTime(.001,t+i*.09+.12);o.start(t+i*.09);o.stop(t+i*.09+.13)});setTimeout(function(){c.close()},500)}catch(e){}}
-document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.xchat button,.xtile');if(b&&!xMuted())try{navigator.vibrate&&navigator.vibrate(12)}catch(x){}});
-/* profile pictures come from each person's business card; nothing is uploaded here */
-function xPhoto(n){if(wallet&&n===wallet.name){var m=photoOf(wallet.links);return XIMG.test(m)?m:''}
-  var p=chatPeople.concat(chatReqs||[],chatPend||[]).filter(function(x){return x.name===n})[0],v=p&&xPh&&xPh[p.id];return v&&XIMG.test(v)?v:''}
-var avh0=avh;avh=function(n,sz){var p=xPhoto(n);return p?'<span class="av" style="background:#ddd url('+p+') center/cover'+(sz?';flex-basis:'+sz+'px;width:'+sz+'px;height:'+sz+'px':'')+'"></span>':avh0(n,sz)};
-async function xPhLoad(){try{xPh=(await rpc('chat_photos',{k:key,pin_:wpin}))||{}}catch(e){xPh={}}if(chatOpen){paintFriends();var m=$('cmsgs');if(m)paintChat()}}
-function xRing(n,u){return '<span class="xav'+(u?' un':'')+'">'+avh(n,52)+'</span>'}
-function xStories(){var me=wallet?wallet.name:'You',h='<button onclick="chatClose();gSec=\'card\';render()">'+xRing(me,0)+'<span>You</span></button>';
-  chatPeople.forEach(function(p){h+='<button onclick="chatOpenConv(\''+esc(p.id)+'\')">'+xRing(p.name,unreadN(p.id))+'<span>'+esc(String(p.name).split(' ')[0])+'</span></button>'});return h}
-paintFriends=function(){var f=$('cflist');if(!f)return;
-  var c=chatPeople.length+(chatReqs||[]).length+(chatPend||[]).length;if(c!==xPhC){xPhC=c;xPhLoad()}
-  var q=(chatQ||'').trim().toLowerCase(),L=chatPeople.filter(function(p){return !q||p.name.toLowerCase().indexOf(q)>-1}),s=$('xst'),h=xStories();if(s&&s.dataset.h!==h){s.innerHTML=h;s.dataset.h=h}
-  f.innerHTML=(L.length?L.map(function(p){var u=unreadN(p.id);return '<button class="xrow" onclick="chatOpenConv(\''+esc(p.id)+'\')">'+avh(p.name,46)+'<span class="xtx"><b>'+esc(p.name)+'</b><span class="mut">'+esc(prevTxt(p.id))+'</span></span>'+(u?'<span class="dot">'+u+'</span>':'')+'</button>'}).join(''):'<p class="mut">'+(chatPeople.length?'No friend matches that.':'No friends yet. Open Add friend to tap a bracelet or use a code.')+'</p>')+
-  ((chatPend||[]).length?'<p class="mut" style="margin:10px 4px 0">Waiting for '+chatPend.map(function(p){return esc(p.name)}).join(', ')+' to accept.</p>':'')};
-/* bubbles bounce in only when new; incoming ones play a chime */
-var chatBubble0=chatBubble;chatBubble=function(x){var h=chatBubble0(x),mine=x.from_id===chatMe,nw=!xA[x.id];if(nw){xA[x.id]=1;if(!mine)xGot=1}
-  return h.replace('<div style="display:flex;','<div class="xbub'+(mine?' xme':'')+(nw?' xnew':'')+'" style="display:flex;')};
-var paintChat0=paintChat;paintChat=function(){xGot=0;paintChat0.apply(this,arguments);if(xGot)xChime('in')};
-var chatOpenConv0=chatOpenConv;chatOpenConv=function(id){threadMsgs(id).forEach(function(m){xA[m.id]=1});return chatOpenConv0(id)};
-var chatSend0=chatSend;chatSend=async function(loc){var i=$('ctxt'),had=i&&i.value.trim();await chatSend0.apply(this,arguments);if(xSkip){xSkip=0}else if(!loc&&had&&$('ctxt')&&!$('ctxt').value)xChime('out')};
-function xTab(t){if(t==='bcast')return chatOpenConv('');cTab=t;chatView='list';chatTo='';render()}
-function xEmo(){var e=$('xemo');if(e)e.style.display=e.style.display==='none'?'flex':'none'}
-function xPre(sel,id){var n=0,t=setInterval(function(){var s=$(sel);if(s){s.value=id;clearInterval(t)}else if(++n>20)clearInterval(t)},100)}
-async function xGoGift(){var id=chatTo;chatClose();await giftOpenUI();xPre('gto',id)}
-async function xGoMoney(){var id=chatTo;chatClose();await mwOpen('send');xPre('mws',id)}
-var vChat0=vChat;
-vChat=function(){var conv=chatView==='conv',act=conv?(chatTo?'friends':'bcast'):cTab,uf=0;chatPeople.forEach(function(p){uf+=unreadN(p.id)});
-  function T(id,lb,bd){return '<button class="'+(act===id?'on':'')+'" onclick="xTab(\''+id+'\')">'+lb+(bd?'<span class="dot">'+bd+'</span>':'')+'</button>'}
-  var head='<div class="xchat"><div class="row sp" style="margin-bottom:8px"><h2 style="margin:0">Chat</h2><span class="row" style="gap:6px"><button onclick="xMute()" aria-label="'+(xMuted()?'Turn sound on':'Turn sound off')+'">'+(xMuted()?'🔕':'🔔')+'</button><button onclick="chatClose()">Close</button></span></div><div class="xct">'+T('friends','My friends',uf||'')+T('add','Add friend',reqN||'')+T('bcast','Broadcast',unreadN('')||'')+'</div>';
-  if(conv){var fr=!!chatTo;
-    return head+'<div class="xconv"><div class="xch"><button onclick="chatBack()" aria-label="Back">\u2039</button><span id="cwho" class="xwho"></span><button class="bad" id="cunf" onclick="chatUnfriend()">Remove</button></div><div id="cmsgs" class="xmsgs" aria-live="polite"></div><div id="cerr" class="mut" role="status" style="min-height:1.2em"></div>'+
-    '<div class="xact">'+(fr&&feat('gifts')?'<button onclick="xGoGift()">🎁 Gift tokens</button>':'')+(fr&&mw!==false?'<button onclick="xGoMoney()">💸 Send money</button>':'')+(fr?'<button onclick="snapCam()">📷 Snap</button>':'')+'<button onclick="chatSend(true)">📍 Location</button></div>'+
-    '<div id="xemo" class="xemo" style="display:none">'+EMO.map(function(e){return '<button onclick="chatEmoji(\''+e+'\')">'+e+'</button>'}).join('')+'</div>'+
-    '<div id="cbox" class="xcomp"><button onclick="xEmo()" aria-label="Emoji">😊</button><input id="ctxt" maxlength="500" autocomplete="off" enterkeyhint="send" placeholder="Message" onkeydown="if(event.key===\'Enter\')chatSend()"><select id="cttl" aria-label="Vanishes after"><option value="10">10 min</option><option value="60" selected>1 hour</option><option value="1440">24 hours</option></select><button class="go" id="csend" onclick="chatSend()" aria-label="Send">\u27A4</button></div>'+
-    '<p class="mut xcost">Messages vanish by themselves. Each one costs '+(fr?cM():cB())+' pt'+((fr?cM():cB())===1?'':'s')+(fr?'':' (broadcast to everyone)')+'.</p></div></div>'}
-  if(cTab==='add')return head+(HAS?'<button class="go" style="width:100%" onclick="homeTap()">📲 Tap a bracelet to add a friend</button>':'<p class="mut">To add a friend, hold their bracelet to your phone, or use a code or QR below.</p>')+codePanel()+'<div id="creq"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div><button class="bad" style="margin-top:14px" onclick="chatLeave()">Leave chat &amp; delete my messages</button></div>';
-  return head+'<div id="xst" class="xst">'+xStories()+'</div><input id="cfq" type="search" placeholder="Search friends" autocomplete="off" value="'+esc(chatQ)+'" oninput="chatQ=this.value;paintFriends()" style="width:100%;border-radius:99px"><div id="cflist"></div><div id="spot"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div></div>'};
-</script>
+/* ---- state ---- */
+var lgSt=null,lgStMap={},lgView='desk',pendingBag=null,lgFinder=null;
+var lgS={bag:null,tag:'',status:null,place:'',note:'',quick:null,quickN:0,log:[],busy:false,gps:null,gpsId:null,ctl:null,codeOpen:false,code:'',done:null};
+var lgA={info:null,stats:null,statsErr:false,list:null,q:'',st:'',tags:null,tagsErr:false,gen:null,genN:20,logRows:null,logDays:7,err:'',qt:null};
+var lgG={open:false,data:null,err:'',sel:null,tl:null,form:null,name:'',tag:'',photo:null,buyN:1,busy:false,oldPhoto:null,repl:''};
+(function(){var mb=/[#&]bag=([A-Za-z0-9-]{4,40})/.exec(location.hash||'');if(mb){pendingBag=mb[1];try{history.replaceState(null,'',location.pathname)}catch(e){}}})();
 
-<style>
-.xic{background:none!important;border:0!important;width:40px!important;height:40px!important;padding:0!important;display:inline-flex;align-items:center;justify-content:center;color:var(--ink);flex:none}
-.xsendb{background:var(--acc)!important;color:#111!important;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;border:0!important}
-.xshake{animation:xsh .4s}@keyframes xsh{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
-#xw{position:fixed;z-index:97;width:56px;pointer-events:none}
-.xwe{width:56px;height:240px;background:rgba(120,120,130,.28);clip-path:polygon(44% 100%,56% 100%,100% 0,0 0);position:relative;backdrop-filter:blur(4px)}
-.xwf{position:absolute;left:0;right:0;bottom:0;height:6%;background:linear-gradient(0deg,var(--acc),#f472b6)}
-#xw.cn .xwf{background:#ef4444}
-.xwl{position:absolute;right:66px;bottom:0;text-align:right;white-space:nowrap}
-.xwl b{display:block;font-size:2rem;line-height:1}.xwl b.pop{animation:xpop .3s cubic-bezier(.34,1.56,.64,1)}
-.xwl span{font-size:.8rem;opacity:.8}
-.xghost{position:fixed;z-index:97;padding:8px 14px;border-radius:20px;background:var(--acc);color:#111;animation:xfly .5s ease-in forwards;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@keyframes xfly{to{transform:translateY(-150px) scale(.85);opacity:0}}
-.xsp{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);margin-bottom:10px;font-size:.85rem}
-.xsp .mut{flex:1}.xsp button{min-height:32px;padding:2px 12px}
-.xrow{border:1px solid var(--line)!important;border-radius:16px!important;background:var(--card)!important;margin-bottom:8px;padding:10px 12px!important}
-.xreqb{width:100%;margin-bottom:10px;border-radius:99px;position:relative}
-.xreqi{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:6px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
-.xreqi .xtx{flex:1;min-width:0;display:flex;flex-direction:column}
-.xwrap{position:relative;display:inline-flex}
-.xwrap .xd{position:absolute;top:-2px;right:-4px}
-.xplus{position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;border-radius:50%;background:var(--acc);color:#111;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--card)}
-.xav.se{background:var(--line);opacity:.8}
-#xvw{position:fixed;inset:0;z-index:96;background:#000;color:#fff}
-.xvc{display:flex;flex-direction:column;height:100%;max-width:520px;margin:0 auto;padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom))}
-.xpbs{display:flex;gap:4px}.xpb{flex:1;height:3px;background:rgba(255,255,255,.3);border-radius:3px;overflow:hidden}
-.xpb i{display:block;height:100%;width:0;background:#fff}.xpb i.f{width:100%}.xpb i.a{animation:xpbar 5s linear forwards}
-@keyframes xpbar{to{width:100%}}
-.xvh{display:flex;align-items:center;gap:8px;padding:10px 0}.xvh button{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:99px;min-height:36px;padding:2px 12px}
-.xvi{flex:1;position:relative;min-height:0;display:flex;align-items:center;justify-content:center}.xvi img{max-width:100%;max-height:100%;border-radius:12px;object-fit:contain}
-.xz{position:absolute;top:0;bottom:0;width:35%}.xz.l{left:0}.xz.r{right:0;width:65%}
-.xvcap{text-align:center;padding:10px;margin:0;min-height:1.4em}
-.xdemo{position:relative;height:130px;display:flex;align-items:center;justify-content:center}
-.xdw{position:absolute;right:30%;bottom:0;width:44px;height:120px;background:rgba(120,120,130,.3);clip-path:polygon(44% 100%,56% 100%,100% 0,0 0)}
-.xdd{position:absolute;right:calc(30% + 10px);bottom:0;width:24px;height:24px;border-radius:50%;background:var(--acc);animation:xdm 2.2s ease-in-out infinite}
-@keyframes xdm{0%{transform:translateY(0)}60%,100%{transform:translateY(-92px)}}
-</style>
-<script>
-/* ===== v4 layer: swipe-to-send, stories, requests, slim snap strip, walkthrough ===== */
-var XS=[1,2,5,10,30,60,180,360,720,1440],xG=null,xSkip=0,xWalked=0,xReqOpen=false,xSt=[],xStAt=0,xStBusy=0,xV=null,xVT=null,xStc={},xStImg='';
-var XSVG={cam:'<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 14.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9zm0-2a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></svg>',
- pin:'<svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true"><path fill="#EA4335" d="M12 1.5C8 1.5 4.8 4.7 4.8 8.7c0 5.4 7.2 13.8 7.2 13.8s7.2-8.4 7.2-13.8c0-4-3.2-7.2-7.2-7.2z"/><circle cx="12" cy="8.7" r="3" fill="#fff"/></svg>',
- send:'<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M2.5 21.5 23 12 2.5 2.5l-.01 7.4L16 12 2.49 14.1z"/></svg>'};
-function xLab(m){return m<60?m+' min':m<1440?(m/60)+(m===60?' hour':' hours'):'24 hours'}
-function xAgo(ts){var m=Math.floor((Date.now()-ts)/60000);return m<1?'now':m<60?m+'m':Math.floor(m/60)+'h'}
-/* press, hold and slide up on Send */
-function xShake(){var c=$('cbox');if(c){c.classList.remove('xshake');void c.offsetWidth;c.classList.add('xshake')}}
-function xWedge(on){var w=$('xw');if(w)w.remove();if(!on||!xG)return;var b=xG.btn.getBoundingClientRect();w=document.createElement('div');w.id='xw';
-  w.style.left=Math.min(innerWidth-70,Math.max(8,b.left+b.width/2-28))+'px';w.style.bottom=(innerHeight-b.top+10)+'px';
-  w.innerHTML='<div class="xwl"><b id="xwt">1 min</b><span id="xwh">Slide up for longer</span></div><div class="xwe"><div class="xwf" id="xwf"></div></div>';document.body.appendChild(w)}
-function xWUpd(dy){var f=$('xwf');if(f)f.style.height=Math.round(Math.max(.06,Math.min(1,dy/280))*100)+'%';var t=$('xwt'),l=xLab(XS[xG.i]);
-  if(t&&t.textContent!==l){t.textContent=l;t.classList.remove('pop');void t.offsetWidth;t.classList.add('pop')}
-  var h=$('xwh');if(h)h.textContent=xG.cancel?'Release to cancel':'Release to send';var w=$('xw');if(w)w.classList.toggle('cn',!!xG.cancel)}
-function xSD(e){var i=$('ctxt');if(!i||!i.value.trim()){xShake();note('Type a message first.');return}
-  e.preventDefault();try{e.currentTarget.setPointerCapture(e.pointerId)}catch(x){}
-  xG={y:e.clientY,t:Date.now(),i:0,cancel:false,dy:0,btn:e.currentTarget};
-  xG.iv=setInterval(function(){if(xG&&!xG.cancel&&!xMuted())try{navigator.vibrate&&navigator.vibrate(6+xG.i*5)}catch(x){}},110);
-  xWedge(true);xWUpd(0)}
-function xSM(e){if(!xG)return;var dy=xG.y-e.clientY;xG.cancel=dy<-50;var i=xG.cancel?0:Math.min(9,Math.max(0,Math.floor(dy/28)));
-  if(i!==xG.i){xG.i=i;if(!xMuted())try{navigator.vibrate&&navigator.vibrate(18+i*6)}catch(x){}}xWUpd(dy)}
-function xSU(e){if(!xG)return;var g=xG;xG=null;clearInterval(g.iv);xWedge(false);if(g.cancel){note('Cancelled.');return}
-  if(Date.now()-g.t<350){xShake();note('Press and hold the plane, slide up for longer, then let go.');return}
-  var i=$('ctxt'),t=i?i.value.trim():'';if(!t)return;$('cttl').value=XS[g.i];xSkip=1;xChime('pop');xFly(t);chatSend()}
-function xSC(){if(!xG)return;clearInterval(xG.iv);xG=null;xWedge(false)}
-function xSK(){$('cttl').value=60;chatSend()}
-function xFly(t){var c=$('cbox');if(!c)return;var r=c.getBoundingClientRect(),g=document.createElement('div');g.className='xghost';g.textContent=t;g.style.left=(r.left+50)+'px';g.style.top=r.top+'px';g.style.maxWidth=(r.width-120)+'px';document.body.appendChild(g);setTimeout(function(){g.remove()},520)}
-/* walkthrough */
-var XW=[['\u270D\uFE0F','Type your message','Write it in the box as usual.'],['\uD83D\uDC46','Press and hold Send','A quick tap does nothing. Hold the paper plane and your phone starts to buzz.'],['\u2B06\uFE0F','Slide up, then let go','The higher you slide, the longer your message stays, from 1 minute to 24 hours. Let go to send. Slide back down to cancel.']];
-function xWalk(n){var s=XW[n];xModal('<div style="text-align:center"><div class="xdemo">'+(n===2?'<div class="xdw"></div><div class="xdd"></div>':'<div style="font-size:3rem">'+s[0]+'</div>')+'</div><h2>'+s[1]+'</h2><p class="mut">'+s[2]+'</p><div class="row" style="justify-content:center;margin-top:10px">'+(n<2?'<button onclick="xWalkEnd()">Skip</button><button class="go" onclick="xWalk('+(n+1)+')">Next</button>':'<button class="go" onclick="xWalkEnd()">Got it</button>')+'</div><p class="mut" style="font-size:.78rem">'+(n+1)+' of 3</p></div>')}
-function xWalkEnd(){try{localStorage.setItem('x-wt','1')}catch(e){}xModal()}
-/* friend requests */
-function xReqTog(){xReqOpen=!xReqOpen;var p=$('xreq');if(p)p.style.display=xReqOpen?'block':'none'}
-async function xAns(id,a){xChime('out');await chatAns(id,a)}
-var paintReq0=paintReq;paintReq=function(){paintReq0();var p=$('xreq');if(p)p.innerHTML=(chatReqs||[]).map(function(x){return '<div class="xreqi">'+avh(x.name,40)+'<span class="xtx"><b>'+esc(x.name)+'</b><span class="mut">wants to chat</span></span><button class="go" onclick="xAns(\''+esc(x.id)+'\',\'ok\')">Accept</button><button onclick="xAns(\''+esc(x.id)+'\',\'no\')">Reject</button></div>'}).join('')||'<p class="mut" style="margin:6px">No friend requests right now.</p>'};
-/* slim snap earnings strip and XEND Chat header */
-snapPotCard=function(){var p=snapPot;if(!snapOk||!p)return '';var av=Number(p.avail)||0;return '<div class="xsp"><span>\uD83D\uDCF7 Snap earnings</span><b>'+av+' pts</b><span class="mut">\u2248 '+money(av)+'</span>'+(p.mode==='pot'?'<button class="go"'+(av>0?'':' disabled')+' onclick="snapRedeem()">Redeem</button>':'<span class="mut">paid to balance</span>')+'</div>'};
-var xBrand0=xBrand;xBrand=function(){xBrand0();if(wallet&&chatOpen){var b=document.querySelector('header b');if(b)b.textContent='XEND Chat';document.title='XEND Chat'}};
-/* stories: friends only, gone after 6 hours */
-function xSG(id){return (xSt||[]).filter(function(s){return s.owner===id})}
-function xRank(id){var g=xSG(id);return !g.length?2:g.some(function(s){return !s.seen})?0:1}
-function xRing(n,id){var g=id?xSG(id):[],c=!g.length?'':g.some(function(s){return !s.seen})?' un':' se';return '<span class="xav'+c+'">'+avh(n,52)+'</span>'}
-function xStories(){var me=wallet?wallet.name:'You',mine=xSG(chatMe),ok=xSt!==null,
-  h='<button onclick="'+(!ok?'chatClose();gSec=\'card\';render()':mine.length?'xView(\''+chatMe+'\')':'xAddStory()')+'"><span class="xwrap">'+xRing(me,chatMe)+(ok?'<span class="xplus" onclick="event.stopPropagation();xAddStory()">+</span>':'')+'</span><span>Your story</span></button>';
-  chatPeople.slice().sort(function(a,b){return xRank(a.id)-xRank(b.id)}).forEach(function(p){var u=unreadN(p.id);
-    h+='<button onclick="'+(xSG(p.id).length?'xView(\''+esc(p.id)+'\')':'chatOpenConv(\''+esc(p.id)+'\')')+'"><span class="xwrap">'+xRing(p.name,p.id)+(u?'<span class="dot xd">'+u+'</span>':'')+'</span><span>'+esc(String(p.name).split(' ')[0])+'</span></button>'});return h}
-async function xStLoad(){if(xStBusy)return;xStBusy=1;try{xSt=(await rpc('story_feed',{k:key,pin_:wpin}))||[]}catch(e){if(/story_feed|schema cache|Could not find/i.test(e.message)){xSt=null;if(!window.xStWarn){window.xStWarn=1;toast('Stories are not working: '+e.message,false)}}}xStAt=Date.now();xStBusy=0;if(chatOpen)paintFriends()}
-var paintFriends0=paintFriends;paintFriends=function(){if(Date.now()-xStAt>25000&&!xStBusy)xStLoad();paintFriends0()};
-function xAddStory(){var i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=function(){var f=i.files&&i.files[0];if(!f)return;var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){
-  var s=Math.min(1,720/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-  var q=.7;xStImg=c.toDataURL('image/jpeg',q);while(xStImg.length>280000&&q>.3){q-=.1;xStImg=c.toDataURL('image/jpeg',q)}
-  xModal('<h2>New story</h2><img src="'+xStImg+'" alt="" style="width:100%;max-height:45vh;object-fit:contain;border-radius:12px"><input id="xscap" maxlength="120" placeholder="Add a caption (optional)" style="width:100%;margin-top:8px"><p class="mut">Only your friends can see it, and it disappears after 6 hours.</p><div class="row" style="margin-top:8px"><button onclick="xModal()">Cancel</button><button class="go" onclick="xPostStory()">Post story</button></div>')};im.src=r.result};r.readAsDataURL(f)};i.click()}
-async function xPostStory(){var c=$('xscap');try{await rpc('story_post',{k:key,pin_:wpin,photo:xStImg,cap:c?c.value.trim():''});xModal();xChime('out');toast('Story posted. It stays for 6 hours.',true);xStAt=0;await xStLoad()}catch(e){toast(e.message,false)}}
-function xQ(first){var seen={},q=[first];seen[first]=1;(xSt||[]).forEach(function(s){if(!seen[s.owner]&&s.owner!==chatMe&&xSG(s.owner).some(function(z){return !z.seen})){seen[s.owner]=1;q.push(s.owner)}});return q}
-function xView(id){xV={q:xQ(id),qi:0,si:0,y:0};var k=-1;xSG(id).forEach(function(s,i){if(k<0&&!s.seen)k=i});xV.si=k<0?0:k;xVShow()}
-async function xVShow(){clearTimeout(xVT);if(!xV)return;var o=xV.q[xV.qi],g=xSG(o);if(!g.length||xV.si>=g.length)return xVNext();var s=g[xV.si],mine=o===chatMe,
-  name=mine?'Your story':((chatPeople.filter(function(p){return p.id===o})[0]||{}).name||''),d=$('xvw');
-  if(!d){d=document.createElement('div');d.id='xvw';document.body.appendChild(d)}
-  d.innerHTML='<div class="xvc" onpointerdown="if(xV)xV.y=event.clientY" onpointerup="if(xV&&event.clientY-xV.y>90)xVClose()"><div class="xpbs">'+g.map(function(z,i){return '<span class="xpb"><i class="'+(i<xV.si?'f':i===xV.si?'w':'')+'"></i></span>'}).join('')+'</div><div class="xvh">'+avh(name,36)+'<b>'+esc(name)+'</b><span style="opacity:.7">'+xAgo(s.ts)+'</span><span style="flex:1"></span>'+(mine?'<button onclick="xVViews('+s.id+')">\uD83D\uDC41 '+(s.views||0)+'</button><button onclick="xVDel('+s.id+')" aria-label="Delete story">\uD83D\uDDD1</button>':'')+'<button onclick="xVClose()" aria-label="Close">\u2715</button></div><div class="xvi"><img id="xvimg" alt=""><div class="xz l" onclick="xVPrev()"></div><div class="xz r" onclick="xVNext()"></div></div><p class="xvcap" id="xvcap"></p></div>';
-  var p=xStc[s.id];if(!p){try{p=xStc[s.id]=await rpc('story_get',{k:key,pin_:wpin,sid:s.id})}catch(e){toast(e.message,false);return xVClose()}}
-  if(!xV||xV.q[xV.qi]!==o||!xSG(o)[xV.si]||xSG(o)[xV.si].id!==s.id)return;
-  var im=$('xvimg');if(im&&/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(p.photo||''))im.src=p.photo;var c=$('xvcap');if(c)c.textContent=s.cap||'';s.seen=true;
-  var w=document.querySelector('.xpb i.w');if(w)w.className='a';xVT=setTimeout(xVNext,5000)}
-function xVNext(){if(!xV)return;var g=xSG(xV.q[xV.qi]);xV.si++;if(xV.si>=g.length){xV.qi++;xV.si=0;if(xV.qi>=xV.q.length)return xVClose()}xVShow()}
-function xVPrev(){if(!xV)return;if(xV.si>0)xV.si--;else if(xV.qi>0){xV.qi--;xV.si=0}xVShow()}
-function xVClose(){clearTimeout(xVT);var d=$('xvw');if(d)d.remove();xV=null;if(chatOpen)paintFriends()}
-function xVDel(id){clearTimeout(xVT);xAsk('Delete this story?',null,async function(){try{await rpc('story_del',{k:key,pin_:wpin,sid:id});xSt=(xSt||[]).filter(function(s){return s.id!==id});delete xStc[id];xVShow()}catch(e){toast(e.message,false);xVShow()}})}
-async function xVViews(id){clearTimeout(xVT);try{var v=(await rpc('story_viewers',{k:key,pin_:wpin,sid:id}))||[];xModal('<h2>Seen by '+v.length+'</h2>'+(v.length?v.map(function(x){return '<div class="item row sp"><b>'+esc(x.name)+'</b><span class="mut">'+xAgo(x.ts)+' ago</span></div>'}).join(''):'<p class="mut">No one yet.</p>')+'<button style="width:100%;margin-top:10px" onclick="xModal();xVShow()">Close</button>')}catch(e){toast(e.message,false)}}
-/* the chat screen */
-vChat=function(){var conv=chatView==='conv',act=conv?(chatTo?'friends':'bcast'):cTab,uf=0,seen=false;chatPeople.forEach(function(p){uf+=unreadN(p.id)});
-  try{seen=localStorage.getItem('x-wt')==='1'}catch(e){}if(!seen&&!xWalked){xWalked=1;setTimeout(function(){xWalk(0)},400)}
-  function T(id,lb,bd){return '<button class="'+(act===id?'on':'')+'" onclick="xTab(\''+id+'\')">'+lb+(bd?'<span class="dot">'+bd+'</span>':'')+'</button>'}
-  var head='<div class="xchat"><div class="row sp" style="margin-bottom:8px"><div class="xhd"><h2>Messages</h2><span class="mut">'+(chatPeople.length?chatPeople.length+(chatPeople.length===1?' friend':' friends'):'Your private event chat')+'</span></div><span class="row" style="gap:6px"><button onclick="xWalk(0)" aria-label="How chat works">?</button><button onclick="xMute()" aria-label="'+(xMuted()?'Turn sound on':'Turn sound off')+'">'+(xMuted()?'\uD83D\uDD15':'\uD83D\uDD14')+'</button><button onclick="chatClose()" aria-label="Close chat">\u2715</button></span></div>'+(conv?'':'<div id="spot"></div>')+
-    '<div class="xct">'+T('friends','My friends',uf||'')+T('add','Add friend',reqN||'')+T('bcast','Broadcast',unreadN('')||'')+'</div>'+(conv?'':'<button class="xreqb" onclick="xReqTog()">\uD83D\uDCE8 Friend requests'+(reqN?'<span class="dot">'+reqN+'</span>':'')+'</button><div id="xreq" style="display:'+(xReqOpen?'block':'none')+'"></div>');
-  if(conv){var fr=!!chatTo;
-    return head+'<div class="xconv"><div class="xch"><button onclick="chatBack()" aria-label="Back">\u2039</button><span id="cwho" class="xwho"></span><button class="bad" id="cunf" onclick="chatUnfriend()">Remove</button></div><div id="cmsgs" class="xmsgs" aria-live="polite"></div><div id="cerr" class="mut" role="status" style="min-height:1.2em"></div>'+
-    ((fr&&feat('gifts'))||(fr&&mw!==false)?'<div class="xact">'+(feat('gifts')?'<button onclick="xGoGift()">\uD83C\uDF81 Gift tokens</button>':'')+(mw!==false?'<button onclick="xGoMoney()">\uD83D\uDCB8 Send money</button>':'')+'</div>':'')+
-    '<div id="xemo" class="xemo" style="display:none">'+EMO.map(function(e){return '<button onclick="chatEmoji(\''+e+'\')">'+e+'</button>'}).join('')+'</div>'+
-    '<select id="cttl" hidden>'+XS.map(function(m){return '<option value="'+m+'"'+(m===60?' selected':'')+'>'+xLab(m)+'</option>'}).join('')+'</select>'+
-    '<div id="cbox" class="xcomp">'+(fr?'<button class="xic" onclick="snapCam()" aria-label="Send a snap">'+XSVG.cam+'</button>':'')+'<button class="xic" onclick="chatSend(true)" aria-label="Share my location">'+XSVG.pin+'</button><input id="ctxt" maxlength="500" autocomplete="off" enterkeyhint="send" placeholder="Message" onkeydown="if(event.key===\'Enter\')xSK()"><button class="xic" onclick="xEmo()" aria-label="Emoji">\uD83D\uDE0A</button>'+
-    '<button id="xsend" class="xsendb" aria-label="Send. Press and hold, then slide up to choose how long it stays" onpointerdown="xSD(event)" onpointermove="xSM(event)" onpointerup="xSU(event)" onpointercancel="xSC()" oncontextmenu="return false" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();xSK()}">'+XSVG.send+'</button></div>'+
-    '<p class="mut xcost">Press and hold the plane, slide up for longer, let go to send. Each message costs '+(fr?cM():cB())+' pt'+((fr?cM():cB())===1?'':'s')+(fr?'':' (broadcast to everyone)')+'.</p></div></div>'}
-  if(cTab==='add')return head+(HAS?'<button class="go" style="width:100%" onclick="homeTap()">\uD83D\uDCF2 Tap a bracelet to add a friend</button>':'<p class="mut">To add a friend, hold their bracelet to your phone, or use a code or QR below.</p>')+codePanel()+'<div id="creq"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div><button class="bad" style="margin-top:14px" onclick="chatLeave()">Leave chat &amp; delete my messages</button></div>';
-  return head+'<div id="xst" class="xst">'+xStories()+'</div><input id="cfq" type="search" placeholder="Search friends" autocomplete="off" value="'+esc(chatQ)+'" oninput="chatQ=this.value;paintFriends()" style="width:100%;border-radius:99px;margin-bottom:8px"><div id="cflist"></div><div id="cerr" class="mut" role="status" style="min-height:1.4em"></div></div>'};
-</script>
+/* ---- GPS (staff) ---- */
+function lgGpsChip(){var g=lgS.gps,c='mut',t='GPS waiting';
+  if(g&&g.err){c='bad';t=g.err==='denied'?'GPS blocked':'GPS off'}else if(g&&Date.now()-g.at<60000){c=g.acc<=50?'ok':'warn';t='GPS ±'+g.acc+' m'}
+  return '<span id="lggps" class="lg-chip '+c+'">'+lgIco('pin',14)+t+'</span>'}
+function lgGpsPaint(){var e=$('lggps');if(e)e.outerHTML=lgGpsChip()}
+function lgGpsStart(){if(!navigator.geolocation||lgS.gpsId!=null)return;
+  try{lgS.gpsId=navigator.geolocation.watchPosition(function(p){lgS.gps={lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy),at:Date.now()};lgGpsPaint()},
+    function(e){lgS.gps={err:e.code===1?'denied':'off',at:Date.now()};lgGpsPaint()},{enableHighAccuracy:true,maximumAge:10000,timeout:20000})}catch(e){}}
+function lgGpsStop(){if(lgS.gpsId!=null&&navigator.geolocation){try{navigator.geolocation.clearWatch(lgS.gpsId)}catch(e){}}lgS.gpsId=null}
+function lgFix(){return new Promise(function(ok){var g=lgS.gps;if(g&&!g.err&&Date.now()-g.at<20000)return ok({lat:g.lat,lng:g.lng,acc:g.acc});
+  if(!navigator.geolocation)return ok(null);
+  navigator.geolocation.getCurrentPosition(function(p){ok({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)})},function(){ok(g&&!g.err?{lat:g.lat,lng:g.lng,acc:g.acc}:null)},{enableHighAccuracy:true,timeout:6000,maximumAge:15000})})}
+function lgPlaces(){var a=ld('lg-places');return Array.isArray(a)?a:[]}
+function lgPlaceSave(p){var a=lgPlaces().filter(function(x){return x!==p});a.unshift(p);sv('lg-places',a.slice(0,8))}
 
+/* ---- reading tags: NFC, camera QR, typed code ---- */
+function lgTagFrom(t){t=String(t||'');var m=/[#?&]bag=([A-Za-z0-9-]{4,40})/.exec(t)||/\b(BAG-[A-Z0-9]{6})\b/i.exec(t)||/\b([0-9a-f]{16})\b/.exec(t);return m?m[1]:null}
+function lgNfcStop(){if(lgS.ctl){try{lgS.ctl.abort()}catch(e){}lgS.ctl=null}}
+async function lgNfcToggle(){
+  if(!HAS){toast('NFC needs Chrome on Android over https. Use the camera or type the code.',false);return}
+  if(lgS.ctl){lgNfcStop();render();return}
+  try{var r=new NDEFReader();lgS.ctl=new AbortController();await r.scan({signal:lgS.ctl.signal});
+    r.onreading=function(e){var t='';e.message.records.forEach(function(x){if(x.recordType==='url'||x.recordType==='text')t+=new TextDecoder(x.encoding||'utf-8').decode(x.data)+' '});
+      var tag=lgTagFrom(t);if(tag)lgOnTag(tag);else toast('That is not a luggage tag.',false)};
+    r.onreadingerror=function(){toast('Could not read that tag. Hold it steady.',false)};render()}
+  catch(e){lgS.ctl=null;toast(e.name==='NotAllowedError'?'NFC permission was denied. Allow it in the browser settings.':'NFC could not start: '+e.message,false);render()}}
+async function lgCamStart(){
+  if(!('BarcodeDetector' in window)||!navigator.mediaDevices){toast('Camera scanning is not supported on this phone. Use NFC or type the code.',false);return}
+  try{var det=new BarcodeDetector({formats:['qr_code']}),st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}),o=document.createElement('div'),tm=null;
+    o.id='lgcam';o.innerHTML='<video playsinline autoplay muted></video><div>Point the camera at the QR on the label</div><button id="lgcamx" style="min-height:48px;padding:0 24px">Cancel</button>';document.body.appendChild(o);
+    var v=o.querySelector('video');v.srcObject=st;
+    var stop=function(){clearInterval(tm);st.getTracks().forEach(function(t){t.stop()});o.remove()};
+    o.querySelector('#lgcamx').onclick=stop;
+    tm=setInterval(async function(){try{var c=await det.detect(v);if(c.length){var tag=lgTagFrom(c[0].rawValue);if(tag){stop();lgOnTag(tag)}}}catch(e){}},300)}
+  catch(e){toast('Camera blocked. Allow camera access and try again.',false)}}
+function lgCodeGo(){var tag=lgTagFrom(lgS.code)||(/^[A-Za-z0-9-]{4,20}$/.test(lgS.code.trim())?lgS.code.trim():null);if(!tag){toast('Enter the code printed on the tag, like BAG-7K2QX9.',false);return}lgS.code='';lgS.codeOpen=false;lgOnTag(tag)}
+async function lgOnTag(tag){
+  if(!me){lgFinderOpen(tag);return}
+  if(tab!=='lug'){tab='lug';lgView='desk';lgEnter()}
+  if(lgS.busy)return;lgS.busy=true;lgS.done=null;
+  try{var r=await rpc('bag_lookup',{p_tag:tag});
+    if(!r||!r.linked){lgS.bag=null;toast('This tag is not linked to a bag yet.',false);if(navigator.vibrate)navigator.vibrate([60,60,60])}
+    else if(lgS.quick){await lgLog(tag,lgS.quick.code,r)}
+    else{lgS.bag=r;lgS.tag=tag;lgS.status=null;lgS.note='';if(navigator.vibrate)navigator.vibrate(60)}}
+  catch(e){toast(e.message,false)}
+  lgS.busy=false;render()}
+async function lgLog(tag,code,info){
+  var fix=await lgFix(),place=lgS.place.trim(),
+    r=await rpc('bag_scan',{p_tag:tag,p_status:code,p_lat:fix?fix.lat:null,p_lng:fix?fix.lng:null,p_acc:fix?fix.acc:null,p_place:place||null,p_note:lgS.quick?null:(lgS.note.trim()||null)}),
+    s=lgStMap[code]||{},lab=r.status||s.label||code;
+  lgS.log.unshift({t:Date.now(),bag:r.bag,owner:info&&info.owner,status:lab,place:place,gps:!!r.gps,dup:!!r.dup,problem:!!s.problem});lgS.log=lgS.log.slice(0,40);
+  if(lgS.quick)lgS.quickN++;
+  lgS.done={bag:r.bag,status:lab,gps:!!r.gps,place:place,dup:!!r.dup,problem:!!s.problem};
+  if(place)lgPlaceSave(place);
+  if(navigator.vibrate)navigator.vibrate(r.dup?[40,40,40]:90);
+  if(!lgS.quick){lgS.bag=null;lgS.status=null;lgS.note=''}
+  return r}
+async function lgConfirm(){if(!lgS.bag||!lgS.status||lgS.busy)return;lgS.busy=true;render();
+  try{await lgLog(lgS.tag,lgS.status,lgS.bag)}catch(e){toast(e.message,false)}
+  lgS.busy=false;render()}
+function lgPick(c){lgS.status=c;render();var b=$('lgbar');if(b&&b.scrollIntoView)b.scrollIntoView({block:'nearest'})}
+function lgQuickGo(){var e=$('lgqs'),c=e&&e.value;if(!c){toast('Choose what you are logging first.',false);return}
+  lgS.quick={code:c,label:(lgStMap[c]||{}).label||c};lgS.quickN=0;lgS.bag=null;lgS.done=null;if(HAS&&!lgS.ctl)lgNfcToggle();else render()}
+function lgQuickStop(){lgS.quick=null;lgS.done=null;render()}
+function lgClearBag(){lgS.bag=null;lgS.status=null;lgS.note='';render()}
 
-<script>
-/* ===== voice and video calls (WebRTC). Signalling goes through call_send / call_poll (run xend-calls.sql once) ===== */
-/* To help calls connect on strict mobile networks, add a TURN server below, e.g. {urls:'turn:your.server:3478',username:'user',credential:'pass'} */
-var CALL_ICE=[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}];
-var CL=null,clLast=0,clBusy=false,clOff=false,clErr='',clAt=0,clRI=null,clAC=null,clSeen={};
-function clId(){try{return crypto.randomUUID()}catch(e){return 'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,10)}}
-function clSignal(to,cid,kind,media,payload){return rpc('call_send',{k:key,pin_:wpin,to_:to,cid:cid,kind:kind,media:media||null,payload:payload?JSON.stringify(payload):null}).catch(function(){})}
-function clMediaErr(e){var n=e&&e.name;if(n==='NotAllowedError'||n==='SecurityError')return 'Allow the microphone'+(CL&&CL.media==='video'?' and camera':'')+' for this site, then try again.';if(n==='NotFoundError')return 'No microphone or camera found.';return (e&&e.message)||'Could not open the microphone.'}
-async function clMedia(video,facing){
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.RTCPeerConnection)throw new Error('This browser cannot make calls. Use Safari on iPhone or Chrome on Android.');
-  return navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:video?{facingMode:facing||'user',width:{ideal:640},height:{ideal:480}}:false})}
-function clPC(){var pc=new RTCPeerConnection({iceServers:CALL_ICE});
-  pc.ontrack=function(e){if(!CL||CL.pc!==pc)return;CL.remote=e.streams[0]||CL.remote;clAttach()};
-  pc.onconnectionstatechange=function(){if(!CL||CL.pc!==pc)return;var s=pc.connectionState;
-    if(s==='connected'){CL.state='live';CL.since=CL.since||Date.now();clearTimeout(CL.rt);clearTimeout(CL.dt);clUI()}
-    else if(s==='failed')clEnd(true,'The call could not connect. Check that both phones have a good connection.',true);
-    else if(s==='disconnected'){clearTimeout(CL.dt);CL.dt=setTimeout(function(){if(CL&&CL.pc===pc&&pc.connectionState!=='connected')clEnd(true,'The call dropped.',true)},8000)}};
-  return pc}
-function clGather(pc){return new Promise(function(ok){if(pc.iceGatheringState==='complete')return ok();
-  var t=setTimeout(done,2500);function done(){clearTimeout(t);pc.removeEventListener('icegatheringstatechange',chk);ok()}
-  function chk(){if(pc.iceGatheringState==='complete')done()}pc.addEventListener('icegatheringstatechange',chk)})}
-async function clStart(media){
-  if(clOff){toast(clErr||'Calls are not set up yet. Run xend-calls.sql in Supabase.',false);return}
-  if(CL){toast('You are already in a call.',false);return}
-  var to=chatTo;if(!to)return;
-  var pp=chatPeople.filter(function(p){return p.id===to})[0],c=CL={id:clId(),peer:to,peerName:pp?pp.name:'Friend',media:media,role:'out',state:'calling',facing:'user'};
-  clUI();
-  try{c.stream=await clMedia(media==='video')}catch(e){clEnd(false,clMediaErr(e),true);return}
-  if(CL!==c){try{c.stream.getTracks().forEach(function(t){t.stop()})}catch(e){}return}
-  var pc=c.pc=clPC();c.stream.getTracks().forEach(function(t){pc.addTrack(t,c.stream)});clAttach();
-  try{var o=await pc.createOffer();await pc.setLocalDescription(o);await clGather(pc);if(CL!==c)return;
-    await rpc('call_send',{k:key,pin_:wpin,to_:c.peer,cid:c.id,kind:'ring',media:media,payload:JSON.stringify({sdp:pc.localDescription.sdp})})}
-  catch(e){if(CL===c)clEnd(false,/call_send|schema cache|Could not find|permission denied/i.test(e.message)?'Calls are not set up yet. Run xend-calls.sql in Supabase.':(e.message||'Could not start the call.'),true);return}
-  c.rt=setTimeout(function(){if(CL===c&&c.state==='calling')clEnd(true,'No answer.',false)},45000)}
-function clIncoming(s,p){if(!p||!p.sdp)return;
-  var c=CL={id:s.call_id,peer:s.from_id,peerName:s.from_name||'Someone',media:s.media==='video'?'video':'voice',role:'in',state:'ringing',offer:p.sdp,facing:'user'};
-  clUI();clRing(true);
-  try{notify('\uD83D\uDCDE '+c.peerName+' is calling',(c.media==='video'?'Video':'Voice')+' call','call',[300,150,300,150,300])}catch(e){}
-  c.rt=setTimeout(function(){if(CL===c&&c.state==='ringing')clEnd(false,'Missed call from '+c.peerName+'.',false)},40000)}
-async function clAccept(){
-  var c=CL;if(!c||c.role!=='in'||c.state!=='ringing')return;
-  clRing(false);clearTimeout(c.rt);c.state='connecting';clUI();
-  try{c.stream=await clMedia(c.media==='video')}catch(e){clSignal(c.peer,c.id,'decline');clEnd(false,clMediaErr(e),true);return}
-  if(CL!==c){try{c.stream.getTracks().forEach(function(t){t.stop()})}catch(e){}return}
-  var pc=c.pc=clPC();c.stream.getTracks().forEach(function(t){pc.addTrack(t,c.stream)});
-  try{await pc.setRemoteDescription({type:'offer',sdp:c.offer});var a=await pc.createAnswer();await pc.setLocalDescription(a);await clGather(pc);if(CL!==c)return;
-    await rpc('call_send',{k:key,pin_:wpin,to_:c.peer,cid:c.id,kind:'answer',media:c.media,payload:JSON.stringify({sdp:pc.localDescription.sdp})})}
-  catch(e){if(CL===c)clEnd(true,'Could not connect the call.',true);return}
-  clAttach();c.rt=setTimeout(function(){if(CL===c&&c.state!=='live')clEnd(true,'The call could not connect.',true)},20000)}
-function clDecline(){var c=CL;if(!c)return;clSignal(c.peer,c.id,'decline');clEnd(false)}
-function clHang(){clEnd(true,'Call ended.',false)}
-function clEnd(sendEnd,msg,bad){var c=CL;if(!c)return;CL=null;clRing(false);
-  [c.rt,c.dt].forEach(function(t){clearTimeout(t)});clearInterval(c.ti);
-  if(sendEnd)clSignal(c.peer,c.id,'end');
-  try{c.pc&&c.pc.close()}catch(e){}try{c.stream&&c.stream.getTracks().forEach(function(t){t.stop()})}catch(e){}
-  var d=$('clwrap');if(d)d.remove();if(msg)toast(msg,!bad)}
-function clMute(){var c=CL;if(!c||!c.stream)return;c.muted=!c.muted;c.stream.getAudioTracks().forEach(function(t){t.enabled=!c.muted});clUI()}
-function clCam(){var c=CL;if(!c||!c.stream)return;c.camOff=!c.camOff;c.stream.getVideoTracks().forEach(function(t){t.enabled=!c.camOff});clUI()}
-async function clFlip(){var c=CL;if(!c||!c.stream||!c.pc)return;var f=c.facing==='user'?'environment':'user';
-  try{var n=await navigator.mediaDevices.getUserMedia({video:{facingMode:f,width:{ideal:640},height:{ideal:480}}}),nt=n.getVideoTracks()[0],
-    snd=c.pc.getSenders().filter(function(s){return s.track&&s.track.kind==='video'})[0];
-    if(snd)await snd.replaceTrack(nt);c.stream.getVideoTracks().forEach(function(t){t.stop();c.stream.removeTrack(t)});c.stream.addTrack(nt);nt.enabled=!c.camOff;c.facing=f;
-    var lv=$('cllv');if(lv){lv.srcObject=c.stream;lv.style.transform=f==='user'?'scaleX(-1)':'none'}}
-  catch(e){toast('Could not switch the camera.',false)}}
-function clAttach(){if(!CL)return;var rv=$('clrv'),lv=$('cllv');
-  if(rv&&CL.remote&&rv.srcObject!==CL.remote){rv.srcObject=CL.remote;var pr=rv.play();if(pr&&pr.catch)pr.catch(function(){var b=$('cltap');if(b)b.style.display='block'})}
-  if(lv&&CL.stream&&lv.srcObject!==CL.stream){lv.srcObject=CL.stream;lv.muted=true;var q=lv.play();if(q&&q.catch)q.catch(function(){})}}
-function clPlay(){var rv=$('clrv'),b=$('cltap');if(rv)rv.play().catch(function(){});if(b)b.style.display='none'}
-function clTime(){var s=Math.max(0,Math.floor((Date.now()-(CL.since||Date.now()))/1000));return Math.floor(s/60)+':'+('0'+s%60).slice(-2)}
-function clRing(on){clearInterval(clRI);clRI=null;if(!on)return;
-  var go=function(){try{if(typeof xMuted==='function'&&xMuted())return;var c=clAC||(clAC=new (window.AudioContext||window.webkitAudioContext)());if(c.state==='suspended')c.resume();var t=c.currentTime;
-    [0,.25].forEach(function(d){var o=c.createOscillator(),g=c.createGain();o.frequency.value=d?520:440;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.12,t+d);g.gain.exponentialRampToValueAtTime(.001,t+d+.2);o.start(t+d);o.stop(t+d+.22)});
-    if(navigator.vibrate)navigator.vibrate([200,100,200])}catch(e){}};go();clRI=setInterval(go,2000)}
-function clUI(){var c=CL;if(!c)return;var d=$('clwrap');
-  if(!d){d=document.createElement('div');d.id='clwrap';document.body.appendChild(d);
-    d.innerHTML='<video id="clrv" class="clrv" autoplay playsinline></video><div class="clshade"></div><div class="clmid"><div id="clav"></div><h2 id="clnm"></h2><p id="clst"></p></div><video id="cllv" class="cllv" autoplay playsinline muted></video><button id="cltap" class="cltap" onclick="clPlay()" style="display:none">Tap to hear</button><div class="clbar" id="clbar"></div>'}
-  d.className='clwrap '+(c.media==='video'?'vid':'voice')+(c.state==='live'?' live':'');
-  $('clnm').textContent=c.peerName;$('clav').innerHTML=avh(c.peerName,88);
-  $('clst').textContent=c.state==='calling'?'Calling\u2026':c.state==='ringing'?'Incoming '+(c.media==='video'?'video':'voice')+' call':c.state==='connecting'?'Connecting\u2026':clTime();
-  if(c.state==='live'&&!c.ti)c.ti=setInterval(function(){var e=$('clst');if(CL===c&&e)e.textContent=clTime()},1000);
-  var b=function(cls,fn,ic,lb){return '<button class="clb '+cls+'" onclick="'+fn+'" aria-label="'+lb+'"><span>'+ic+'</span><small>'+lb+'</small></button>'};
-  $('clbar').innerHTML=c.state==='ringing'?b('red','clDecline()','\uD83D\uDCF5','Decline')+b('grn','clAccept()','\uD83D\uDCDE','Accept'):
-    b(c.muted?'on':'','clMute()',c.muted?'\uD83D\uDD07':'\uD83C\uDFA4',c.muted?'Unmute':'Mute')+(c.media==='video'?b(c.camOff?'on':'','clCam()',c.camOff?'\uD83D\uDEAB':'\uD83D\uDCF7',c.camOff?'Camera on':'Camera off')+b('','clFlip()','\uD83D\uDD04','Flip'):'')+b('red','clHang()','\uD83D\uDCF5','End');
-  clAttach()}
-async function clHandle(s){var p=null;try{p=s.payload?JSON.parse(s.payload):null}catch(e){}
-  if(s.kind==='ring'){if(clSeen[s.call_id])return;clSeen[s.call_id]=1;if(s.age>40)return;if(CL){clSignal(s.from_id,s.call_id,'decline');return}clIncoming(s,p);return}
-  if(!CL||CL.id!==s.call_id)return;
-  if(s.kind==='answer'&&CL.role==='out'&&p&&p.sdp&&CL.pc&&CL.pc.signalingState==='have-local-offer'){clearTimeout(CL.rt);CL.state='connecting';clUI();
-    var c=CL;try{await c.pc.setRemoteDescription({type:'answer',sdp:p.sdp})}catch(e){if(CL===c)clEnd(true,'Could not connect the call.',true);return}
-    c.rt=setTimeout(function(){if(CL===c&&c.state!=='live')clEnd(true,'The call could not connect.',true)},20000)}
-  else if(s.kind==='decline')clEnd(false,CL.peerName+' declined.',false);
-  else if(s.kind==='end')clEnd(false,CL.state==='ringing'?'Missed call from '+CL.peerName+'.':'Call ended.',false)}
-async function clPoll(){if(clBusy||me||!wallet||!key||!feat('chat'))return;clBusy=true;
-  try{var r=(await rpc('call_poll',{k:key,pin_:wpin,after_:clLast}))||[];r.forEach(function(s){if(s.id>clLast)clLast=s.id});for(var i=0;i<r.length;i++)await clHandle(r[i])}
-  catch(e){if(/call_poll|schema cache|Could not find|permission denied/i.test(e.message)){clOff=true;clErr='Calls are not set up yet. Run xend-calls.sql in Supabase. ('+e.message+')'}}
-  clBusy=false}
-setInterval(function(){if(clOff)return;var n=Date.now();if(!CL&&n-clAt<3000)return;clAt=n;clPoll()},1000);
-var guestOut9=guestOut;guestOut=function(){if(CL)clEnd(true);clLast=0;return guestOut9.apply(this,arguments)};
-/* two buttons at the bottom of a private chat */
-var vChat9=vChat;vChat=function(){var h=vChat9.apply(this,arguments);
-  if(chatView!=='conv'||!chatTo||!feat('chat'))return h;
-  var row='<div class="xcallrow"><button class="go" onclick="clStart(\'voice\')">\uD83D\uDCDE Voice call</button><button class="go" onclick="clStart(\'video\')">\uD83C\uDFA5 Video call</button></div>',i=h.lastIndexOf('</div>');
-  return i<0?h+row:h.slice(0,i)+row+h.slice(i)};
-</script>
-<style>
-.xcallrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 0}
-.xcallrow button{min-height:48px;font-weight:700}
-.clwrap{position:fixed;inset:0;z-index:9999;background:#0b0b0f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
-.clrv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
-.clwrap.voice .clrv{opacity:0;pointer-events:none}
-.clshade{position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.1) 40%,rgba(0,0,0,.55));pointer-events:none}
-.clwrap.vid.live .clshade{background:linear-gradient(rgba(0,0,0,.35),transparent 30%,transparent 70%,rgba(0,0,0,.55))}
-.clmid{position:relative;text-align:center;margin-bottom:auto;margin-top:12vh}
-.clmid h2{margin:12px 0 4px;font-size:1.5rem;color:#fff}
-.clmid p{margin:0;opacity:.85}
-.clwrap.vid.live .clmid{margin-top:calc(env(safe-area-inset-top,0px) + 14px)}
-.clwrap.vid.live .clmid #clav{display:none}
-.clwrap.vid.live .clmid h2{font-size:1.05rem;margin:0}
-.cllv{position:absolute;right:14px;top:calc(env(safe-area-inset-top,0px) + 14px);width:96px;height:132px;object-fit:cover;border-radius:14px;border:2px solid rgba(255,255,255,.5);background:#222;transform:scaleX(-1);z-index:2}
-.clwrap.voice .cllv{display:none}
-.cltap{position:relative;z-index:3;margin:0 0 12px;padding:10px 18px;border-radius:99px;background:#fff;color:#000;font-weight:700}
-.clbar{position:relative;z-index:3;display:flex;gap:18px;justify-content:center;flex-wrap:wrap;padding:0 16px 28px}
-.clb{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;color:#fff;min-width:72px;padding:0}
-.clb span{display:flex;align-items:center;justify-content:center;width:62px;height:62px;border-radius:50%;background:rgba(255,255,255,.2);font-size:1.6rem;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-.clb small{font-size:.78rem;opacity:.9}
-.clb.red span{background:#e5393b}.clb.grn span{background:#22a559}.clb.on span{background:#fff;color:#000}
-</style>
+/* ---- staff desk ---- */
+function lgStatusGrid(){if(!lgSt)return '<p class="mut">Loading statuses…</p>';var by={},order=[];
+  lgSt.forEach(function(s){if(!by[s.grp]){by[s.grp]=[];order.push(s.grp)}by[s.grp].push(s)});
+  return order.map(function(g){var gi=LG_GRP[g]||['#6b7280','bag'];
+    return '<div class="lg-grp" style="color:'+gi[0]+'">'+lgIco(gi[1],16)+esc(g)+'</div><div class="lg-grid">'+by[g].map(function(s){
+      return '<button type="button" class="lg-tile'+(lgS.status===s.code?' on':'')+'" style="--gc:'+gi[0]+'" onclick="lgPick(\''+esc(s.code)+'\')">'+esc(s.label)+'</button>'}).join('')+'</div>'}).join('')}
+function lgQuickSelect(){if(!lgSt)return '';var by={},order=[];lgSt.forEach(function(s){if(!by[s.grp]){by[s.grp]=[];order.push(s.grp)}by[s.grp].push(s)});
+  return '<select id="lgqs" class="lg-in"><option value="">Choose what you are logging…</option>'+order.map(function(g){return '<optgroup label="'+esc(g)+'">'+by[g].map(function(s){return '<option value="'+esc(s.code)+'">'+esc(s.label)+'</option>'}).join('')+'</optgroup>'}).join('')+'</select>'}
+function lgPlaceInputs(withNote){var pl=lgPlaces();
+  return '<input class="lg-in" list="lgpl" placeholder="Place, e.g. Coach 2, Hotel lobby, Gate 4" value="'+esc(lgS.place)+'" oninput="lgS.place=this.value" maxlength="80"><datalist id="lgpl">'+pl.map(function(p){return '<option value="'+esc(p)+'">'}).join('')+'</datalist>'+
+  (pl.length?'<div class="row" style="gap:6px;margin:0 0 8px;flex-wrap:wrap">'+pl.slice(0,5).map(function(p){return '<button type="button" class="lg-chip mut" style="border:0;cursor:pointer" onclick="lgS.place=this.textContent;render()">'+esc(p)+'</button>'}).join('')+'</div>':'')+
+  (withNote?'<input class="lg-in" placeholder="Note (optional)" value="'+esc(lgS.note)+'" oninput="lgS.note=this.value" maxlength="200">':'')}
+function vLugDesk(){var s=lgS,b=s.bag,h='';
+  h+='<div class="lg-card"><div class="lg-hd"><div><h2>Luggage desk</h2><div class="lg-sub">'+esc(me?me.name:'')+' · every scan is saved with time, place and GPS</div></div>'+lgGpsChip()+'</div>'+
+  '<div class="lg-scan"><button type="button" class="lg-sb'+(s.ctl?' on pulse':'')+'" onclick="lgNfcToggle()">'+lgIco('nfc',28)+(s.ctl?'Listening. Tap a bag':'Tap a bag (NFC)')+'</button>'+
+  ('BarcodeDetector' in window?'<button type="button" class="lg-sb" onclick="lgCamStart()">'+lgIco('camera',28)+'Scan QR label</button>':'')+
+  '<button type="button" class="lg-sb'+(s.codeOpen?' on':'')+'" onclick="lgS.codeOpen=!lgS.codeOpen;render()">'+lgIco('keys',28)+'Type the code</button></div>'+
+  (s.codeOpen?'<div class="row" style="margin-top:10px;flex-wrap:nowrap"><input class="lg-in" style="margin:0" placeholder="BAG-7K2QX9" autocapitalize="characters" autocomplete="off" value="'+esc(s.code)+'" oninput="lgS.code=this.value" onkeydown="if(event.key===\'Enter\')lgCodeGo()"><button class="go" style="min-height:46px" onclick="lgCodeGo()">Find</button></div>':'')+
+  (!HAS?'<p class="mut" style="margin:10px 0 0">This phone cannot read NFC in the browser. Use the camera or type the code.</p>':'')+'</div>';
+  if(s.done){var d=s.done;h+='<div class="lg-card lg-done" role="status"><div class="ic">'+lgIco('check',22)+'</div><div><b>'+(d.dup?'Already logged':'Logged')+': '+esc(d.status)+'</b><br>'+esc(d.bag)+(d.place?' · '+esc(d.place):'')+'<br><span class="mut">'+(d.gps?'GPS saved':'No GPS fix, time and place saved')+'</span></div></div>'}
+  if(s.quick){h+='<div class="lg-card lg-quick"><div class="lg-hd"><div><h2>Quick mode</h2><div class="lg-sub">Every tag you scan is logged as <b>'+esc(s.quick.label)+'</b></div></div><span class="lg-chip">'+s.quickN+' logged</span></div>'+lgPlaceInputs(false)+'<button class="bad" style="width:100%;min-height:48px" onclick="lgQuickStop()">Stop quick mode</button></div>'}
+  else if(b){h+='<div class="lg-card"><div class="lg-bag">'+lgPh(b.photo)+'<div style="flex:1;min-width:0"><div style="font-size:1.2rem;font-weight:800">'+esc(b.name)+'</div><div class="mut">'+esc(b.owner||'')+(b.room?' · '+esc(b.room):'')+'</div><div style="margin-top:6px">'+lgChip(b.status,false)+(b.last_at?' <span class="mut" style="font-size:.8rem">'+esc(lgAgo(b.last_at))+(b.last_place?' · '+esc(b.last_place):'')+'</span>':'')+'</div></div><button type="button" aria-label="Clear" onclick="lgClearBag()" style="min-height:40px;padding:0 10px">'+lgIco('x',18)+'</button></div>'+
+    ((b.recent&&b.recent.length)?'<div class="lg-grp">'+lgIco('clock',16)+'Recent</div>'+b.recent.map(function(r){return '<div class="mut" style="font-size:.85rem;margin:3px 0">'+esc(lgT(r.at))+' · <b style="color:var(--ink)">'+esc(r.label)+'</b>'+(r.place?' · '+esc(r.place):'')+'</div>'}).join(''):'')+
+    '<div class="lg-grp" style="margin-top:20px">Choose the new status</div>'+lgStatusGrid()+
+    '<div class="lg-bar" id="lgbar">'+lgPlaceInputs(true)+'<button class="go" style="width:100%;min-height:54px;font-size:1.05rem" '+(s.status&&!s.busy?'':'disabled')+' onclick="lgConfirm()">'+(s.busy?'Saving…':s.status?'Log: '+esc((lgStMap[s.status]||{}).label||s.status):'Pick a status above')+'</button></div></div>'}
+  else{h+='<div class="lg-card" style="text-align:center;padding:28px 16px"><div style="color:var(--mut)">'+lgIco('bag',40)+'</div><h2 style="margin:10px 0 4px">Scan a bag to begin</h2><p class="mut" style="margin:0 0 16px">Tap its tag, scan the QR label or type the code. You will pick what happened and it is saved at once.</p></div>'+
+    '<div class="lg-card"><div class="lg-hd"><div><h2>Quick mode</h2><div class="lg-sub">Loading a whole vehicle? Pick the status once, then tap bag after bag.</div></div></div>'+lgQuickSelect()+lgPlaceInputs(false)+'<button class="go" style="width:100%;min-height:48px" onclick="lgQuickGo()">Start quick mode</button></div>'}
+  if(s.log.length)h+='<div class="lg-card"><div class="lg-hd"><h2>This session</h2><span class="lg-chip mut">'+s.log.length+' scans</span></div>'+s.log.slice(0,10).map(function(r){return '<div class="lg-row" style="cursor:default"><div class="grow"><b>'+esc(r.bag)+'</b><span class="mut">'+esc(r.owner||'')+(r.place?' · '+esc(r.place):'')+'</span></div><div style="text-align:right">'+lgChip(r.status,r.problem)+'<div class="mut" style="font-size:.75rem;margin-top:3px">'+esc(lgT(r.t))+(r.gps?'':' · no GPS')+'</div></div></div>'}).join('')+'</div>';
+  return h}
 
-<style>
-/* floating Back: sticks under the header, left aligned, follows you while scrolling */
-.xbk{position:sticky;top:calc(var(--hh,60px) + 8px);z-index:14;height:0;overflow:visible;text-align:left;pointer-events:none}
-.xbk button{pointer-events:auto;display:inline-flex;align-items:center;gap:4px;width:auto;min-height:44px;padding:8px 18px;border-radius:99px;font-weight:700;background:var(--card);color:inherit;border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.28);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
-.xbkt{margin:0 0 14px;min-height:44px;display:flex;align-items:center;padding-left:116px;font-size:1.15rem}
-</style>
-<script>
-(function(){function hh(){var h=document.querySelector('header');if(h)document.documentElement.style.setProperty('--hh',h.offsetHeight+'px')}
-hh();addEventListener('resize',hh);addEventListener('load',hh);try{var h=document.querySelector('header');if(h&&window.ResizeObserver)new ResizeObserver(hh).observe(h)}catch(e){}})();
-</script>
+/* ---- admin / organizer screens ---- */
+function lgViews(){return me&&me.role==='admin'?[['desk','Desk'],['over','Overview'],['bags','Bags'],['tags','Tags'],['log','Audit log']]:[['desk','Desk'],['bags','Bags']]}
+function vLugShell(){var V=lgViews();if(!V.some(function(v){return v[0]===lgView}))lgView='desk';
+  var nav=V.length>1?'<div class="row tabs" style="margin-bottom:14px">'+V.map(function(v){return '<button class="'+(lgView===v[0]?'on':'')+'" onclick="lgSetView(\''+v[0]+'\')">'+v[1]+'</button>'}).join('')+'</div>':'';
+  return nav+({desk:vLugDesk,over:vLugOver,bags:vLugBags,tags:vLugTags,log:vLugLog}[lgView]||vLugDesk)()}
+function lgSetView(v){lgView=v;lgAdmLoad();render()}
+async function lgAdmLoad(){var v=lgView,e=function(x){lgA.err=x.message||String(x)};lgA.err='';
+  try{
+    if(v==='over'&&me&&me.role==='admin'){lgA.info=await rpc('bag_admin_info');try{lgA.stats=await rpc('admin_bag_stats');lgA.statsErr=false}catch(x){lgA.stats=null;lgA.statsErr=true}}
+    if(v==='bags')lgA.list=await rpc('admin_bags',{p_q:lgA.q,p_status:lgA.st==='__problem'?'':lgA.st,p_limit:200});
+    if(v==='tags'){lgA.info=await rpc('bag_admin_info');try{lgA.tags=await rpc('admin_bag_tags',{p_free:true,p_limit:400});lgA.tagsErr=false}catch(x){lgA.tags=null;lgA.tagsErr=true}}
+    if(v==='log')lgA.logRows=await rpc('admin_bag_log',{p_days:lgA.logDays,p_limit:1500})}
+  catch(x){e(x)}
+  render()}
+function lgStat(n,l,bad){return '<div class="lg-stat'+(bad?' bad':'')+'"><b>'+esc(n)+'</b><span>'+esc(l)+'</span></div>'}
+function vLugOver(){var i=lgA.info,s=lgA.stats;
+  if(lgA.err)return '<div class="lg-card"><p class="mut">'+esc(lgA.err)+'</p></div>';
+  if(!i)return '<div class="lg-card"><p class="mut">Loading…</p></div>';
+  var h='<div class="lg-stats">'+lgStat(i.bags,'Bags registered')+lgStat(i.slots_sold,'Slots sold')+lgStat(i.tags_free+' / '+i.tags,'Tags free / total')+(s?lgStat(s.problems,'Need attention',s.problems>0)+lgStat(s.found_open,'Found reports',s.found_open>0)+lgStat(s.scans_today,'Scans today'):'')+'</div>';
+  if(lgA.statsErr)h+='<div class="lg-card"><p class="mut" style="margin:0">Run <b>xend_step5_luggage_reports.sql</b> in Supabase to see attention counts, scans today and the status chart.</p></div>';
+  if(s&&s.by_status&&s.by_status.length){var mx=Math.max.apply(null,s.by_status.map(function(x){return x.n}));
+    h+='<div class="lg-card"><div class="lg-hd"><h2>Bags by status</h2></div><div class="lg-bars">'+s.by_status.map(function(x){return '<div class="r"><span class="l">'+esc(x.label)+'</span><span class="t"><i style="width:'+Math.max(4,Math.round(100*x.n/mx))+'%;--bc:'+(x.problem?'#d64545':'#2f6fe4')+'"></i></span><b>'+x.n+'</b></div>'}).join('')+'</div></div>'}
+  if(s&&s.staff_today&&s.staff_today.length)h+='<div class="lg-card"><div class="lg-hd"><h2>Busiest staff today</h2></div>'+s.staff_today.map(function(x){return '<div class="lg-row" style="cursor:default"><div class="grow"><b>'+esc(x.name)+'</b></div><span class="lg-chip">'+x.n+' scans</span></div>'}).join('')+'</div>';
+  var gs=(adm.guests||[]);
+  h+='<div class="lg-card"><div class="lg-hd"><div><h2>Slot price</h2><div class="lg-sub">'+(i.price?'Now '+esc(mny(i.price))+' per slot':'Not for sale yet')+'</div></div></div><div class="row" style="flex-wrap:nowrap"><input id="lgprice" class="lg-in" style="margin:0" type="number" min="0" step="0.01" placeholder="Price per slot in GH₵" value="'+(i.price?(i.price/100).toFixed(2):'')+'"><button class="go" style="min-height:46px" onclick="lgPriceSave()">Save</button></div></div>'+
+  '<div class="lg-card"><div class="lg-hd"><div><h2>Give free slots</h2><div class="lg-sub">For a guest who paid at the desk or a package that includes luggage</div></div></div><select id="lgsg" class="lg-in"><option value="">Choose a guest…</option>'+gs.map(function(g){return '<option value="'+esc(g.id)+'">'+esc(g.name)+(g.room?' · '+esc(g.room):'')+'</option>'}).join('')+'</select><div class="row" style="flex-wrap:nowrap"><select id="lgsn" class="lg-in" style="margin:0">'+[1,2,3,4,5,6,7,8,9,10].map(function(n){return '<option>'+n+'</option>'}).join('')+'</select><button class="go" style="min-height:46px" onclick="lgSlotsGive()">Add slots</button></div></div>';
+  return h}
+async function lgPriceSave(){var v=parseFloat(($('lgprice')||{}).value);if(!(v>=0)){toast('Enter a price in cedis.',false);return}
+  try{await rpc('bag_price_set',{p:Math.round(v*100)});toast('Price saved.',true);lgA.info=await rpc('bag_admin_info')}catch(e){toast(e.message,false)}render()}
+async function lgSlotsGive(){var g=($('lgsg')||{}).value,n=parseInt(($('lgsn')||{}).value,10);if(!g){toast('Choose a guest.',false);return}
+  try{await rpc('admin_bag_slots_add',{gid:g,n:n});toast(n+' slot'+(n===1?'':'s')+' added.',true);lgA.info=await rpc('bag_admin_info')}catch(e){toast(e.message,false)}render()}
+function lgFilterChange(){clearTimeout(lgA.qt);lgA.qt=setTimeout(lgAdmLoad,300)}
+function vLugBags(){var L=lgA.list;
+  var st=(lgSt||[]).filter(function(s){return s.code!=='registered'});
+  var bar='<div class="lg-card"><div class="lg-hd"><h2>All bags</h2><button onclick="lgBagsCsv()">'+lgIco('down',16)+' CSV</button></div><input class="lg-in" placeholder="Search bag, guest, hotel or tag code" value="'+esc(lgA.q)+'" oninput="lgA.q=this.value;lgFilterChange()"><select class="lg-in" style="margin:0" onchange="lgA.st=this.value;lgAdmLoad()"><option value="">All statuses</option><option value="__problem"'+(lgA.st==='__problem'?' selected':'')+'>Needs attention</option>'+st.map(function(s){return '<option value="'+esc(s.code)+'"'+(lgA.st===s.code?' selected':'')+'>'+esc(s.label)+'</option>'}).join('')+'</select></div>';
+  if(lgA.err)return bar+'<div class="lg-card"><p class="mut">'+esc(lgA.err)+'</p></div>';
+  if(!L)return bar+'<div class="lg-card"><p class="mut">Loading…</p></div>';
+  var rows=L.slice();if(lgA.st==='__problem')rows=rows.filter(function(r){return r.problem||r.found_at});
+  rows.sort(function(a,b){return (b.problem?1:0)-(a.problem?1:0)});
+  if(!rows.length)return bar+'<div class="lg-card"><p class="mut" style="margin:0">No bags match.</p></div>';
+  return bar+'<div class="lg-card" style="padding:4px 16px">'+rows.map(function(r){
+    return '<div class="lg-row" onclick="lgOpenBag(\''+esc(r.id)+'\')">'+lgPh(null,true)+'<div class="grow"><b>'+esc(r.name)+'</b><span class="mut">'+esc(r.owner)+(r.room?' · '+esc(r.room):'')+' · '+esc(r.code||'')+'</span><span class="mut" style="font-size:.8rem">'+(r.last_at?esc(lgAgo(r.last_at))+(r.place?' · '+esc(r.place):''):'No scans yet')+'</span></div><div style="text-align:right">'+lgChip(r.status,r.problem)+(r.found_at?'<div style="margin-top:4px"><span class="lg-chip warn">Found report</span></div>':'')+'</div></div>'}).join('')+'</div>'}
+function lgBagsCsv(){var L=lgA.list||[];lgCsv('luggage-bags.csv',['bag','owner','room','tag','status','last_seen','place','lat','lng'],L.map(function(r){return [r.name,r.owner,r.room,r.code,r.status,r.last_at,r.place,r.lat,r.lng]}))}
+async function lgOpenBag(id){lgModal('<p class="mut">Loading…</p>');
+  try{var d=await rpc('admin_bag',{p_bag:id}),adm1=me&&me.role==='admin',cur=(d.timeline&&d.timeline[0])||null;
+    lgModal('<div class="lg-hd"><h2>Bag details</h2><button onclick="lgModalClose()" aria-label="Close">'+lgIco('x',18)+'</button></div><div class="lg-bag">'+lgPh(d.photo)+'<div><div style="font-size:1.2rem;font-weight:800">'+esc(d.name)+'</div><div class="mut">'+esc(d.owner||'')+'</div><div class="mut">Tag '+esc(d.code||'-')+'</div>'+(cur?'<div style="margin-top:6px">'+lgChip(cur.label,cur.problem)+'</div>':'')+'</div></div>'+
+      '<div class="lg-grp">'+lgIco('clock',16)+'Timeline</div>'+lgTimeline(d.timeline)+
+      (adm1?'<div class="lg-grp">Replace damaged tag</div><div class="row" style="flex-wrap:nowrap"><input id="lgrt" class="lg-in" style="margin:0" placeholder="New tag code, e.g. BAG-7K2QX9" autocapitalize="characters"><button class="bad" style="min-height:46px" onclick="lgReplaceTag(\''+esc(id)+'\')">Replace</button></div>':''))}
+  catch(e){lgModal('<div class="lg-hd"><h2>Bag details</h2><button onclick="lgModalClose()">'+lgIco('x',18)+'</button></div><p class="mut">'+esc(e.message)+'</p>')}}
+async function lgReplaceTag(id){var t=($('lgrt')||{}).value;if(!t||!t.trim()){toast('Enter the new tag code.',false);return}
+  try{await rpc('admin_bag_tag_replace',{p_bag:id,p_tag:t.trim()});toast('Tag replaced.',true);lgOpenBag(id);lgAdmLoad()}catch(e){toast(e.message,false)}}
+function vLugTags(){var i=lgA.info,T=lgA.tags,h='';
+  h+='<div class="lg-card"><div class="lg-hd"><div><h2>Make tags</h2><div class="lg-sub">Each tag gets a unique code, a link and a QR label</div></div></div><div class="row" style="flex-wrap:nowrap"><input id="lgn" class="lg-in" style="margin:0" type="number" min="1" max="200" value="'+esc(lgA.genN)+'" oninput="lgA.genN=this.value"><button class="go" style="min-height:46px" onclick="lgGen()">Make tags</button></div>'+(i?'<p class="mut" style="margin:10px 0 0">'+i.tags_free+' free of '+i.tags+' tags</p>':'')+'</div>';
+  if(lgA.tagsErr)h+='<div class="lg-card"><p class="mut" style="margin:0">Run <b>xend_step5_luggage_reports.sql</b> in Supabase to list and reprint tags any time.</p></div>';
+  else if(!T)h+='<div class="lg-card"><p class="mut">Loading…</p></div>';
+  else h+='<div class="lg-card"><div class="lg-hd"><h2>Free tags</h2><div class="row" style="gap:6px"><button onclick="lgPrint(lgA.tags)" '+(T.length?'':'disabled')+'>'+lgIco('print',16)+' Print labels</button><button onclick="lgTagsCsv()" '+(T.length?'':'disabled')+'>'+lgIco('down',16)+' CSV</button></div></div>'+
+    (T.length?T.slice(0,100).map(function(t){return '<div class="lg-row" style="cursor:default"><div class="grow"><b>'+esc(t.code)+'</b><span class="mut" style="font-size:.8rem">'+esc(base()+'#bag='+t.token)+'</span></div>'+(HAS?'<button onclick="lgWriteTag(\''+esc(t.token)+'\')">Write NFC</button>':'')+'</div>'}).join('')+(T.length>100?'<p class="mut">Showing 100 of '+T.length+'. Print or download for the full list.</p>':''):'<p class="mut" style="margin:0">No free tags. Make some above.</p>')+'</div>';
+  return h}
+async function lgGen(){var n=parseInt(lgA.genN,10);if(!(n>=1&&n<=200)){toast('Make between 1 and 200 tags at a time.',false);return}
+  try{lgA.gen=await rpc('bag_tags_generate',{n:n});toast(n+' tags made.',true);await lgAdmLoad()}catch(e){toast(e.message,false)}render()}
+function lgTagsCsv(){var T=lgA.tags||[];lgCsv('luggage-tags.csv',['code','link'],T.map(function(t){return [t.code,base()+'#bag='+t.token]}))}
+function lgPrint(list){if(!list||!list.length){toast('No tags to print.',false);return}
+  var el=$('lgprint');if(!el){el=document.createElement('div');el.id='lgprint';document.body.appendChild(el)}
+  el.innerHTML=list.map(function(t){var u=base()+'#bag='+t.token,q='';try{var x=qrcode(0,'M');x.addData(u);x.make();q=x.createSvgTag({cellSize:4,margin:0,scalable:true})}catch(e){}
+    return '<div class="lg-label">'+q+'<b>'+esc(t.code)+'</b><span>Found this bag? Scan or tap to tell the owner</span></div>'}).join('');
+  var done=function(){el.innerHTML='';window.removeEventListener('afterprint',done)};window.addEventListener('afterprint',done);setTimeout(function(){window.print()},150)}
+async function lgWriteTag(token){if(!HAS){toast('Writing tags needs Chrome on Android over https.',false);return}lgNfcStop();
+  try{toast('Hold a blank NFC tag to the back of the phone…',true);await new NDEFReader().write({records:[{recordType:'url',data:base()+'#bag='+token}]},{overwrite:true});toast('Tag written.',true)}catch(e){toast('Write failed: '+e.message,false)}}
+function vLugLog(){var R=lgA.logRows;
+  var bar='<div class="lg-card"><div class="lg-hd"><div><h2>Audit log</h2><div class="lg-sub">Every scan with who, when, where and GPS</div></div><button onclick="lgLogCsv()">'+lgIco('down',16)+' CSV</button></div><select class="lg-in" style="margin:0" onchange="lgA.logDays=+this.value;lgAdmLoad()">'+[[1,'Last 24 hours'],[7,'Last 7 days'],[30,'Last 30 days']].map(function(o){return '<option value="'+o[0]+'"'+(lgA.logDays===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></div>';
+  if(lgA.err)return bar+'<div class="lg-card"><p class="mut">'+esc(lgA.err)+(/admin_bag_log|schema cache|Could not find/i.test(lgA.err)?' Run xend_step5_luggage_reports.sql in Supabase.':'')+'</p></div>';
+  if(!R)return bar+'<div class="lg-card"><p class="mut">Loading…</p></div>';
+  if(!R.length)return bar+'<div class="lg-card"><p class="mut" style="margin:0">No scans in this period.</p></div>';
+  return bar+'<div class="lg-card" style="padding:4px 16px">'+R.slice(0,200).map(function(r){var m=lgMap(r.lat,r.lng);
+    return '<div class="lg-row" style="cursor:default"><div class="grow"><b>'+esc(r.bag)+'</b><span class="mut">'+esc(r.owner)+(r.room?' · '+esc(r.room):'')+'</span><span class="mut" style="font-size:.8rem">'+esc(lgT(r.at))+(r.place?' · '+esc(r.place):'')+(r.staff?' · '+esc(r.staff):'')+(m?' · <a href="'+esc(m)+'" target="_blank" rel="noopener">Map</a>':'')+'</span></div>'+lgChip(r.status,r.problem)+'</div>'}).join('')+(R.length>200?'<p class="mut">Showing 200 of '+R.length+'. Download the CSV for all.</p>':'')+'</div>'}
+function lgLogCsv(){var R=lgA.logRows||[];lgCsv('luggage-audit-log.csv',['time','bag','owner','room','tag','status','kind','place','lat','lng','staff','note'],R.map(function(r){return [r.at,r.bag,r.owner,r.room,r.code,r.status,r.kind,r.place,r.lat,r.lng,r.staff,r.note]}))}
 
-<style>
-/* ===== premium chat look ===== */
-body:has(.xchat) #vmode{display:none!important}
-.xchat{padding-bottom:8px}
-.xchat button{border:1px solid var(--line)}
-.xchat>.row.sp{align-items:center;margin-bottom:14px!important}
-.xhd h2{margin:0;font-size:1.65rem;font-weight:800;letter-spacing:-.02em;line-height:1.1}
-.xhd .mut{font-size:.82rem}
-.xchat>.row.sp .row{gap:8px!important}
-.xchat>.row.sp .row button{width:42px;height:42px;min-height:0;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;box-shadow:0 4px 14px rgba(15,23,42,.10)}
-.xsp{background:linear-gradient(135deg,rgba(255,196,0,.20),rgba(244,114,182,.13));border:1px solid rgba(255,196,0,.35);border-radius:18px;padding:8px 14px;box-shadow:0 6px 18px rgba(255,160,0,.10)}
-.xct{padding:5px;border-radius:99px;box-shadow:0 8px 24px rgba(15,23,42,.08)}
-.xct button{border:0!important;font-size:.9rem;box-shadow:none!important;transition:background .2s,transform .15s}
-.xct button.on{background:linear-gradient(135deg,#ffd43b,#ffb300)!important;color:#111;box-shadow:0 5px 16px rgba(255,170,0,.45)!important}
-.xct .dot{top:-4px;right:2px}
-.xreqb{min-height:46px;margin-bottom:12px;border-radius:16px;font-size:.92rem;border:1px dashed var(--line)!important;background:var(--glass-b)!important;box-shadow:none}
-.xreqb .dot{position:static;margin-left:8px;vertical-align:middle}
-.xreqi{border-radius:18px;box-shadow:0 6px 18px rgba(15,23,42,.06)}
-.xst{gap:16px;padding:2px 2px 14px}
-.xst button{background:none!important;border:0!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:0!important;min-height:0!important;min-width:68px;font-weight:600;font-size:.74rem;gap:6px}
-.xav{padding:3px;box-shadow:0 0 0 1px var(--line) inset}
-.xav.un{background:linear-gradient(135deg,#ffd43b,#f472b6 55%,#8b5cf6);box-shadow:0 4px 14px rgba(244,114,182,.45)}
-.xav.se{background:var(--line);opacity:.85}
-.xav .av{border:3px solid var(--card)}
-.xplus{box-shadow:0 2px 8px rgba(0,0,0,.25)}
-#cfq{border:1px solid var(--line)!important;background:var(--glass-a)!important;box-shadow:0 4px 16px rgba(15,23,42,.06);padding-left:18px}
-.xrow{gap:14px;padding:12px 14px!important;border-radius:22px!important;background:linear-gradient(145deg,var(--glass-a),var(--glass-b))!important;border:1px solid var(--line)!important;box-shadow:0 8px 22px rgba(15,23,42,.07);margin-bottom:10px;transition:transform .15s,box-shadow .2s}
-.xrow:active{transform:scale(.985)}
-.xrow b{font-size:1.02rem;letter-spacing:-.01em}
-.xrow .xtx .mut{font-size:.86rem}
-.xrow .dot{background:linear-gradient(135deg,#fb7185,#ef4444);box-shadow:0 3px 10px rgba(239,68,68,.45);min-width:24px;text-align:center}
-.xrow::after{content:"\203A";font-size:1.4rem;opacity:.3;margin-left:2px}
-#cflist>p.mut{text-align:center;padding:26px 10px;border:1px dashed var(--line);border-radius:20px}
-.xchat:has(.xconv)>.row.sp,.xchat:has(.xconv)>.xct{display:none}
-.xconv{height:calc(100dvh - var(--hh,60px) - 30px);min-height:420px}
-.xch{gap:10px;padding:8px 10px;margin-bottom:8px;border-radius:22px;background:linear-gradient(145deg,var(--glass-a),var(--glass-b));border:1px solid var(--line);box-shadow:0 8px 24px rgba(15,23,42,.08);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
-.xch>button:first-child{width:40px;height:40px;min-height:0;padding:0;border-radius:50%;font-size:1.3rem;line-height:1}
-.xwho .av{box-shadow:0 0 0 3px rgba(255,196,0,.55)}
-.xwn{display:flex;flex-direction:column;min-width:0;line-height:1.2}
-.xwn b{font-size:1rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.xwn small{font-size:.72rem;opacity:.65;font-weight:500}
-.xbc{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#ffd43b,#ff9f1c);font-size:1.2rem}
-.xch .bad{min-height:34px;padding:2px 12px;font-size:.78rem;border-radius:99px;border-style:solid!important;background:transparent!important;box-shadow:none}
-.xmsgs{padding:12px 6px;background:radial-gradient(120% 60% at 15% 0%,rgba(255,196,0,.10),transparent 60%),radial-gradient(100% 50% at 100% 100%,rgba(244,114,182,.09),transparent 60%);border-radius:22px;scroll-behavior:smooth}
-.xbub>div{padding:9px 14px!important;box-shadow:0 3px 10px rgba(15,23,42,.10)!important;border-radius:22px!important;max-width:82%!important}
-.xbub.xme>div{background:linear-gradient(135deg,#ffd43b,#ffb300)!important;color:#1a1300!important;border-bottom-right-radius:7px!important}
-.xbub:not(.xme)>div{background:var(--card)!important;border-bottom-left-radius:7px!important}
-.xbub>div>div:last-child{font-size:.66rem!important;opacity:.55!important;text-align:right;margin-top:3px;letter-spacing:.02em}
-.xact{gap:8px;padding:8px 2px}
-.xact button{min-height:36px;font-size:.84rem;font-weight:600;background:var(--glass-b)!important;border:1px solid var(--line)!important;box-shadow:none}
-.xcomp{padding:6px;border-radius:30px;background:var(--glass-a);border:1px solid var(--line);box-shadow:0 12px 32px rgba(15,23,42,.14);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
-.xcomp input{box-shadow:none!important;outline:none!important;border:0!important;background:transparent!important;font-size:1rem}
-.xcomp input:focus{box-shadow:none!important;border:0!important}
-.xic{box-shadow:none!important}
-.xsendb{width:46px!important;height:46px!important;background:linear-gradient(135deg,#ffd43b,#ff9f1c)!important;box-shadow:0 6px 18px rgba(255,159,28,.55)!important;transition:transform .12s}
-.xsendb:active{transform:scale(.92)}
-.xcost{text-align:center;font-size:.72rem;opacity:.7;margin:8px 10px 0}
-@media(prefers-color-scheme:dark){
- .xrow,.xch,.xcomp,.xct,#cfq{box-shadow:0 8px 24px rgba(0,0,0,.45)}
-}
-</style>
-<script>
-/* conversation header: name plus a calm subtitle */
-(function(){var p3=paintChat;paintChat=function(){p3.apply(this,arguments);var w=$('cwho');if(!w||chatView!=='conv')return;
- var p=chatTo?chatPeople.filter(function(x){return x.id===chatTo})[0]:null;
- w.innerHTML=(p?avh(p.name,40):'<span class="xbc">\uD83D\uDCE2</span>')+'<span class="xwn"><b>'+esc(p?p.name:'Everyone at the event')+'</b><small>'+(p?'Vanishing messages':'Broadcast to the whole event')+'</small></span>'}})();
+/* ---- wiring: tab, setTab, staff tab bar ---- */
+if(typeof XALL!=='undefined'&&!XALL.some(function(t){return t[0]==='lug'})){var li=XALL.map(function(t){return t[0]}).indexOf('plans');XALL.splice(li<0?XALL.length:li+1,0,['lug','Luggage'])}
+async function lgEnter(){if(scanCtl){try{scanCtl.abort()}catch(e){}scanCtl=null;nfcOn=false}lgGpsStart();
+  if(!lgSt){try{lgSt=await rpc('bag_statuses');lgStMap={};(lgSt||[]).forEach(function(s){lgStMap[s.code]=s})}catch(e){lgSt=null;lgA.err='Luggage is not set up yet. Run xend_step3_luggage.sql in Supabase.'}}
+  lgAdmLoad();render()}
+function lgLeave(){lgNfcStop();lgGpsStop()}
+var setTab9=setTab;setTab=function(t){var was=tab;setTab9.apply(this,arguments);if(t==='lug')lgEnter();else if(was==='lug')lgLeave()};
+var vStaff9=vStaff;vStaff=function(){
+  if(me&&me.role==='organizer'){var want=tab==='lug',h=vStaff9.apply(this,arguments);if(want)tab='lug';
+    var has=h.indexOf('<div class="row tabs"')===0,i=has?h.indexOf('</div>'):-1,bar=has?h.slice(0,i):'<div class="row tabs" style="margin-bottom:14px">',rest=has?h.slice(i+6):h;
+    if(want)bar=bar.replace(/ class="on"/g,' class=""');
+    return bar+'<button class="'+(want?'on':'')+'" onclick="setTab(\'lug\')">Luggage</button></div>'+(want?vLugShell():rest)}
+  var h2=vStaff9.apply(this,arguments);
+  if(me&&me.role==='admin'&&tab==='lug'){var k=h2.indexOf('</div>');if(k>-1)return h2.slice(0,k+6)+vLugShell()}
+  return h2};
+
+/* ---- guest: my luggage ---- */
+function lgGOpen(){lgG.open=true;lgG.sel=null;lgG.form=null;lgG.err='';lgGLoad();render();window.scrollTo(0,0)}
+function lgGClose(){lgG.open=false;lgG.form=null;lgG.sel=null;render()}
+async function lgGLoad(){try{lgG.data=await rpc('bags_get',{k:key,pin_:wpin});lgG.err=''}catch(e){lgG.data=null;lgG.err=/bags_get|schema cache|Could not find/i.test(e.message)?'Luggage is not available yet.':e.message}render()}
+function lgGForm(m,b){lgG.form=m;lgG.photo=null;lgG.tag='';lgG.repl='';lgG.name=b?b.name:'';lgG.oldPhoto=b?b.photo:null;lgG.sel=b?b.id:null;render()}
+async function lgBuy(){var d=lgG.data,n=lgG.buyN;if(!d||!d.price||lgG.busy)return;
+  if(!confirm('Buy '+n+' luggage slot'+(n>1?'s':'')+' for '+mny(d.price*n)+'? It is paid from your money wallet.'))return;
+  lgG.busy=true;render();try{await rpc('bag_slot_buy',{k:key,pin_:wpin,n:n});toast(n+' slot'+(n>1?'s':'')+' added.',true);lgG.buyN=1;await lgGLoad()}catch(e){toast(e.message,false)}lgG.busy=false;render()}
+function lgPhotoPick(inp){var f=inp.files&&inp.files[0];inp.value='';if(!f)return;if(!/^image\//.test(f.type)){toast('Choose an image.',false);return}
+  var img=new Image(),u=URL.createObjectURL(f);
+  img.onload=function(){URL.revokeObjectURL(u);var S=[360,300,240,200],out=null;
+    for(var i=0;i<S.length&&!out;i++){var sc=Math.min(1,S[i]/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      for(var q=.8;q>=.4;q-=.1){var dd=c.toDataURL('image/jpeg',q);if(dd.length<=58000){out=dd;break}}}
+    if(!out){toast('That photo is too detailed. Try another.',false);return}lgG.photo=out;render()};
+  img.onerror=function(){URL.revokeObjectURL(u);toast('Could not read that image.',false)};img.src=u}
+async function lgGNfc(){if(!HAS){toast('This phone cannot read NFC in the browser. Type the code printed on the tag.',false);return}
+  try{var r=new NDEFReader(),ctl=new AbortController();await r.scan({signal:ctl.signal});toast('Hold the luggage tag to the back of your phone…',true);
+    r.onreading=function(e){var t='';e.message.records.forEach(function(x){if(x.recordType==='url'||x.recordType==='text')t+=new TextDecoder(x.encoding||'utf-8').decode(x.data)+' '});var tag=lgTagFrom(t);if(tag){ctl.abort();lgG.tag=tag;toast('Tag read.',true);render()}else toast('That is not a luggage tag.',false)}}
+  catch(e){toast('NFC could not start: '+e.message,false)}}
+async function lgSaveBag(){if(lgG.busy)return;var nm=lgG.name.trim();if(!nm){toast('Give the bag a name.',false);return}lgG.busy=true;render();
+  try{if(lgG.form==='add'){if(!lgG.tag.trim())throw new Error('Tap the tag or type the code printed on it.');
+      await rpc('bag_register',{k:key,pin_:wpin,p_tag:lgG.tag.trim(),p_name:nm,p_photo:lgG.photo||null});toast('Bag added.',true)}
+    else{await rpc('bag_update',{k:key,pin_:wpin,p_bag:lgG.sel,p_name:nm,p_photo:lgG.photo});
+      if(lgG.repl.trim())await rpc('bag_tag_replace',{k:key,pin_:wpin,p_bag:lgG.sel,p_tag:lgG.repl.trim()});toast('Saved.',true)}
+    lgG.form=null;lgG.sel=null;await lgGLoad()}catch(e){toast(e.message,false)}lgG.busy=false;render()}
+async function lgRetire(id){if(!confirm('Remove this bag? Its slot becomes free again.'))return;
+  try{await rpc('bag_retire',{k:key,pin_:wpin,p_bag:id});lgG.sel=null;lgG.tl=null;toast('Bag removed.',true);await lgGLoad()}catch(e){toast(e.message,false)}}
+async function lgGTimeline(id){lgG.sel=id;lgG.tl=null;lgG.form=null;render();try{lgG.tl=await rpc('bag_timeline',{k:key,pin_:wpin,p_bag:id})}catch(e){lgG.tl=[];toast(e.message,false)}render()}
+function vLugGuest(){var d=lgG.data,f=lgG.form,head='<div class="lg-hd"><div><h2>My luggage</h2><div class="lg-sub">Follow every bag from pickup to your room</div></div><button onclick="lgGClose()">Back</button></div>';
+  if(!d)return '<div class="lg-card">'+head+'<p class="mut" style="margin:0">'+(lgG.err?esc(lgG.err):'Loading…')+'</p></div>';
+  var bag=function(id){return (d.bags||[]).filter(function(b){return b.id===id})[0]};
+  if(f){var b=f==='edit'?bag(lgG.sel):null,ph=lgG.photo!==null?lgG.photo:(b?b.photo:null);
+    return '<div class="lg-card"><div class="lg-hd"><h2>'+(f==='add'?'Add a bag':'Edit bag')+'</h2><button onclick="lgG.form=null;render()">Cancel</button></div>'+
+    '<div class="lg-bag" style="margin-bottom:12px">'+lgPh(ph)+'<div><button type="button" onclick="$(\'lgfile\').click()">'+lgIco('camera',16)+' '+(ph?'Change photo':'Add photo')+'</button><input id="lgfile" type="file" accept="image/*" hidden onchange="lgPhotoPick(this)"><div class="mut" style="font-size:.8rem;margin-top:6px">A clear photo helps staff find your bag.</div></div></div>'+
+    '<input class="lg-in" placeholder="Bag name, e.g. Blue suitcase" maxlength="40" value="'+esc(lgG.name)+'" oninput="lgG.name=this.value">'+
+    (f==='add'?'<div class="row" style="flex-wrap:nowrap"><input class="lg-in" style="margin:0" placeholder="Tag code, e.g. BAG-7K2QX9" autocapitalize="characters" value="'+esc(lgG.tag)+'" oninput="lgG.tag=this.value"><button style="min-height:46px" onclick="lgGNfc()">'+lgIco('nfc',16)+' Tap tag</button></div><p class="mut" style="margin:8px 0 12px">Tap the tag with your phone, or type the code printed on it.</p>':
+      '<input class="lg-in" placeholder="Replace the tag? Enter the new tag code (optional)" autocapitalize="characters" value="'+esc(lgG.repl)+'" oninput="lgG.repl=this.value">')+
+    '<button class="go" style="width:100%;min-height:52px" '+(lgG.busy?'disabled':'')+' onclick="lgSaveBag()">'+(lgG.busy?'Saving…':'Save')+'</button></div>'}
+  if(lgG.sel){var bb=bag(lgG.sel);if(!bb){lgG.sel=null}else
+    return '<div class="lg-card"><div class="lg-hd"><h2>'+esc(bb.name)+'</h2><button onclick="lgG.sel=null;lgG.tl=null;render()">Back</button></div><div class="lg-bag">'+lgPh(bb.photo)+'<div>'+lgChip(bb.status,bb.problem)+'<div class="mut" style="margin-top:6px">Tag '+esc(bb.code||'-')+'</div></div></div>'+
+    '<div class="lg-grp">'+lgIco('clock',16)+'Journey</div>'+(lgG.tl?lgTimeline(lgG.tl):'<p class="mut">Loading…</p>')+
+    '<div class="row" style="margin-top:12px"><button onclick="lgGForm(\'edit\',bag_(\''+esc(bb.id)+'\'))">Edit</button><button class="bad" onclick="lgRetire(\''+esc(bb.id)+'\')">Remove bag</button></div></div>'}
+  var free=d.slots-d.used,left=d.max-d.slots,h='<div class="lg-card">'+head+'<div style="font-size:1.6rem;font-weight:800">'+d.used+' of '+d.slots+' slot'+(d.slots===1?'':'s')+' in use</div><div class="lg-meter">'+Array.apply(null,Array(Math.max(d.slots,0))).map(function(x,i){return '<i class="'+(i<d.used?'f':'')+'"></i>'}).join('')+'</div>'+
+    (free>0?'<button class="go" style="width:100%;min-height:50px;margin-top:6px" onclick="lgGForm(\'add\')">'+lgIco('plus',18)+' Add a bag</button>':'<p class="mut" style="margin:6px 0 0">'+(d.slots?'All your slots are in use.':'Buy a slot to start tracking a bag.')+'</p>')+'</div>';
+  if(left>0){h+='<div class="lg-card"><div class="lg-hd"><div><h2>Buy luggage slots</h2><div class="lg-sub">One slot tracks one bag with its own tag</div></div></div>'+(d.price?'<div class="row" style="flex-wrap:nowrap;align-items:center"><select class="lg-in" style="margin:0" onchange="lgG.buyN=+this.value;render()">'+Array.apply(null,Array(left)).map(function(x,i){return '<option value="'+(i+1)+'"'+(lgG.buyN===i+1?' selected':'')+'>'+(i+1)+' slot'+(i?'s':'')+'</option>'}).join('')+'</select><button class="go" style="min-height:46px;white-space:nowrap" '+(lgG.busy?'disabled':'')+' onclick="lgBuy()">Pay '+esc(mny(d.price*lgG.buyN))+'</button></div><p class="mut" style="margin:8px 0 0">Paid from your money wallet. You can have up to '+d.max+' slots.</p>':'<p class="mut" style="margin:0">Luggage slots are not on sale yet. Ask the front desk.</p>')+'</div>'}
+  (d.bags||[]).forEach(function(b){
+    h+='<div class="lg-card" onclick="lgGTimeline(\''+esc(b.id)+'\')" style="cursor:pointer"><div class="lg-bag">'+lgPh(b.photo)+'<div style="flex:1;min-width:0"><div style="font-size:1.1rem;font-weight:800">'+esc(b.name)+'</div><div style="margin:4px 0">'+lgChip(b.status,b.problem)+'</div><div class="mut" style="font-size:.85rem">'+(b.last_at?esc(lgAgo(b.last_at))+(b.place?' · '+esc(b.place):''):'Waiting for its first scan')+'</div></div></div>'+
+    (b.problem?'<div class="lg-alert bad">'+lgIco('alert',18)+'<span>Staff flagged this bag: '+esc(b.status)+'. Ask the front desk for help.</span></div>':'')+
+    ((b.found_at&&(!b.last_at||new Date(b.found_at)>new Date(b.last_at)))?'<div class="lg-alert">'+lgIco('pin',18)+'<span>Someone reported finding this bag '+esc(lgAgo(b.found_at))+'. Open it to see where.</span></div>':'')+'</div>'});
+  if(!(d.bags||[]).length&&d.slots)h+='<div class="lg-card" style="text-align:center"><div style="color:var(--mut)">'+lgIco('bag',36)+'</div><p class="mut" style="margin:8px 0 0">No bags yet. Add your first bag above.</p></div>';
+  return h}
+function bag_(id){return ((lgG.data&&lgG.data.bags)||[]).filter(function(b){return b.id===id})[0]}
+var vPublic9=vPublic;vPublic=function(){
+  if(lgFinder)return vFinder();
+  if(wallet&&lgG.open&&!chatOpen&&!giftOpen&&wmode==='open')return vLugGuest();
+  return vPublic9.apply(this,arguments)};
+var vWallet9=vWallet;vWallet=function(){var h=vWallet9.apply(this,arguments);if(mwMode)return h;
+  var card='<div class="lg-card"><div class="lg-hd" style="margin:0"><div><h2>Luggage tracking</h2><div class="lg-sub">Tag your bags and follow them from pickup to your room</div></div><button class="go" onclick="lgGOpen()">'+lgIco('bag',16)+' Open</button></div></div>',
+    tail='<button onclick="guestOut()">Log out</button>',i=h.lastIndexOf(tail);return i>-1?h.slice(0,i)+card+h.slice(i):h+card};
+var guestOut9=guestOut;guestOut=function(){lgG={open:false,data:null,err:'',sel:null,tl:null,form:null,name:'',tag:'',photo:null,buyN:1,busy:false,oldPhoto:null,repl:''};return guestOut9.apply(this,arguments)};
+
+/* ---- finder: anyone who taps a bag tag ---- */
+async function lgFinderOpen(tag){
+  try{var r=await rpc('bag_public',{p_tag:tag});if(!r||!r.exists){say('That tag is not recognised.',false);render();return}
+    lgFinder={tag:tag,linked:!!r.linked,sent:false,busy:false,note:'',contact:'',err:''}}
+  catch(e){say(e.message,false)}render()}
+async function lgSend(){var f=lgFinder;if(!f||f.busy)return;f.busy=true;f.err='';render();
+  var fix=null;try{fix=await new Promise(function(ok){if(!navigator.geolocation)return ok(null);navigator.geolocation.getCurrentPosition(function(p){ok({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)})},function(){ok(null)},{enableHighAccuracy:true,timeout:9000,maximumAge:30000})})}catch(e){}
+  try{await rpc('bag_found',{p_tag:f.tag,p_lat:fix?fix.lat:null,p_lng:fix?fix.lng:null,p_acc:fix?fix.acc:null,p_note:f.note.trim()||null,p_contact:f.contact.trim()||null});f.sent=true;f.gps=!!fix}
+  catch(e){f.err=e.message}f.busy=false;render()}
+function vFinder(){var f=lgFinder;
+  var top='<div style="text-align:center;color:var(--mut)">'+lgIco('bag',44)+'</div>';
+  if(f.sent)return '<div class="lg-card" style="text-align:center">'+top+'<h2 style="margin:10px 0 6px">Thank you</h2><p class="mut" style="margin:0 0 14px">The owner has been told'+(f.gps?' and can see where you are':'')+'. Please keep the bag somewhere safe, or hand it to the nearest staff member.</p><button class="go" onclick="lgFinder=null;render()">Done</button></div>';
+  if(!f.linked)return '<div class="lg-card" style="text-align:center">'+top+'<h2 style="margin:10px 0 6px">Luggage tag</h2><p class="mut" style="margin:0 0 14px">This tag has not been linked to a bag yet.</p><button onclick="lgFinder=null;render()">Close</button></div>';
+  return '<div class="lg-card">'+top+'<h2 style="margin:10px 0 6px;text-align:center">Registered bag</h2><p class="mut" style="text-align:center;margin:0 0 14px">This bag belongs to a guest. If you found it, share where it is so it can be returned. Your location is only sent to the owner.</p>'+
+    '<input class="lg-in" placeholder="Note, e.g. Left at the bus stop" maxlength="200" value="'+esc(f.note)+'" oninput="lgFinder.note=this.value"><input class="lg-in" placeholder="Your phone number (optional)" type="tel" maxlength="60" value="'+esc(f.contact)+'" oninput="lgFinder.contact=this.value">'+
+    (f.err?'<div class="lg-alert bad" style="margin:0 0 10px">'+esc(f.err)+'</div>':'')+
+    '<button class="go" style="width:100%;min-height:54px;font-size:1.05rem" '+(f.busy?'disabled':'')+' onclick="lgSend()">'+lgIco('pin',18)+' '+(f.busy?'Sending…':'I found this bag. Share my location')+'</button><button style="width:100%;margin-top:8px" onclick="lgFinder=null;render()">Cancel</button></div>'}
+/* a tag link opened from a phone: staff go straight to the desk, everyone else sees the finder page */
+var render9=render;render=function(){render9.apply(this,arguments);if(pendingBag&&sb){var t=pendingBag;pendingBag=null;lgOnTag(t)}};
+
 </script>
 </body>
 </html>
