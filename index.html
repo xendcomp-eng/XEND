@@ -2393,7 +2393,7 @@ async function payResolve(){var ref=payRef;if(!ref)return;payRef=null;
     if(/^(paid|failed|mismatch|unknown)$/.test(d.status))break;await sleep(2500)}
   var retry='<button class="go" style="width:100%;margin-top:10px" onclick="payRef=\''+ref+'\';payResolve()">Check again</button>';
   if(/^(paid|failed|mismatch|unknown)$/.test(d.status))sv('xc-payref',null);
-  if(d.status==='paid'&&d.purpose==='deposit'){mw=null;payShow('<h2>Money added \u2713</h2><p>'+esc(mny(d.net))+' is now in your money wallet'+(d.fee?' (fee '+esc(mny(d.fee))+')':'')+'.</p>');if(wallet&&key&&!me)render()}
+  if(d.status==='paid'&&d.purpose==='deposit'){mw=null;payShow('<h2>Money added \u2713</h2><p>'+esc(mny(d.net))+' is now in your money wallet'+(d.fee?' (fee '+esc(mny(d.fee))+')':'')+'.</p>');if(wallet&&key&&!me)render();upAfterDeposit()}
   else if(d.status==='paid'){payShow('<h2>Payment confirmed \u2713</h2><p>Your order'+(d.order_no?' <b>#'+esc(d.order_no)+'</b>':'')+' for <b>'+esc(d.title||'your item')+'</b>'+(d.color?' ('+esc(d.color)+')':'')+(d.qty>1?' \u00D7 '+esc(d.qty):'')+' is placed. We will contact you to arrange delivery.</p>'+bidBox(d)+bidSave(d));loadCms().then(function(){if(xStore())render()})}
   else if(d.status==='failed')payShow('<h2>Payment not completed</h2><p>The payment did not go through, so no order was created and nothing was reserved. You can try again.</p>');
   else if(d.status==='mismatch')payShow('<h2>Payment needs review</h2><p>The amount received did not match this order, so nothing was created automatically. Please contact us and quote this reference:</p><p><b>'+esc(ref)+'</b></p>');
@@ -3390,7 +3390,7 @@ function planCheck(pfx,sent){if(curPlan(pfx)!=='base')return '';
   if(sent.some(function(l){return l.t==='cbtn'}))return 'Custom buttons are part of XEND Pro 1.';
   if(sent.filter(function(l){return SOCK.indexOf(l.t)>=0&&l.on}).length>4)return 'XEND Base allows 4 social media buttons. Switch some off, or upgrade to Pro 1.';
   return ''}
-function planUpgradeBtn(){var f=wallet&&wallet.upgrade_fee;return f?'<button class="go" style="width:100%;margin-top:8px" onclick="planUpgrade()">Upgrade to XEND Pro 1 \u00B7 '+esc(mny(f))+'</button><p class="mut" style="margin:6px 0 0">Paid from your money wallet.</p>':'<p class="mut" style="margin:8px 0 0">Ask the team about upgrading.</p>'}
+function planUpgradeBtn(){var f=wallet&&wallet.upgrade_fee;return f?'<button class="go" style="width:100%;margin-top:8px" onclick="planUpgrade()">Upgrade to XEND Pro 1 \u00B7 '+esc(mny(f))+'</button><p class="mut" style="margin:6px 0 0">Pay from your wallet, or straight away with Paystack (MoMo or card).</p>':'<p class="mut" style="margin:8px 0 0">Ask the team about upgrading.</p>'}
 function planCard(w){if(!w)return '';
   if(w.plan!=='base')return '<div class="card"><div class="row sp" style="align-items:center"><h2 style="margin:0">XEND Pro 1</h2><span class="tag xm">Your plan</span></div><p class="mut" style="margin:8px 0 0">Everything is unlocked: unlimited social media buttons, custom buttons and priority support.</p></div>';
   return '<div class="card"><div class="row sp"><h2 style="margin:0">XEND Base</h2><span class="tag xm">Your plan</span></div><p class="mut" style="margin:8px 0 0">Includes instant contact share, emergency safety, any 4 social media buttons and your website link. XEND Pro 1 adds unlimited social buttons, custom buttons and priority support.</p>'+planUpgradeBtn()+'</div>'}
@@ -3560,7 +3560,7 @@ planCard=function(w){if(!w)return '';var p=planKey(w.plan),P=PLANS[p],
 function upSheet(why){var p=$('pop');if(!p)return;var f=wallet&&wallet.upgrade_fee;p.dataset.up='1';
   p.innerHTML='<div class="popcard" role="dialog" aria-label="Upgrade"><div style="font-weight:700;font-size:1.1rem">Upgrade to XEND Pro 1</div><p style="margin:8px 0">'+esc(why)+'</p>'+
   '<div style="text-align:left;margin:8px 0">'+PLANS.pro.feats.map(function(x){return '<div style="margin:3px 0">✓ '+esc(x)+'</div>'}).join('')+'</div>'+
-  (f?'<button onclick="upGo()" style="width:100%;background:#111;color:#ffc400;border-color:#111">Upgrade · '+esc(mny(f))+'</button><p style="margin:6px 0 0;font-size:.85rem">Paid from your money wallet.</p>':'<p style="margin:8px 0">Ask the team about upgrading.</p>')+
+  (f?'<button onclick="upGo()" style="width:100%;background:#111;color:#ffc400;border-color:#111">Upgrade · '+esc(mny(f))+'</button><p style="margin:6px 0 0;font-size:.85rem">Pay from your wallet, or straight away with Paystack (MoMo or card).</p>':'<p style="margin:8px 0">Ask the team about upgrading.</p>')+
   '<button onclick="upClose()" style="width:100%;margin-top:8px">Not now</button></div>'}
 function upClose(){var p=$('pop');if(p&&p.dataset.up){delete p.dataset.up;p.innerHTML=''}}
 async function upGo(){upClose();await planUpgrade()}
@@ -3911,7 +3911,7 @@ async function lgRetire(id){if(!confirm('Remove this bag? Its slot becomes free 
   try{await rpc('bag_retire',{k:key,pin_:wpin,p_bag:id});lgG.sel=null;lgG.tl=null;toast('Bag removed.',true);await lgGLoad()}catch(e){toast(e.message,false)}}
 async function lgGTimeline(id){lgG.sel=id;lgG.tl=null;lgG.form=null;render();try{lgG.tl=await rpc('bag_timeline',{k:key,pin_:wpin,p_bag:id})}catch(e){lgG.tl=[];toast(e.message,false)}render()}
 function vLugGuest(){var d=lgG.data,f=lgG.form,head='<div class="lg-hd"><div><h2>My luggage</h2><div class="lg-sub">Follow every bag from pickup to your room</div></div><button onclick="lgGClose()">Back</button></div>';
-  if(!d)return '<div class="lg-card">'+head+'<p class="mut" style="margin:0">'+(lgG.err?esc(lgG.err):'Loading…')+'</p></div>';
+  if(!d)return '<div class="lg-card">'+head+'<p class="mut" style="margin:0">'+(lgG.err?esc(lgG.err)+(/not available/i.test(lgG.err)?' The luggage service has not been switched on for this app yet. Please tell the event team.':''):'Loading…')+'</p>'+(lgG.err?'<button onclick="lgG.err=\'\';lgGLoad()" style="margin-top:10px">Try again</button>':'')+'</div>';
   var bag=function(id){return (d.bags||[]).filter(function(b){return b.id===id})[0]};
   if(f){var b=f==='edit'?bag(lgG.sel):null,ph=lgG.photo!==null?lgG.photo:(b?b.photo:null);
     return '<div class="lg-card"><div class="lg-hd"><h2>'+(f==='add'?'Add a bag':'Edit bag')+'</h2><button onclick="lgG.form=null;render()">Cancel</button></div>'+
@@ -3926,7 +3926,7 @@ function vLugGuest(){var d=lgG.data,f=lgG.form,head='<div class="lg-hd"><div><h2
     '<div class="row" style="margin-top:12px"><button onclick="lgGForm(\'edit\',bag_(\''+esc(bb.id)+'\'))">Edit</button><button class="bad" onclick="lgRetire(\''+esc(bb.id)+'\')">Remove bag</button></div></div>'}
   var free=d.slots-d.used,left=d.max-d.slots,h='<div class="lg-card">'+head+'<div style="font-size:1.6rem;font-weight:800">'+d.used+' of '+d.slots+' slot'+(d.slots===1?'':'s')+' in use</div><div class="lg-meter">'+Array.apply(null,Array(Math.max(d.slots,0))).map(function(x,i){return '<i class="'+(i<d.used?'f':'')+'"></i>'}).join('')+'</div>'+
     (free>0?'<button class="go" style="width:100%;min-height:50px;margin-top:6px" onclick="lgGForm(\'add\')">'+lgIco('plus',18)+' Add a bag</button>':'<p class="mut" style="margin:6px 0 0">'+(d.slots?'All your slots are in use.':'Buy a slot to start tracking a bag.')+'</p>')+'</div>';
-  if(left>0){h+='<div class="lg-card"><div class="lg-hd"><div><h2>Buy luggage slots</h2><div class="lg-sub">One slot tracks one bag with its own tag</div></div></div>'+(d.price?'<div class="row" style="flex-wrap:nowrap;align-items:center"><select class="lg-in" style="margin:0" onchange="lgG.buyN=+this.value;render()">'+Array.apply(null,Array(left)).map(function(x,i){return '<option value="'+(i+1)+'"'+(lgG.buyN===i+1?' selected':'')+'>'+(i+1)+' slot'+(i?'s':'')+'</option>'}).join('')+'</select><button class="go" style="min-height:46px;white-space:nowrap" '+(lgG.busy?'disabled':'')+' onclick="lgBuy()">Pay '+esc(mny(d.price*lgG.buyN))+'</button></div><p class="mut" style="margin:8px 0 0">Paid from your money wallet. You can have up to '+d.max+' slots.</p>':'<p class="mut" style="margin:0">Luggage slots are not on sale yet. Ask the front desk.</p>')+'</div>'}
+  if(left>0){h+='<div class="lg-card"><div class="lg-hd"><div><h2>Buy luggage slots</h2><div class="lg-sub">One slot tracks one bag with its own tag</div></div></div>'+(d.price?'<div class="row" style="flex-wrap:nowrap;align-items:center"><select class="lg-in" style="margin:0" onchange="lgG.buyN=+this.value;render()">'+Array.apply(null,Array(left)).map(function(x,i){return '<option value="'+(i+1)+'"'+(lgG.buyN===i+1?' selected':'')+'>'+(i+1)+' slot'+(i?'s':'')+'</option>'}).join('')+'</select><button class="go" style="min-height:46px;white-space:nowrap" '+(lgG.busy?'disabled':'')+' onclick="lgBuy()">Pay '+esc(mny(d.price*lgG.buyN))+'</button></div><p class="mut" style="margin:8px 0 0">Pay from your wallet, or straight away with Paystack (MoMo or card). You can have up to '+d.max+' slots.</p>':'<p class="mut" style="margin:0">Luggage slots are not on sale yet. Ask the front desk.</p>')+'</div>'}
   (d.bags||[]).forEach(function(b){
     h+='<div class="lg-card" onclick="lgGTimeline(\''+esc(b.id)+'\')" style="cursor:pointer"><div class="lg-bag">'+lgPh(b.photo)+'<div style="flex:1;min-width:0"><div style="font-size:1.1rem;font-weight:800">'+esc(b.name)+'</div><div style="margin:4px 0">'+lgChip(b.status,b.problem)+'</div><div class="mut" style="font-size:.85rem">'+(b.last_at?esc(lgAgo(b.last_at))+(b.place?' · '+esc(b.place):''):'Waiting for its first scan')+'</div></div></div>'+
     (b.problem?'<div class="lg-alert bad">'+lgIco('alert',18)+'<span>Staff flagged this bag: '+esc(b.status)+'. Ask the front desk for help.</span></div>':'')+
@@ -4203,7 +4203,7 @@ vWallet=function(){
   var S={card:['My business card',by.card.join('')],qr:['Share my card',by.qr.join('')],stats:['Card activity',by.stats.join('')],lost:['Lost mode',by.lost.join('')],plan:['My plan',by.plan.join('')],
     pin:['PIN and security',by.pin.join('')+'<div class="card"><h2>Display</h2><p class="mut">Make text bigger if it is hard to read.</p><button onclick="aaTap();render()" style="width:100%">Text size: '+['Normal','Larger','Largest'][+ld('fb-tx')||0]+' (tap to change)</button><button onclick="skinOpen()" style="width:100%;margin-top:8px">\uD83C\uDFA8 App colours</button></div>'],
     acts:['Activities',by.acts.join('')],hist:['History',by.hist.join('')]};
-  if(lugOK)S.lug=['Luggage',gSec==='lug'?vLugGuest().replace(/<button onclick="lgGClose\(\)">Back<\/button>/,''):'x'];
+  if(lugOK||gSec==='lug')S.lug=['Luggage',gSec==='lug'?vLugGuest().replace(/<button onclick="lgGClose\(\)">Back<\/button>/,''):'x'];
   if(!live){delete S.acts;delete S.hist}
   if(gSec&&S[gSec])return q5Bar(S[gSec][0],gSec==='lug'?"q5LugBack()":"tGo('')")+S[gSec][1];
   gSec='';
@@ -4556,6 +4556,54 @@ var render12=render;render=function(){render12.apply(this,arguments);
   else if(b)b.remove()};
 var guestOut12=guestOut;guestOut=function(){clG.list=null;clG.sel=null;clG.data=null;clG.off=false;return guestOut12.apply(this,arguments)};
 var logout12=logout;logout=function(){clS.fac=null;clS.chk=0;clS.sel=null;clS.d=null;clS.list=null;return logout12.apply(this,arguments)};
+
+/* ---------- v10: XEND Class walkthroughs ---------- */
+var CLT={
+ f:{t:'For facilitators',s:[
+  ['🎓','Create your class','Tap “+ New class”, give it a name and choose how long it stays open: 1 day, 3 days, 1 week, 30 days or never. You can change this later.'],
+  ['📱','Share the class QR','Every class has its own QR code that never changes. Download the poster, put it in your slides or PDF, project it, or print it and stick it in front of the class.'],
+  ['📁','Upload your materials','Add PDFs, slides, documents, images, audio or video. Hide or remove a file any time and students lose access straight away.'],
+  ['✅','Let students in','With open joining, students are in as soon as they scan. With approval, they appear as “Waiting” and you tap Approve. You can also scan a bracelet QR to add someone.'],
+  ['⏳','The class closes by itself','When the expiry date passes, files stop opening for students. Change the expiry or tap Reopen to bring the class back.']]},
+ s:{t:'For students',s:[
+  ['🎓','Find XEND Class','Log in with your bracelet and tap the XEND Class tile on your home screen.'],
+  ['📷','Join with the QR code','Tap “Scan class QR” and point your camera at the facilitator’s screen or poster. You can also type the class code shown under the QR.'],
+  ['⏳','Wait if needed','Some classes ask the facilitator to approve you first. The class shows “Waiting for approval” until they do.'],
+  ['⬇️','Open and download','Tap a class to see its files. Open them to read, or download to keep on your phone. New files show a green “New” tag.'],
+  ['🔚','Until the class ends','Files stay available until the facilitator ends the class or removes them, so download anything you need before then.']]}};
+var clTI=0;
+function clTour(w,i){w=w||'f';i=i||0;var T=CLT[w],n=T.s.length,s=T.s[i];clTI=i;
+  q5Modal('<div style="text-align:center"><div style="font-size:44px" aria-hidden="true">'+s[0]+'</div><p class="mut" style="margin:4px 0">'+esc(T.t)+' · '+(i+1)+' of '+n+'</p><h2 style="margin:6px 0">'+esc(s[1])+'</h2><p>'+esc(s[2])+'</p><div aria-hidden="true" style="margin:10px 0;letter-spacing:6px;color:#f5b800">'+T.s.map(function(x,k){return k===i?'●':'○'}).join('')+'</div></div><div class="row" style="margin-top:8px">'+
+   (i>0?'<button onclick="clTour(\''+w+'\','+(i-1)+')">Back</button>':'<button onclick="clTourEnd(\''+w+'\')">Skip</button>')+
+   (i<n-1?'<button class="go" onclick="clTour(\''+w+'\','+(i+1)+')">Next</button>':'<button class="go" onclick="clTourEnd(\''+w+'\')">Got it</button>')+'</div>')}
+function clTourEnd(w){sv('fb-clt-'+w,1);q5Modal()}
+function clTourAuto(w){if(ld('fb-clt-'+w)||window.clTourShown===w)return;window.clTourShown=w;setTimeout(function(){if(!ld('fb-clt-'+w)&&!($('q5modal')&&$('q5modal').innerHTML))clTour(w)},500)}
+function clHow(w){return '<div style="text-align:right;margin:0 0 8px"><button onclick="clTour(\''+w+'\')" style="width:auto;min-height:38px">❓ How it works</button></div>'}
+var clView13=clView;clView=function(){var h=clView13.apply(this,arguments);if(clS.sel||!clS.list)return h;clTourAuto('f');return clHow('f')+h};
+var clGView13=clGView;clGView=function(){var h=clGView13.apply(this,arguments);if(clG.sel)return h;clTourAuto('s');return clHow('s')+h};
+
+/* ---------- v11: upgrade to Pro 1 by paying with Paystack ---------- */
+function upGross(need){var g=need,i,f;for(i=0;i<8;i++){f=feeOf('money',g);if(f==null)return {gross:Math.max(need,100),fee:null};g=need+f}
+  f=feeOf('money',g);if(g-f<need)g=need+f;return {gross:Math.max(g,100),fee:f}}
+planUpgrade=async function(){var f=wallet&&wallet.upgrade_fee;if(!f||!key)return;
+  if(mw===null||mw===undefined){try{mw=await rpc('money_wallet',{k:key,pin_:wpin})}catch(e){mw=false}}
+  var bal=mw&&mw.balance!=null?Number(mw.balance):0;
+  if(bal>=f){q5Modal('<h2>Upgrade to XEND Pro 1</h2><p>Price: <b>'+esc(mny(f))+'</b></p><p class="mut">Taken from your money wallet (balance '+esc(mny(bal))+').</p><div class="row" style="margin-top:12px"><button onclick="q5Modal()">Cancel</button><button class="go" onclick="upPayWallet()">Upgrade now</button></div>');return}
+  var need=f-bal,u=upGross(need);
+  q5Modal('<h2>Upgrade to XEND Pro 1</h2><p>Price: <b>'+esc(mny(f))+'</b></p>'+(bal>0?'<p class="mut">Your money wallet has '+esc(mny(bal))+'. You need '+esc(mny(need))+' more.</p>':'')+
+    '<p>Pay <b>'+esc(mny(u.gross))+'</b> with Paystack (MoMo or card)'+(u.fee?'. This includes the '+esc(mny(u.fee))+' payment fee':'')+'. You are upgraded automatically as soon as the payment is confirmed.</p>'+
+    '<div class="row" style="margin-top:12px"><button onclick="q5Modal()">Not now</button><button class="go" id="upgo" onclick="upPaystack('+u.gross+')">Pay '+esc(mny(u.gross))+'</button></div>')};
+async function upPayWallet(){q5Modal();try{await rpc('plan_upgrade',{k:key,pin_:wpin});wallet=await rpc('wallet',{k:key,pin_:wpin});mw=null;say('You are now on XEND Pro 1.',true)}catch(e){say(e.message,false)}render()}
+async function upPaystack(g){var b=$('upgo');if(b){b.disabled=true;b.textContent='Opening secure payment…'}
+  try{var r=await payCall({action:'deposit',k:key,pin:wpin,amount:g/100});sv('xc-payref',{ref:r.reference,t:Date.now(),kind:'deposit'});sv('xc-upg',{t:Date.now(),k:key.slice(0,12)});location.assign(r.url)}
+  catch(e){q5Modal();say(e.message,false);render()}}
+async function upAfterDeposit(){var u=ld('xc-upg');if(!u||Date.now()-u.t>7200000)return;
+  for(var i=0;i<24&&!(key&&wallet&&wpin);i++)await sleep(500);
+  if(!(key&&wallet&&wpin))return;
+  sv('xc-upg',null);if(u.k!==key.slice(0,12)||planKey(wallet.plan)!=='base')return;
+  payShow('<h2>Money added ✓</h2><p>Upgrading you to XEND Pro 1…</p>');
+  try{await rpc('plan_upgrade',{k:key,pin_:wpin});wallet=await rpc('wallet',{k:key,pin_:wpin});mw=null;payShow('<h2>You are on XEND Pro 1 ✓</h2><p>All Pro features are now unlocked.</p>');render()}
+  catch(e){payShow('<h2>Money added, upgrade not finished</h2><p>'+esc(e.message)+'</p><p class="mut">Your money is safe in your wallet. Tap Upgrade again to finish.</p>')}}
 
 </script>
 </body>
