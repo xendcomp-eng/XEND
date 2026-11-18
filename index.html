@@ -4419,6 +4419,144 @@ function ordStep(n){var a=$('o_s1'),b=$('o_s2'),c=$('o_next');if(!a||!b)return;
   if(n===2){a.style.display='none';c.style.display='none';b.style.display='flex';var i=$('o_n');if(i)setTimeout(function(){i.focus()},30)}
   else{a.style.display='flex';c.style.display='';b.style.display='none'}}
 
+/* ---------- v9: XEND Class ---------- */
+var clS={fac:null,chk:0,list:null,sel:null,d:null,err:'',up:''},clG={list:null,sel:null,data:null,err:'',off:false,loading:false},pendingCls=null,clBusyP=0;
+(function(){var m=/[#&]c=([A-Za-z0-9]{4,10})/.exec(location.hash||'');if(m){pendingCls=m[1].toUpperCase();sv('fb-pcls',pendingCls);try{history.replaceState(null,'',location.pathname)}catch(e){}}else{var p=ld('fb-pcls');if(typeof p==='string'&&/^[A-Z0-9]{4,10}$/.test(p))pendingCls=p}})();
+(function(){var s=document.createElement('style');s.textContent='.clrow{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 0;border-top:1px solid rgba(128,128,128,.25)}.clrow:first-of-type{border-top:0}.clrow>span{flex:1;min-width:160px;overflow-wrap:anywhere}.clrow button{flex:none;width:auto;min-height:40px}.clqr{display:flex;flex-direction:column;align-items:center;gap:8px;margin:10px 0}.clqr svg{width:min(260px,70vw);height:auto;background:#fff;padding:8px;border-radius:12px}.clcode{font-size:30px;font-weight:800;letter-spacing:.2em}#clbanner{position:fixed;left:12px;right:12px;bottom:12px;z-index:60;padding:12px 14px;border-radius:14px;background:#0b1b2b;color:#fff;display:flex;gap:10px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.35)}#clbanner button{flex:none;width:auto;min-height:36px}#lgprint.cl{display:block!important;text-align:center}#lgprint.cl img{max-width:100%;max-height:96vh}.cl-sel{width:100%;margin:6px 0}@media print{#lgprint.cl{display:block!important;padding:0;background:#fff}}';document.head.appendChild(s)})();
+var CLX=[[1,'1 day'],[3,'3 days'],[7,'1 week'],[30,'30 days'],[0,'Never']];
+function clUrl(c){return base()+'#c='+c}
+function clErr(e){var m=(e&&e.message)||String(e);return /Could not find|schema cache|does not exist/i.test(m)?'XEND Class is not set up yet. Run xend_step7_class.sql in Supabase.':m}
+function clExp(d){if(!d.expires_at)return d.state==='archived'?'Closed by the facilitator':'Never ends';var t=new Date(d.expires_at);var s=t.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})+', '+t.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});return d.state==='expired'?'Ended '+s:(d.state==='archived'?'Closed':'Ends '+s)}
+function clTag(s){return '<span class="tag '+(s==='active'?'ok':'')+'">'+(s==='active'?'Open':s==='expired'?'Ended':'Closed')+'</span>'}
+function clSize(n){n=+n||0;return n>1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB'}
+function clIco(n){var e=(n.split('.').pop()||'').toLowerCase();return /pdf/.test(e)?'📕':/docx?|rtf|odt|txt|md/.test(e)?'📄':/pptx?|odp/.test(e)?'📊':/xlsx?|csv|ods/.test(e)?'📈':/png|jpe?g|gif|webp/.test(e)?'🖼️':/mp3|m4a|wav/.test(e)?'🎧':/mp4|mov|webm/.test(e)?'🎬':'📎'}
+function clQrSvg(u){try{return clQr(u).createSvgTag({cellSize:4,margin:2,scalable:true})}catch(e){return '<p class="mut">The QR code could not load. Check your connection and reload.</p>'}}
+function clQr(u){var x=qrcode(0,'M');x.addData(u);x.make();return x}
+function clSave(blob,name){var a=document.createElement('a'),u=URL.createObjectURL(blob);a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000)}
+function clSlug(s){return String(s||'class').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'class'}
+function clWrap(g,t,w,max){var words=String(t).split(/\s+/),L=[],c='';words.forEach(function(x){var n=c?c+' '+x:x;if(g.measureText(n).width>w&&c){L.push(c);c=x}else c=n});if(c)L.push(c);if(L.length>max){L=L.slice(0,max);L[max-1]=L[max-1].replace(/\s?\S{0,3}$/,'')+'…'}return L}
+function clDraw(g,x,ox,oy,size){var n=x.getModuleCount(),m=2,cell=size/(n+2*m);g.fillStyle='#fff';g.fillRect(ox,oy,size,size);g.fillStyle='#000';for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(x.isDark(r,c))g.fillRect(ox+Math.floor((c+m)*cell),oy+Math.floor((r+m)*cell),Math.ceil(cell),Math.ceil(cell))}
+function clPoster(d,cb){var W=1200,H=1700,cv=document.createElement('canvas');cv.width=W;cv.height=H;var g=cv.getContext('2d'),F='Arial, Helvetica, sans-serif';
+  g.fillStyle='#fff';g.fillRect(0,0,W,H);g.fillStyle='#0b1b2b';g.fillRect(0,0,W,170);g.fillStyle='#fff';g.textAlign='center';g.font='700 70px '+F;g.fillText('XEND Class',W/2,114);
+  g.fillStyle='#0b1b2b';g.font='700 80px '+F;var L=clWrap(g,d.name,W-160,3),y=290;L.forEach(function(l){g.fillText(l,W/2,y);y+=96});
+  if(d.facilitator){g.font='400 42px '+F;g.fillStyle='#445';g.fillText('Facilitator: '+d.facilitator,W/2,y-8);y+=30}
+  var size=860,oy=Math.max(y+10,480);clDraw(g,clQr(clUrl(d.code)),(W-size)/2,oy,size);
+  y=oy+size+90;g.fillStyle='#0b1b2b';g.font='700 62px '+F;g.fillText('Scan to join this class',W/2,y);
+  g.font='400 40px '+F;g.fillStyle='#445';g.fillText('or open XEND-CARD, tap XEND Class and enter the code',W/2,y+64);
+  g.font='800 96px '+F;g.fillStyle='#0b1b2b';g.fillText(d.code.split('').join(' '),W/2,y+190);
+  cv.toBlob(cb,'image/png')}
+function clDlPoster(){var d=clS.d;if(!d)return;clPoster(d,function(b){clSave(b,'xend-class-'+clSlug(d.name)+'-poster.png');toast('Poster saved. Add it to your slides or PDF.',true)})}
+function clDlQr(fmt){var d=clS.d;if(!d)return;var x=clQr(clUrl(d.code));
+  if(fmt==='svg'){clSave(new Blob([x.createSvgTag({cellSize:10,margin:4,scalable:true})],{type:'image/svg+xml'}),'xend-class-'+clSlug(d.name)+'-qr.svg');return}
+  var cv=document.createElement('canvas');cv.width=cv.height=1000;clDraw(cv.getContext('2d'),x,0,0,1000);cv.toBlob(function(b){clSave(b,'xend-class-'+clSlug(d.name)+'-qr.png')},'image/png')}
+function clPrint(){var d=clS.d;if(!d)return;clPoster(d,function(b){var u=URL.createObjectURL(b),el=$('lgprint');if(!el){el=document.createElement('div');el.id='lgprint';document.body.appendChild(el)}
+  el.className='cl';el.innerHTML='<img alt="Class QR poster" src="'+u+'">';var im=el.firstChild,go=function(){setTimeout(function(){window.print()},200)};if(im.complete)go();else im.onload=go;
+  var done=function(){el.innerHTML='';el.className='';window.removeEventListener('afterprint',done);URL.revokeObjectURL(u)};window.addEventListener('afterprint',done)})}
+function clCopy(){var d=clS.d;if(!d)return;var u=clUrl(d.code);try{navigator.clipboard.writeText(u).then(function(){toast('Link copied.',true)},function(){toast(u,true)})}catch(e){toast(u,true)}}
+
+/* facilitator side */
+function clLoad(){rpc('class_mine').then(function(r){clS.list=r||[];clS.err='';if(clS.sel)return clOpenLoad(clS.sel,1)}).catch(function(e){clS.err=clErr(e);clS.list=clS.list||[]}).then(function(){render()})}
+async function clOpenLoad(id,quiet){try{clS.d=await rpc('class_detail',{p_class:id});clS.err=''}catch(e){clS.d=null;clS.sel=null;if(!quiet)toast(clErr(e),false)}if(!quiet)render()}
+function clOpen(id){clS.sel=id;clS.d=null;render();scrollTo(0,0);clOpenLoad(id)}
+function clBack(){if(clS.sel){clS.sel=null;clS.d=null;clLoad();render();scrollTo(0,0)}else setTab('tiles')}
+function clView(){
+  if(clS.err&&!clS.list)return '<div class="card"><p class="mut">'+esc(clS.err)+'</p><button onclick="clLoad()">Try again</button></div>';
+  if(clS.err&&!clS.sel)return '<div class="card"><h2>XEND Class</h2><p class="mut">'+esc(clS.err)+'</p><button onclick="clLoad()">Try again</button></div>';
+  if(clS.sel)return clDetail();
+  if(!clS.list)return '<div class="card"><p class="mut">Loading…</p></div>';
+  var h='<div class="card"><h2>XEND Class</h2><p class="mut">Create a class, share its QR code and upload materials. Students with a XEND bracelet join by scanning it.</p><button class="go" style="width:100%" onclick="clNew()">+ New class</button>'+(me&&me.role==='admin'?'<button style="width:100%;margin-top:8px" onclick="clFacOpen()">Manage facilitators</button>':'')+'</div>';
+  if(!clS.list.length)return h+'<div class="card"><p class="mut">No classes yet. Create your first one.</p></div>';
+  return h+'<div class="card">'+clS.list.map(function(c){return '<div class="clrow"><span><b>'+esc(c.name)+'</b> '+clTag(c.state)+'<br><span class="mut">'+c.members+' student'+(c.members===1?'':'s')+(c.pending?' · '+c.pending+' waiting':'')+' · '+c.files+' file'+(c.files===1?'':'s')+' · '+esc(clExp(c))+'</span></span><button onclick="clOpen(\''+c.id+'\')">Open</button></div>'}).join('')+'</div>'}
+function clDetail(){var d=clS.d;if(!d)return '<div class="card"><p class="mut">Loading…</p></div>';
+  var opts='<option value="" selected disabled>Change when this class ends…</option>'+CLX.map(function(o){return '<option value="'+o[0]+'">'+(o[0]?'Ends in '+o[1]:'Never ends')+'</option>'}).join('');
+  var h='<div class="card"><div class="row sp"><h2 style="margin:0;flex:1">'+esc(d.name)+'</h2>'+clTag(d.state)+'</div>'+(d.description?'<p class="mut">'+esc(d.description)+'</p>':'')+
+    '<p class="mut"><b>'+esc(clExp(d))+'</b> · '+(d.join_mode==='approve'?'You approve each student':'Open joining')+'</p><label for="clxs"><b>Class expiry</b></label><select id="clxs" class="cl-sel" onchange="clSetExp(this.value)">'+opts+'</select>'+
+    '<div class="row" style="margin-top:8px"><button onclick="clEdit()">Edit details</button>'+(d.state==='active'?'<button onclick="clClose(true)">End class now</button>':'<button onclick="clClose(false)">Reopen</button>')+'</div></div>';
+  h+='<div class="card"><h2>Class QR code</h2><p class="mut">This QR code never changes, so you can put it in slides, a PDF or print it.</p><div class="clqr">'+clQrSvg(clUrl(d.code))+'<div class="clcode">'+esc(d.code)+'</div></div>'+
+    '<button class="go" style="width:100%" onclick="clDlPoster()">⬇ Download poster (PNG)</button><div class="row" style="margin-top:8px"><button onclick="clDlQr(\'png\')">QR as PNG</button><button onclick="clDlQr(\'svg\')">QR as SVG</button><button onclick="clPrint()">🖨 Print</button><button onclick="clCopy()">🔗 Copy link</button></div></div>';
+  h+='<div class="card"><h2>Files</h2><p class="mut">PDF, Word, slides, sheets, images, audio and video. Up to 50 MB each.</p><button class="go" style="width:100%" onclick="$(\'clf\').click()">+ Upload files</button><input type="file" id="clf" multiple style="display:none" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.csv,.txt,.md,.rtf,.odt,.odp,.ods,.png,.jpg,.jpeg,.gif,.webp,.mp3,.m4a,.wav,.mp4,.mov,.webm,.zip" onchange="clUpload(this)">'+
+    (clS.up?'<p class="mut" role="status">'+esc(clS.up)+'</p>':'')+(d.file_list&&d.file_list.length?d.file_list.map(function(f){return '<div class="clrow"><span>'+clIco(f.name)+' <b>'+esc(f.name)+'</b>'+(f.hidden?' <span class="tag">Hidden</span>':'')+'<br><span class="mut">'+clSize(f.size)+' · '+f.opens+' opened · '+f.downloads+' downloaded</span></span><span class="row" style="flex:none;gap:6px;min-width:0"><button onclick="clFHide(\''+f.id+'\','+(!f.hidden)+')">'+(f.hidden?'Show':'Hide')+'</button><button onclick="clFName(\''+f.id+'\')">Rename</button><button class="bad" onclick="clFDel(\''+f.id+'\')">Remove</button></span></div>'}).join(''):'<p class="mut">No files yet.</p>')+'</div>';
+  var ms=d.member_list||[],act=ms.filter(function(m){return m.status==='active'}).length;
+  h+='<div class="card"><h2>Students ('+act+')</h2><button onclick="clScanB()" style="width:100%">Add a student by scanning their bracelet QR</button>'+(ms.length?ms.map(function(m){return '<div class="clrow"><span><b>'+esc(m.name||'Student')+'</b>'+(m.status!=='active'?' <span class="tag">'+(m.status==='pending'?'Waiting':'Blocked')+'</span>':'')+'</span><span class="row" style="flex:none;gap:6px;min-width:0">'+(m.status!=='active'?'<button onclick="clMem(\''+esc(m.guest_id)+'\',\'approve\')">Approve</button>':'')+(m.status!=='blocked'?'<button onclick="clMem(\''+esc(m.guest_id)+'\',\'block\')">Block</button>':'')+'<button onclick="clMem(\''+esc(m.guest_id)+'\',\'remove\')">Remove</button></span></div>'}).join(''):'<p class="mut">Nobody has joined yet. Project the QR code.</p>')+'</div>';
+  return h+'<div class="card"><button class="bad" style="width:100%" onclick="clDel()">Delete this class and its files</button></div>'}
+function clNew(){q5Modal('<h2>New class</h2><label for="cln"><b>Class name</b></label><input id="cln" maxlength="80" placeholder="e.g. Intro to Robotics" style="width:100%"><label for="cld"><b>Note (optional)</b></label><input id="cld" maxlength="300" style="width:100%"><label for="clx"><b>Class ends</b></label><select id="clx" class="cl-sel">'+CLX.map(function(o){return '<option value="'+o[0]+'"'+(o[0]===7?' selected':'')+'>'+(o[0]?'In '+o[1]:'Never')+'</option>'}).join('')+'</select><label for="clm"><b>Joining</b></label><select id="clm" class="cl-sel"><option value="open">Open: anyone with the QR joins</option><option value="approve">I approve each student</option></select><div class="row" style="margin-top:12px"><button onclick="q5Modal()">Cancel</button><button class="go" onclick="clCreate()">Create class</button></div>');setTimeout(function(){var i=$('cln');if(i)i.focus()},50)}
+async function clCreate(){var n=$('cln').value.trim();if(n.length<2)return toast('Give the class a name.',false);var dd=+$('clx').value;
+  try{var r=await rpc('class_create',{p_name:n,p_desc:$('cld').value.trim()||null,p_days:dd||null,p_mode:$('clm').value});q5Modal();toast('Class created. Download its QR below.',true);clS.sel=r.id;clS.d=null;render();scrollTo(0,0);clOpenLoad(r.id)}catch(e){toast(clErr(e),false)}}
+function clEdit(){var d=clS.d;q5Modal('<h2>Edit class</h2><label for="cln"><b>Class name</b></label><input id="cln" maxlength="80" value="'+esc(d.name)+'" style="width:100%"><label for="cld"><b>Note</b></label><input id="cld" maxlength="300" value="'+esc(d.description||'')+'" style="width:100%"><label for="clm"><b>Joining</b></label><select id="clm" class="cl-sel"><option value="open"'+(d.join_mode==='open'?' selected':'')+'>Open: anyone with the QR joins</option><option value="approve"'+(d.join_mode==='approve'?' selected':'')+'>I approve each student</option></select><div class="row" style="margin-top:12px"><button onclick="q5Modal()">Cancel</button><button class="go" onclick="clSaveEdit()">Save</button></div>')}
+async function clSaveEdit(){try{await rpc('class_update',{p_class:clS.sel,p_name:$('cln').value,p_desc:$('cld').value,p_mode:$('clm').value});q5Modal();await clOpenLoad(clS.sel)}catch(e){toast(clErr(e),false)}}
+async function clSetExp(v){try{await rpc('class_expiry',{p_class:clS.sel,p_days:+v||null});toast('Expiry updated.',true);await clOpenLoad(clS.sel)}catch(e){toast(clErr(e),false);render()}}
+async function clClose(on){try{await rpc('class_archive',{p_class:clS.sel,p_on:on});if(!on)await rpc('class_expiry',{p_class:clS.sel,p_days:7});await clOpenLoad(clS.sel)}catch(e){toast(clErr(e),false)}}
+async function clMem(g,a){try{await rpc('class_member_set',{p_class:clS.sel,p_guest:g,p_action:a});await clOpenLoad(clS.sel)}catch(e){toast(clErr(e),false)}}
+function clScanB(){q5Scan('Scan a bracelet QR',async function(t){var tk=tokenFrom(t);if(!tk){q5Tone(false);return toast('That is not a bracelet QR.',false)}
+  try{var r=await rpc('class_enrol_token',{p_class:clS.sel,p_token:tk});if(r&&r.ok){q5Tone(true);toast('Added '+(r.name||'student')+'.',true)}else{q5Tone(false);toast((r&&r.reason)||'Could not add.',false)}await clOpenLoad(clS.sel)}catch(e){toast(clErr(e),false)}})}
+async function clUpload(inp){var fs=Array.prototype.slice.call(inp.files||[]);inp.value='';if(!fs.length||!clS.d)return;var d=clS.d,ok=0,bad=[];
+  for(var i=0;i<fs.length;i++){var f=fs[i];clS.up='Uploading '+(i+1)+' of '+fs.length+': '+f.name;render();
+    var ext=(f.name.split('.').pop()||'').toLowerCase().replace(/[^a-z0-9]/g,''),path=d.id+'/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)+'.'+ext;
+    try{if(f.size>52428800)throw new Error('over 50 MB');var u=await sb.storage.from('class-files').upload(path,f,{contentType:f.type||'application/octet-stream',upsert:false});if(u.error)throw u.error;
+      try{await rpc('class_file_add',{p_class:d.id,p_path:path,p_name:f.name,p_size:f.size,p_mime:f.type||null})}catch(e){try{await sb.storage.from('class-files').remove([path])}catch(x){}throw e}ok++}
+    catch(e){bad.push(f.name+': '+clErr(e))}}
+  clS.up='';await clOpenLoad(d.id);toast(bad.length?(ok+' uploaded. '+bad.join('; ')):ok+' file'+(ok===1?'':'s')+' uploaded.',!bad.length)}
+async function clFHide(id,h){try{await rpc('class_file_set',{p_file:id,p_name:null,p_hidden:h});await clOpenLoad(clS.sel)}catch(e){toast(clErr(e),false)}}
+function clFName(id){var f=(clS.d.file_list||[]).filter(function(x){return x.id===id})[0];if(!f)return;q5Modal('<h2>Rename file</h2><input id="clfn" maxlength="160" value="'+esc(f.name)+'" style="width:100%"><div class="row" style="margin-top:12px"><button onclick="q5Modal()">Cancel</button><button class="go" onclick="clFNameGo(\''+id+'\')">Save</button></div>')}
+async function clFNameGo(id){try{await rpc('class_file_set',{p_file:id,p_name:$('clfn').value,p_hidden:null});q5Modal();await clOpenLoad(clS.sel)}catch(e){toast(clErr(e),false)}}
+function clFDel(id){q5Ask('Remove this file? Students will no longer be able to open it.',null,async function(){try{var p=await rpc('class_file_remove',{p_file:id});try{await sb.storage.from('class-files').remove([p])}catch(x){}await clOpenLoad(clS.sel)}catch(e){toast(clErr(e),false)}})}
+function clDel(){q5Ask('Delete this class, its QR code and all its files? This cannot be undone.','DELETE',async function(){try{var ps=await rpc('class_delete',{p_class:clS.sel});if(ps&&ps.length){try{await sb.storage.from('class-files').remove(ps)}catch(x){}}toast('Class deleted.',true);clS.sel=null;clS.d=null;clLoad()}catch(e){toast(clErr(e),false)}})}
+async function clFacOpen(){try{var l=await rpc('fac_list');q5Modal('<h2>Facilitators</h2><p class="mut">Staff you switch on can create classes. Admins always can.</p>'+(l.length?l.map(function(s){return '<div class="clrow"><span><b>'+esc(s.name||'Staff')+'</b> '+(s.on?'<span class="tag ok">Facilitator</span>':'')+'</span><button onclick="clFacSet(\''+s.id+'\','+(!s.on)+')">'+(s.on?'Remove':'Make facilitator')+'</button></div>'}).join(''):'<p class="mut">Add staff in Team first.</p>')+'<button style="width:100%;margin-top:10px" onclick="q5Modal()">Done</button>')}catch(e){toast(clErr(e),false)}}
+async function clFacSet(id,on){try{await rpc('fac_set',{p_id:id,p_on:on});clFacOpen()}catch(e){toast(clErr(e),false)}}
+AG.splice(4,0,['cls','XEND Class',['xcls']]);AXTRA.xcls='XEND Class';XI5.xcls='🎓';
+var vStaff12=vStaff;vStaff=function(){
+  if(me&&me.role!=='vendor'&&tab==='xcls')return q5Bar(clS.sel&&clS.d?clS.d.name:'XEND Class',"clBack()")+clView();
+  var h=vStaff12.apply(this,arguments);
+  if(me&&me.role!=='admin'&&me.role!=='vendor'&&clS.fac&&tab==='tiles'&&/<\/div>\s*$/.test(h)&&h.indexOf('qtg')>-1)h=h.replace(/<\/div>\s*$/,q5Tile('setTab','xcls','🎓','XEND Class','Classes, QR codes and files')+'</div>');
+  return h};
+var setTab12=setTab;setTab=function(t){var r=setTab12.apply(this,arguments);if(t==='xcls'){clS.sel=null;clS.d=null;clLoad()}return r};
+
+/* student side */
+function clGLoad(quiet){if(!key||!wallet)return;clG.loading=true;rpc('class_my',{k:key,pin_:wpin}).then(function(r){clG.list=r||[];clG.err='';clG.off=false}).catch(function(e){var m=clErr(e);clG.list=clG.list||[];if(/not set up/.test(m))clG.off=true;else clG.err=m}).then(function(){clG.loading=false;if(!quiet||gSec==='cls'||clG.list.some(function(c){return c['new']}))render()})}
+async function clGOpen(id){clG.sel=id;clG.data=null;render();scrollTo(0,0);try{clG.data=await rpc('class_files',{k:key,pin_:wpin,p_class:id});clG.err=''}catch(e){clG.err=clErr(e);clG.sel=null;toast(clG.err,false)}render();clGLoad(true)}
+function clGBack(){if(clG.sel){clG.sel=null;clG.data=null;clGLoad();render();scrollTo(0,0)}else tGo('')}
+function clGView(){
+  if(clG.sel){var d=clG.data;if(!d)return '<div class="card"><p class="mut">Loading…</p></div>';
+    return '<div class="card"><h2>'+esc(d.name)+'</h2>'+(d.description?'<p class="mut">'+esc(d.description)+'</p>':'')+'<p class="mut">'+(d.facilitator?'Facilitator: '+esc(d.facilitator)+' · ':'')+esc(clExp({expires_at:d.expires_at,state:'active'}))+'</p></div>'+
+    '<div class="card">'+(d.files.length?d.files.map(function(f){return '<div class="clrow"><span>'+clIco(f.name)+' <b>'+esc(f.name)+'</b>'+(f['new']?' <span class="tag ok">New</span>':'')+'<br><span class="mut">'+clSize(f.size)+'</span></span><span class="row" style="flex:none;gap:6px;min-width:0"><button onclick="clGFile(\''+f.id+'\',false)">Open</button><button class="go" onclick="clGFile(\''+f.id+'\',true)">Download</button></span></div>'}).join(''):'<p class="mut">Nothing here yet. Check back soon.</p>')+'</div>'+
+    '<div class="card"><button onclick="clGLeave(\''+clG.sel+'\')" style="width:100%">Leave this class</button></div>'}
+  var h='<div class="card"><h2>Join a class</h2><p class="mut">Scan the class QR code, or type the code shown on the screen.</p><div class="row"><input id="clgc" maxlength="10" placeholder="Class code" autocapitalize="characters" style="flex:1;min-width:120px;text-transform:uppercase"><button class="go" onclick="clJoin($(\'clgc\').value)">Join</button></div><button style="width:100%;margin-top:8px" onclick="clGScan()">📷 Scan class QR</button></div>';
+  if(clG.err)h+='<div class="card"><p class="mut">'+esc(clG.err)+'</p></div>';
+  if(clG.list===null)return h+'<div class="card"><p class="mut">Loading…</p></div>';
+  if(!clG.list.length)return h+'<div class="card"><p class="mut">You have not joined any class yet.</p></div>';
+  return h+'<div class="card"><h2>My classes</h2>'+clG.list.map(function(c){var ok=c.status==='active'&&c.state==='active';return '<div class="clrow"'+(ok?'':' style="opacity:.7"')+'><span><b>'+esc(c.name)+'</b>'+(c['new']?' <span class="tag ok">'+c['new']+' new</span>':'')+'<br><span class="mut">'+(c.status==='pending'?'Waiting for approval':c.state!=='active'?'This class has ended':c.files+' file'+(c.files===1?'':'s')+(c.facilitator?' · '+esc(c.facilitator):''))+'</span></span>'+(ok?'<button onclick="clGOpen(\''+c.id+'\')">Open</button>':'')+'</div>'}).join('')+'</div>'}
+function clGScan(){q5Scan('Scan the class QR',function(t){var m=/[#&]c=([A-Za-z0-9]{4,10})/.exec(t)||/^([A-Za-z0-9]{6})$/.exec(String(t).trim());if(!m){q5Tone(false);return toast('That is not a class QR code.',false)}clJoin(m[1])})}
+async function clJoin(code,quiet){code=String(code||'').trim().toUpperCase();if(code.length<4)return toast('Enter the class code.',false);
+  try{var r=await rpc('class_join',{k:key,pin_:wpin,p_code:code});q5Tone(true);
+    toast(r.status==='pending'?'Request sent. Your facilitator will approve you.':(r.already?'You are already in ':'You joined ')+r.name+'.',true);
+    await clGLoad(true);if(r.status==='active'&&r.class){gSec='cls';clGOpen(r.class)}else render()}
+  catch(e){q5Tone(false);toast(clErr(e),false)}}
+async function clGFile(id,dl){var w=null;if(!dl){try{w=window.open('','_blank')}catch(e){}}
+  try{var t=await rpc('class_file_ticket',{k:key,pin_:wpin,p_file:id,p_dl:!!dl}),r=await sb.storage.from('class-files').createSignedUrl(t.path,120,dl?{download:t.name}:undefined);if(r.error)throw r.error;var u=r.data.signedUrl;
+    if(dl){var a=document.createElement('a');a.href=u;a.download=t.name;document.body.appendChild(a);a.click();a.remove()}else if(w)w.location=u;else location.href=u}
+  catch(e){if(w)try{w.close()}catch(x){}toast(clErr(e),false)}}
+function clGLeave(id){q5Ask('Leave this class? You can join again with the QR code.',null,async function(){try{await rpc('class_leave',{k:key,pin_:wpin,p_class:id});clG.sel=null;clG.data=null;await clGLoad(true);render()}catch(e){toast(clErr(e),false)}})}
+async function clPending(c){var p=null;try{p=await rpc('class_public',{p_code:c})}catch(e){}
+  pendingCls=null;sv('fb-pcls',null);clBusyP=0;var b=$('clbanner');if(b)b.remove();
+  if(!p||!p.found)return toast('We could not find that class. Check the code.',false);
+  if(p.state!=='active')return toast('This class has ended.',false);
+  q5Modal('<h2>Join this class?</h2><p><b>'+esc(p.name)+'</b>'+(p.facilitator?'<br><span class="mut">Facilitator: '+esc(p.facilitator)+'</span>':'')+'</p>'+(p.join_mode==='approve'?'<p class="mut">The facilitator approves each student.</p>':'')+'<div class="row" style="margin-top:12px"><button onclick="q5Modal()">Not now</button><button class="go" onclick="q5Modal();clJoin(\''+esc(c)+'\')">Join class</button></div>')}
+var vWallet12=vWallet;vWallet=function(){
+  if(!mwMode&&wallet&&gSec==='cls')return q5Bar(clG.sel&&clG.data?clG.data.name:'XEND Class',"clGBack()")+clGView();
+  var h=vWallet12.apply(this,arguments);if(mwMode||!wallet||wallet.live===false||clG.off)return h;
+  var L=clG.list||[],n=L.reduce(function(a,c){return a+(c['new']||0)},0);
+  return h.replace('<div class="qtg qeven">','<div class="qtg qeven">'+q5Tile('tGo','cls','🎓','XEND Class',L.length?L.length+' class'+(L.length===1?'':'es'):'Join a class with a QR code',n||''))};
+var tGo12=tGo;tGo=function(id){if(id==='cls'){clG.sel=null;clG.data=null;tGo12(id);clGLoad();return}return tGo12.apply(this,arguments)};
+var render12=render;render=function(){render12.apply(this,arguments);
+  if(me&&me.role!=='vendor'&&clS.fac===null&&!clS.chk){clS.chk=1;if(me.role==='admin')clS.fac=true;else rpc('fac_me').then(function(v){clS.fac=!!v;if(v)render()}).catch(function(){clS.fac=false})}
+  if(!me&&wallet&&wmode==='open'&&!mwMode){if(clG.list===null&&!clG.loading&&!clG.off)clGLoad(true);
+    if(pendingCls&&!clBusyP){clBusyP=1;clPending(pendingCls)}}
+  var b=$('clbanner');
+  if(pendingCls&&!me&&!wallet){if(!b){b=document.createElement('div');b.id='clbanner';b.innerHTML='<span style="flex:1">🎓 Log in with your bracelet to join the class (code <b>'+esc(pendingCls)+'</b>).</span><button onclick="pendingCls=null;sv(\'fb-pcls\',null);this.parentNode.remove()">Dismiss</button>';document.body.appendChild(b)}}
+  else if(b)b.remove()};
+var guestOut12=guestOut;guestOut=function(){clG.list=null;clG.sel=null;clG.data=null;clG.off=false;return guestOut12.apply(this,arguments)};
+var logout12=logout;logout=function(){clS.fac=null;clS.chk=0;clS.sel=null;clS.d=null;clS.list=null;return logout12.apply(this,arguments)};
+
 </script>
 </body>
 </html>
