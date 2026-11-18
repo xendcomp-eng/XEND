@@ -4201,7 +4201,7 @@ vWallet=function(){
   v4chunks(h).forEach(function(c){var k=v4kind(c);if(k==='drop')return;(by[k]||by.other).push(c)});
   var lugOK=!(lgG.err&&/not available/i.test(lgG.err)),clock=by.chat.filter(function(c){return /id="clkt"/.test(c)}).join('');
   var S={card:['My business card',by.card.join('')],qr:['Share my card',by.qr.join('')],stats:['Card activity',by.stats.join('')],lost:['Lost mode',by.lost.join('')],plan:['My plan',by.plan.join('')],
-    pin:['PIN and security',by.pin.join('')+'<div class="card"><h2>Display</h2><p class="mut">Make text bigger if it is hard to read.</p><button onclick="aaTap();render()" style="width:100%">Text size: '+['Normal','Larger','Largest'][+ld('fb-tx')||0]+' (tap to change)</button></div>'],
+    pin:['PIN and security',by.pin.join('')+'<div class="card"><h2>Display</h2><p class="mut">Make text bigger if it is hard to read.</p><button onclick="aaTap();render()" style="width:100%">Text size: '+['Normal','Larger','Largest'][+ld('fb-tx')||0]+' (tap to change)</button><button onclick="skinOpen()" style="width:100%;margin-top:8px">\uD83C\uDFA8 App colours</button></div>'],
     acts:['Activities',by.acts.join('')],hist:['History',by.hist.join('')]};
   if(lugOK)S.lug=['Luggage',gSec==='lug'?vLugGuest().replace(/<button onclick="lgGClose\(\)">Back<\/button>/,''):'x'];
   if(!live){delete S.acts;delete S.hist}
@@ -4347,8 +4347,77 @@ function skinPaint(){var e=document.getElementById('v6sheet');if(e)e.innerHTML=s
 function skinOpen(){q5Modal('');var d=$('q5modal');d.innerHTML='<div class="qmw" role="dialog" aria-modal="true" onclick="if(event.target===this)skinClose()"><div class="card" id="v6sheet" style="max-height:88vh;overflow:auto;background:var(--card);-webkit-backdrop-filter:none;backdrop-filter:none">'+skinHtml()+'</div></div>'}
 function skinClose(){q5Modal('')}
 (function(){var st=document.createElement('style');st.textContent='html.skinfx *{transition:background-color .35s,color .35s,border-color .35s,box-shadow .35s!important}#skin{min-width:44px;font-size:1.1rem}';document.head.appendChild(st);
-  try{var b=document.getElementById('aa');if(b&&!document.getElementById('skin')){var k=document.createElement('button');k.id='skin';k.type='button';k.textContent='🎨';k.title='Colours';k.setAttribute('aria-label','Change colours');k.onclick=skinOpen;b.parentNode.insertBefore(k,b.nextSibling)}}catch(e){}
+  try{var b=document.getElementById('aa');if(b&&!document.getElementById('skin')){var k=document.createElement('button');k.id='skin';k.type='button';k.textContent='🎨';k.title='Colours';k.setAttribute('aria-label','Change colours');k.onclick=skinOpen}}catch(e){}
   skinApply()})();
+
+
+/* ===== v7: product colour picker (shop) ===== */
+function colHtml(p){var sel=xColSel(p),L=xCols(p),pid=esc(p.id);
+  return '<div class="row sp" style="align-items:center"><h2 style="margin:0">Choose colour</h2><button onclick="colSurprise(\''+pid+'\')" aria-label="Surprise me">✨ Surprise me</button></div>'+
+   '<p class="mut" style="margin:6px 0 4px">'+esc(p.title)+'</p><p style="margin:0 0 12px"><b>'+esc(sel.name)+'</b> · '+esc(xMoney(xUnit(p,sel)))+'</p>'+
+   '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'+L.map(function(c){var on=sel.id===c.id,im=xurl(c.image_url);
+     return '<button type="button" onclick="colPick(\''+pid+'\',\''+esc(c.id)+'\')" aria-pressed="'+on+'" style="display:block;padding:6px;text-align:left;border-radius:16px;min-height:0;'+(on?'outline:3px solid var(--acc);outline-offset:1px':'')+'">'+
+      '<span style="display:block;height:64px;border-radius:12px;background:'+xHex(c.hex)+';border:1px solid rgba(128,128,128,.35);position:relative;overflow:hidden">'+(im?'<img src="'+esc(im)+'" alt="" style="width:100%;height:100%;object-fit:cover;background:#fff">':'')+(im?'<span style="position:absolute;right:6px;bottom:6px;width:14px;height:14px;border-radius:50%;background:'+xHex(c.hex)+';box-shadow:0 0 0 2px #fff"></span>':'')+'</span>'+
+      '<span style="display:block;font-size:.78rem;font-weight:700;margin:6px 2px 0">'+esc(c.name)+(on?' ✓':'')+'</span>'+(xColX(c)>0?'<span class="mut" style="display:block;font-size:.72rem;margin:0 2px 2px">+'+esc(xMoney(xColX(c)))+'</span>':'<span style="display:block;height:4px"></span>')+'</button>'}).join('')+'</div>'+
+   '<div class="row" style="margin-top:16px"><button class="go" style="flex:1" onclick="colClose()">Done</button><button onclick="colClose();ordOpen(\''+pid+'\')">Pre-order this</button></div>'}
+function colOpen(pid){var p=xFind(pid);if(!p)return;q5Modal('');var d=$('q5modal');
+  d.innerHTML='<div class="qmw" role="dialog" aria-modal="true" onclick="if(event.target===this)colClose()"><div class="card" id="v6col" style="max-height:88vh;overflow:auto;background:var(--card);-webkit-backdrop-filter:none;backdrop-filter:none">'+colHtml(p)+'</div></div>'}
+function colPick(pid,cid){var p=xFind(pid);if(!p)return;xPick(pid,cid);var e=$('v6col');if(e)e.innerHTML=colHtml(p);try{navigator.vibrate&&navigator.vibrate(15)}catch(x){}}
+function colSurprise(pid){var p=xFind(pid),L=p?xCols(p):[];if(!L.length)return;var c=L[Math.floor(Math.random()*L.length)];colPick(pid,c.id)}
+function colClose(){q5Modal('')}
+
+
+/* ===== v8: clean, minimal shop ===== */
+(function(){var st=document.createElement('style');st.id='v8css';st.textContent=[
+'.xgrid{display:grid!important;grid-template-columns:1fr!important;gap:20px!important}',
+'@media(min-width:720px){.xgrid{grid-template-columns:repeat(2,1fr)!important}}@media(min-width:1040px){.xgrid{grid-template-columns:repeat(3,1fr)!important}}',
+'.xgrid .card.xp{padding:0!important;overflow:hidden;border:0!important;border-radius:24px!important;background:var(--card)!important;box-shadow:0 1px 2px rgba(15,23,42,.06),0 14px 34px -18px rgba(15,23,42,.35)!important;transform:none!important}',
+'.xgrid .card.xp:hover{transform:none!important}',
+'.xp .xpm{display:grid;place-items:center;aspect-ratio:1/1;padding:18px;background:color-mix(in srgb,var(--ink) 6%,var(--card))}',
+'.xp .xpm img{width:100%;height:100%;max-width:100%;aspect-ratio:auto!important;object-fit:contain;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important}',
+'.xp .xpm .xph{border:0;background:none;color:var(--mut)}',
+'.xp .xpb{padding:16px 18px 14px;display:flex;flex-direction:column;gap:10px}',
+'.xp .xpt{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}',
+'.xp .xpt h2{margin:0;font-size:1.12rem;font-weight:700;line-height:1.25;letter-spacing:-.01em}',
+'.xp .xps{margin:2px 0 0;font-size:.8rem;color:var(--mut);font-weight:600;letter-spacing:.04em;text-transform:uppercase}',
+'.xp .xpd{margin:0;font-size:.92rem;line-height:1.5;color:var(--mut);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
+'.xp .xpd.open{display:block;-webkit-line-clamp:unset}',
+'.xp .xpl{align-self:flex-start;background:none!important;border:0!important;box-shadow:none!important;color:var(--ink)!important;text-decoration:underline;min-height:44px;padding:0 2px!important;width:auto;font-weight:600;font-size:.85rem}',
+'.xp .xpc{width:100%;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:14px;background:transparent!important;border:1px solid var(--line)!important;box-shadow:none!important;min-height:46px;text-align:left;color:var(--ink)!important}',
+'.xp .xpr{display:flex;align-items:center;justify-content:space-between;gap:12px}',
+'.xp .xpr .xpp{font-size:1.35rem;font-weight:800;letter-spacing:-.01em}',
+'.xp .xpr button.go{min-width:132px}',
+'.xp .xpn{display:inline-block;font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:99px;background:color-mix(in srgb,var(--ink) 9%,transparent);color:var(--ink);white-space:nowrap}',
+'.xhero{padding:26px 6px 14px!important}.xhero h1{font-size:clamp(1.55rem,6.4vw,2.2rem)!important;letter-spacing:-.02em}.xhero p.mut{font-size:.98rem!important;max-width:34em;margin-left:auto;margin-right:auto}',
+'#xshop{font-size:1.1rem!important;text-align:left!important;margin:6px 4px 14px!important}',
+'#vmode{font-size:0!important;padding:0!important;width:40px!important;height:40px!important;min-height:0!important;opacity:.5!important;display:flex;align-items:center;justify-content:center}#vmode::before{content:"\\1F4F1";font-size:1.15rem;line-height:1}#vmode:hover,#vmode:focus-visible{opacity:1!important}',
+'#ordm .xstep{display:none}#ordm .xback{background:none!important;border:0!important;box-shadow:none!important;text-decoration:underline;min-height:44px;padding:0!important;width:auto;color:var(--mut)!important;font-weight:600}'
+].join('');document.head.appendChild(st)})();
+function colBtn(p,sc){var n=xCols(p).length;
+  return '<button type="button" class="xpc" onclick="colOpen(\''+esc(p.id)+'\')" aria-haspopup="dialog"><span style="width:30px;height:30px;border-radius:50%;flex:none;background:'+xHex(sc.hex)+';box-shadow:inset 0 0 0 2px var(--card),0 0 0 2px var(--line)"></span><span style="flex:1;min-width:0"><b>'+esc(sc.name)+'</b>'+(xColX(sc)>0?' <span class="mut">+'+esc(xMoney(xColX(sc)))+'</span>':'')+' <span class="mut" style="font-size:.82rem">· '+n+' colours</span></span><span aria-hidden="true" style="font-size:1.3rem;opacity:.45">›</span></button>'}
+xProd=function(p){var st=xStat(p),n=Number(p.stock_count)||0,sc=xColSel(p),img=xurl((sc&&sc.image_url)||p.image_url),multi=((xcms&&xcms.products)||[]).length>1,cn=xCols(p).length,
+  badge=st==='sold_out'?'<span class="xpn">Sold out</span>':st==='low_stock'?'<span class="xpn">Only '+n+' left</span>':'',
+  desc=p.description?xhtml(p.description):'',long=p.description&&String(p.description).length>110;
+  return '<div class="card xp" id="xp_'+esc(p.id)+'"><div class="xpm">'+(img?'<img src="'+esc(img)+'" alt="'+esc(p.title)+(sc?' - '+esc(sc.name):'')+'" loading="lazy">':'<div class="xph">Product photo (1:1)</div>')+'</div><div class="xpb">'+
+  '<div class="xpt"><div><h2>'+esc(p.title)+'</h2>'+(p.tier_name?'<p class="xps">'+esc(p.tier_name)+'</p>':'')+'</div>'+badge+'</div>'+
+  (desc?'<p class="xpd">'+desc+'</p>'+(long?'<button type="button" class="xpl" onclick="var d=this.previousElementSibling;d.classList.toggle(\'open\');this.textContent=d.classList.contains(\'open\')?\'Show less\':\'Read more\'">Read more</button>':''):'')+
+  (cn>1?colBtn(p,sc):(sc?'<div class="xcn">'+xCn(p,sc)+'</div>':''))+
+  '<div class="xpr"><span class="xpp">'+esc(xMoney(xUnit(p,sc)))+'</span>'+(st==='sold_out'?'<button disabled>'+esc(xBL('p_sold','Sold Out'))+'</button>':'<button class="go" onclick="ordOpen(\''+esc(p.id)+'\')">'+esc(xBL('p_order','Pre-order'))+'</button>')+'</div>'+
+  (multi?'<button type="button" class="xpl" style="align-self:center" onclick="cmpOpen(\''+esc(p.id)+'\')">Compare with other bracelets</button>':'')+'</div></div>'};
+/* pre-order form in two short steps */
+var ordOpen10=ordOpen;ordOpen=function(id){ordOpen10.apply(this,arguments);
+  var f=document.querySelector('#ordm .xf');if(!f||f.getAttribute('data-v8'))return;f.setAttribute('data-v8','1');
+  var kids=Array.prototype.slice.call(f.children),s1=document.createElement('div'),s2=document.createElement('div');s2.id='o_s2';s2.className='xstep';s2.style.cssText='display:none;flex-direction:column;gap:12px';
+  var first=null;
+  kids.forEach(function(k){var isS1=k.querySelector&&(k.querySelector('#o_sw')||k.querySelector('#o_qb')),isTot=k.querySelector&&k.querySelector('#o_tot');
+    if(isS1){if(!first){first=k;f.insertBefore(s1,k)}s1.appendChild(k)}else if(isTot){}else s2.appendChild(k)});
+  s1.id='o_s1';s1.style.cssText='display:flex;flex-direction:column;gap:12px';
+  var nb=document.createElement('button');nb.className='go';nb.id='o_next';nb.type='button';nb.style.cssText='width:100%;min-height:50px';nb.textContent='Continue';nb.onclick=function(){ordStep(2)};
+  var bk=document.createElement('button');bk.type='button';bk.className='xback';bk.textContent='← Back';bk.onclick=function(){ordStep(1)};s2.insertBefore(bk,s2.firstChild);
+  f.appendChild(nb);f.appendChild(s2)};
+function ordStep(n){var a=$('o_s1'),b=$('o_s2'),c=$('o_next');if(!a||!b)return;
+  if(n===2){a.style.display='none';c.style.display='none';b.style.display='flex';var i=$('o_n');if(i)setTimeout(function(){i.focus()},30)}
+  else{a.style.display='flex';c.style.display='';b.style.display='none'}}
 
 </script>
 </body>
