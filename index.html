@@ -1121,7 +1121,7 @@ html[data-view="mobile"] .popcard, html[data-view="mobile"] #ordm .card, html[da
   --glass-sh:0 18px 40px -14px rgba(0,0,0,.7);
   --field:rgba(255,255,255,.05);--field-edge:rgba(255,255,255,.16);
   --sheet:rgba(20,22,32,.88);
-  --orb-a:rgba(255,196,0,.14);--orb-b:rgba(52,211,153,.12);--orb-c:rgba(99,102,241,.16);
+  --orb-a:rgba(255,196,0,.12);--orb-b:rgba(99,102,241,.10);--orb-c:rgba(99,102,241,.14);
   --h1-a:#ffffff;--h1-b:#b6c2d6;
 }}
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
@@ -4191,7 +4191,10 @@ function q5Tok(w){if(tsp===null)setTimeout(tsLoad,0);var can=tsp&&tsp.can_cashou
   '<div class="qbtns">'+(feat('gifts')?'<button class="go" onclick="giftOpenUI()">Gift tokens</button>':'')+(mw&&mw.pts_rate>0?'<button onclick="mwOpen(\'convert\')">Get tokens</button>':'')+(can?'<button onclick="tokCash('+tsp.paid+')">Tokens to money</button>':'')+'<button onclick="refreshWallet()">Refresh</button></div></div>'}
 function q5Freeze(){if(wallet&&wallet.frozen)return freeze();q5Ask('Freeze your bracelet? It will stop working at stalls and for gifts until you unfreeze it.',null,freeze)}
 function tGo(id){if(!id&&cdirty){return q5Ask('Leave without saving your card changes?',null,function(){cdirty=false;gEdit=null;gSec='';render();scrollTo(0,0)})}
-  if(!id&&gEdit)gEdit=null;gSec=id;if(id==='lug'&&!lgG.data&&!lgG.err)lgGLoad();render();scrollTo(0,0)}
+  if(!id&&gEdit)gEdit=null;
+  if(gSec==='lug'&&id!=='lug'){lgG.sel=null;lgG.form=null;lgG.tl=null;lgG.open=false}
+  gSec=id;if(id==='lug'){lgG.open=false;lgG.sel=null;lgG.form=null;if(!lgG.data||lgG.err)lgGLoad()}render();scrollTo(0,0)}
+function q5LugBack(){if(lgG.sel||lgG.form){lgG.sel=null;lgG.form=null;lgG.tl=null;render();scrollTo(0,0)}else tGo('')}
 vWallet=function(){
   var h=vWallet10.apply(this,arguments);if(mwMode||!wallet)return h;
   var w=wallet,live=w.live!==false,by={card:[],qr:[],stats:[],chat:[],mon:[],welcome:[],lost:[],plan:[],pin:[],inactive:[],tok:[],acts:[],hist:[],other:[],out:[]};
@@ -4200,9 +4203,9 @@ vWallet=function(){
   var S={card:['My business card',by.card.join('')],qr:['Share my card',by.qr.join('')],stats:['Card activity',by.stats.join('')],lost:['Lost mode',by.lost.join('')],plan:['My plan',by.plan.join('')],
     pin:['PIN and security',by.pin.join('')+'<div class="card"><h2>Display</h2><p class="mut">Make text bigger if it is hard to read.</p><button onclick="aaTap();render()" style="width:100%">Text size: '+['Normal','Larger','Largest'][+ld('fb-tx')||0]+' (tap to change)</button></div>'],
     acts:['Activities',by.acts.join('')],hist:['History',by.hist.join('')]};
-  if(lugOK)S.lug=['Luggage',vLugGuest().replace(/<button onclick="lgGClose\(\)">Back<\/button>/,'')];
+  if(lugOK)S.lug=['Luggage',gSec==='lug'?vLugGuest().replace(/<button onclick="lgGClose\(\)">Back<\/button>/,''):'x'];
   if(!live){delete S.acts;delete S.hist}
-  if(gSec&&S[gSec])return q5Bar(S[gSec][0],"tGo('')")+S[gSec][1];
+  if(gSec&&S[gSec])return q5Bar(S[gSec][0],gSec==='lug'?"q5LugBack()":"tGo('')")+S[gSec][1];
   gSec='';
   var T=function(id,ic,lb,sub,bd){return S[id]&&S[id][1]?q5Tile('tGo',id,ic,lb,sub,bd):''},bags=(lgG.data&&lgG.data.bags)||[],prob=bags.filter(function(b){return b.problem||b.found_at}).length;
   var plan=(function(){try{return planKey(w.plan)==='pro'?'XEND Pro':'XEND Base'}catch(e){return 'Your plan and upgrades'}})();
@@ -4296,10 +4299,56 @@ async function lgAlertTick(){if(lgAlertOff||!wallet||!key||!wpin||wmode!=='open'
       if(!first&&seen[b.id]!==undefined&&seen[b.id]!==sig){var m=b.name+': '+b.status+(b.place?' · '+b.place:'');msgs.push({m:m,prob:b.problem||!!b.found_at,id:b.id})}});
     sv('lg-seen',ns);
     msgs.forEach(function(x){toast(x.m,!x.prob);notify(x.prob?'Luggage needs attention':'Luggage update',x.m,'bag-'+x.id,x.prob?[300,100,300,100,300]:[150,80,150],x.prob)});
-    if(msgs.length||gTab==='lug')render()}
+    if(msgs.length||(gSec==='lug'&&!lgG.form&&!lgG.sel))render()}
   catch(e){if(/not available|schema cache|Could not find|bags_get/i.test(e.message))lgAlertOff=true}}
 setInterval(lgAlertTick,60000);setTimeout(lgAlertTick,8000);
 var guestOut11=guestOut;guestOut=function(){sv('lg-seen',null);lgAlertOff=false;return guestOut11.apply(this,arguments)};
+
+
+/* ===== v6: Colour studio (per-person look: presets, accent colour, surprise me) ===== */
+var SKINS=[
+ {id:'auto',n:'Auto',d:'Phone setting + admin colours',pv:['#0b0b0b','#171717','#ffc400']},
+ {id:'gold',n:'Midnight Gold',m:'dark',v:{bg:'#0a0c14',card:'#151926',ink:'#ffffff',mut:'#aab3c5',line:'#262c3d',edge:'#3a4260',acc:'#ffc400',onacc:'#111111',hdr:'#0a0c14'}},
+ {id:'ocean',n:'Ocean',m:'dark',v:{bg:'#06121c',card:'#0d2233',ink:'#f2f9ff',mut:'#9db6c9',line:'#1b3a52',edge:'#2b5877',acc:'#38bdf8',onacc:'#04202f',hdr:'#06121c'}},
+ {id:'emerald',n:'Emerald',m:'dark',v:{bg:'#05130e',card:'#0c2218',ink:'#f1fff8',mut:'#9bc4b0',line:'#18392a',edge:'#2a5c44',acc:'#34d399',onacc:'#04251a',hdr:'#05130e'}},
+ {id:'sunset',n:'Sunset',m:'dark',v:{bg:'#150a10',card:'#25131d',ink:'#fff5f0',mut:'#d1a9a0',line:'#3d1f2c',edge:'#6a3347',acc:'#fb923c',onacc:'#2a1204',hdr:'#150a10'}},
+ {id:'royal',n:'Royal',m:'dark',v:{bg:'#0d0a1c',card:'#1a1530',ink:'#f6f3ff',mut:'#b5aad6',line:'#2e2650',edge:'#4a3d80',acc:'#a78bfa',onacc:'#1b1033',hdr:'#0d0a1c'}},
+ {id:'day',n:'Daylight',m:'light',v:{bg:'#f3f5fb',card:'#ffffff',ink:'#0f172a',mut:'#51607a',line:'#e1e6f0',edge:'#cdd5e6',acc:'#ffc400',onacc:'#111111',hdr:'#111111'}},
+ {id:'rose',n:'Rose',m:'light',v:{bg:'#fff4f6',card:'#ffffff',ink:'#2a0f17',mut:'#7a4b57',line:'#f4d9df',edge:'#eab7c2',acc:'#e11d48',onacc:'#ffffff',hdr:'#2a0f17'}},
+ {id:'mint',n:'Mint',m:'light',v:{bg:'#effaf5',card:'#ffffff',ink:'#08241a',mut:'#4a6b5d',line:'#d5eadf',edge:'#b4d9c6',acc:'#059669',onacc:'#ffffff',hdr:'#08241a'}},
+ {id:'sky',n:'Sky',m:'light',v:{bg:'#eff7ff',card:'#ffffff',ink:'#0a2036',mut:'#4a6580',line:'#d6e6f5',edge:'#b6d1ea',acc:'#0284c7',onacc:'#ffffff',hdr:'#0a2036'}}];
+var SKIN_ACC=['#ffc400','#38bdf8','#34d399','#fb923c','#a78bfa','#f43f5e','#22d3ee','#84cc16'];
+function skinGet(){var s=ld('fb-skin');return s&&typeof s==='object'?s:{id:'auto',acc:''}}
+function skinDef(id){return SKINS.filter(function(s){return s.id===id})[0]||SKINS[0]}
+function skinCss(s){var d=skinDef(s.id),c='',ok=/^#[0-9a-f]{6}$/i.test(s.acc||'');var tok='button.go{background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 82%,#fff),var(--acc))!important;color:var(--onacc)!important;border-color:transparent!important;box-shadow:0 8px 20px -8px color-mix(in srgb,var(--acc) 70%,transparent)!important}.card:has(.bal):not(.xmny),.popcard{background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 78%,#fff) 0%,var(--acc) 48%,color-mix(in srgb,var(--acc) 82%,#000) 100%)!important;box-shadow:0 22px 44px -16px color-mix(in srgb,var(--acc) 60%,transparent),inset 0 1px 0 rgba(255,255,255,.6)!important}.card:has(.bal):not(.xmny) .tag{background:var(--onacc);color:var(--acc)}',
+    mon='.card.xmny{background:linear-gradient(145deg,color-mix(in srgb,var(--acc) 26%,var(--card)),var(--card))!important;color:var(--ink)!important;border:1px solid color-mix(in srgb,var(--acc) 40%,transparent)!important;box-shadow:0 16px 32px -12px color-mix(in srgb,var(--acc) 35%,transparent)!important}.card.xmny .mut{color:var(--mut)!important}.card.xmny .bal{color:var(--acc)!important;background:none!important;-webkit-text-fill-color:var(--acc)!important}.card.xmny button{background:var(--glass-a)!important;color:var(--ink)!important;border:1px solid var(--line)!important}.card.xmny button.go{background:var(--acc)!important;color:var(--onacc)!important}.card.xmny .tag{background:color-mix(in srgb,var(--acc) 20%,transparent);color:var(--acc);border-color:transparent}';
+  if(d.v){var v=Object.assign({},d.v),dk=d.m==='dark';if(ok){v.acc=s.acc;v.onacc=lum(s.acc)>.4?'#111111':'#ffffff'}
+    c+=':root{color-scheme:'+d.m+';'+Object.keys(v).map(function(k){return '--'+k+':'+v[k]+';'}).join('')+
+     (dk?'--glass-a:rgba(255,255,255,.08);--glass-b:rgba(255,255,255,.03);--glass-edge:rgba(255,255,255,.12);--glass-hi:rgba(255,255,255,.14);--glass-sh:0 18px 40px -14px rgba(0,0,0,.7);--field:rgba(255,255,255,.05);--field-edge:rgba(255,255,255,.16);':
+         '--glass-a:rgba(255,255,255,.85);--glass-b:rgba(255,255,255,.55);--glass-edge:rgba(255,255,255,.9);--glass-hi:rgba(255,255,255,.95);--glass-sh:0 12px 34px -12px rgba(30,41,90,.18),0 2px 6px rgba(15,23,42,.05);--field:rgba(255,255,255,.8);--field-edge:rgba(100,116,139,.35);')+
+     '--sheet:color-mix(in srgb,var(--card) 92%,transparent);--orb-a:color-mix(in srgb,var(--acc) '+(dk?16:26)+'%,transparent);--orb-b:color-mix(in srgb,var(--acc) '+(dk?9:14)+'%,transparent);--orb-c:color-mix(in srgb,var(--ink) '+(dk?6:5)+'%,transparent);--h1-a:var(--ink);--h1-b:var(--mut);--onbg:'+(dk?'var(--acc)':'var(--ink)')+';--onfg:var(--onacc)}'+
+     'header{background:var(--hdr)!important}.ic{background:var(--hdr);color:var(--acc)}button.go,.ok,.xban,.popcard,#toast,.card:has(.bal){color:var(--onacc)}body{background:var(--bg)}'+tok+mon}
+  else if(ok){c+=':root{--acc:'+s.acc+';--onacc:'+(lum(s.acc)>.4?'#111111':'#ffffff')+'}'+tok}
+  return c}
+function skinApply(){var s=skinGet(),e=document.getElementById('v6skin');if(!e){e=document.createElement('style');e.id='v6skin';document.head.appendChild(e)}
+  e.textContent=skinCss(s);var d=skinDef(s.id),mt=document.querySelector('meta[name=theme-color]');if(mt&&d.v)mt.setAttribute('content',d.v.hdr)}
+function skinSet(id,acc){var s=skinGet();if(id!==undefined&&id!==null)s.id=id;if(acc!==undefined)s.acc=acc;sv('fb-skin',s);
+  var r=document.documentElement;r.classList.add('skinfx');clearTimeout(window.__skt);window.__skt=setTimeout(function(){r.classList.remove('skinfx')},500);skinApply();skinPaint()}
+function skinSurprise(){var d=SKINS.filter(function(s){return s.v}),k=d[Math.floor(Math.random()*d.length)],a=Math.random()<.5?SKIN_ACC[Math.floor(Math.random()*SKIN_ACC.length)]:'';skinSet(k.id,a);try{navigator.vibrate&&navigator.vibrate(20)}catch(e){}}
+function skinSw(s){var v=s.v,bg=v?v.bg:s.pv[0],cd=v?v.card:s.pv[1],ac=v?v.acc:s.pv[2];
+  return '<span style="display:block;height:54px;border-radius:12px;background:'+bg+';padding:8px;box-sizing:border-box;border:1px solid rgba(128,128,128,.35);position:relative;overflow:hidden"><span style="display:block;height:20px;border-radius:7px;background:'+cd+'"></span><span style="position:absolute;left:8px;bottom:8px;width:34px;height:10px;border-radius:99px;background:'+ac+'"></span><span style="position:absolute;right:8px;bottom:8px;width:10px;height:10px;border-radius:50%;background:'+ac+';opacity:.55"></span></span>'}
+function skinHtml(){var s=skinGet(),cur=/^#[0-9a-f]{6}$/i.test(s.acc||'')?s.acc:(skinDef(s.id).v?skinDef(s.id).v.acc:'#ffc400');
+  return '<div class="row sp" style="align-items:center"><h2 style="margin:0">Colours</h2><button onclick="skinSurprise()" aria-label="Surprise me">✨ Surprise me</button></div><p class="mut" style="margin:6px 0 12px">Pick a look. It is saved on this phone only.</p>'+
+   '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'+SKINS.map(function(k){var on=s.id===k.id;return '<button type="button" onclick="skinSet(\''+k.id+'\')" aria-pressed="'+on+'" style="display:block;padding:6px;text-align:left;border-radius:16px;min-height:0;'+(on?'outline:3px solid var(--acc);outline-offset:1px':'')+'">'+skinSw(k)+'<span style="display:block;font-size:.78rem;font-weight:700;margin:6px 2px 2px">'+k.n+(on?' ✓':'')+'</span></button>'}).join('')+'</div>'+
+   '<div class="qh" style="margin:16px 0 8px;opacity:.8;font-weight:700">Accent colour</div><div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">'+SKIN_ACC.map(function(c){return '<button type="button" aria-label="Accent '+c+'" onclick="skinSet(null,\''+c+'\')" style="width:40px!important;height:40px!important;flex:none;min-height:0;padding:0;border-radius:50%;background:'+c+';border:3px solid '+(s.acc===c?'var(--ink)':'transparent')+'"></button>'}).join('')+
+   '<label style="display:inline-flex;align-items:center;gap:6px"><input type="color" value="'+cur+'" oninput="skinSet(null,this.value)" aria-label="Pick any colour" style="width:44px!important;height:44px!important;min-height:0;flex:none;padding:2px;border-radius:50%;background:none"><span class="mut" style="font-size:.8rem">Any</span></label>'+(s.acc?'<button type="button" onclick="skinSet(null,\'\')">Reset</button>':'')+'</div>'+
+   '<div class="row" style="margin-top:16px"><button class="go" style="flex:1" onclick="skinClose()">Done</button><button onclick="skinSet(\'auto\',\'\')">Back to default</button></div>'}
+function skinPaint(){var e=document.getElementById('v6sheet');if(e)e.innerHTML=skinHtml()}
+function skinOpen(){q5Modal('');var d=$('q5modal');d.innerHTML='<div class="qmw" role="dialog" aria-modal="true" onclick="if(event.target===this)skinClose()"><div class="card" id="v6sheet" style="max-height:88vh;overflow:auto;background:var(--card);-webkit-backdrop-filter:none;backdrop-filter:none">'+skinHtml()+'</div></div>'}
+function skinClose(){q5Modal('')}
+(function(){var st=document.createElement('style');st.textContent='html.skinfx *{transition:background-color .35s,color .35s,border-color .35s,box-shadow .35s!important}#skin{min-width:44px;font-size:1.1rem}';document.head.appendChild(st);
+  try{var b=document.getElementById('aa');if(b&&!document.getElementById('skin')){var k=document.createElement('button');k.id='skin';k.type='button';k.textContent='🎨';k.title='Colours';k.setAttribute('aria-label','Change colours');k.onclick=skinOpen;b.parentNode.insertBefore(k,b.nextSibling)}}catch(e){}
+  skinApply()})();
 
 </script>
 </body>
